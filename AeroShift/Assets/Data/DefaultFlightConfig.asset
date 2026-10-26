@@ -14,8 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FlightConfig
   horizontalLimit: 5
   verticalLimit: 3
-  smoothTime: 0.12
-  maxRoll: 25
-  maxPitch: 15
-  tiltSmooth: 8
+  smoothTime: 0.15
   sensitivity: 1
+  baseSpeed: 12
+  maxSpeed: 24
+  minSpeed: 8
+  maxYaw: 25
+  maxPitch: 20
+  rotationSmooth: 4
+  turnSpeed: 70
+  acceleration: 4
+  maxRoll: 35
+  rollSmooth: 5

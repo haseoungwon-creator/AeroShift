@@ -9,13 +9,22 @@ public class FlightConfig : ScriptableObject
     public float verticalLimit = 3f;
 
     [Header("Movement")]
-    public float smoothTime = 0.12f;
-
-    [Header("Visual Tilt")]
-    public float maxRoll = 25f;
-    public float maxPitch = 15f;
-    public float tiltSmooth = 8f;
-
-    [Header("Input")]
+    public float smoothTime = 0.15f;
     public float sensitivity = 1f;
+    public float baseSpeed = 12f;
+    public float maxSpeed = 24f;
+    public float minSpeed = 8f;
+
+    [Header("Flight Rotation")]
+    public float maxYaw = 25f;
+    public float maxPitch = 20f;
+    public float rotationSmooth = 4f;
+    public float turnSpeed = 70f;
+
+    [Header("Acceleration")]
+    public float acceleration = 4f;
+
+    [Header("Visual Banking")]
+    public float maxRoll = 35f;
+    public float rollSmooth = 5f;
 }
