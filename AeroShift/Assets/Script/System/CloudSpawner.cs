@@ -3,17 +3,17 @@ using UnityEngine;
 
 public class CloudSpawner : MonoBehaviour
 {
-    [SerializeField] CloudPool cloudPool;
-    [SerializeField] float spawnWidth = 200f;
-    [SerializeField] float spawnDistance = 1400f;
-    [SerializeField] float spawnInterval = 0.1f;
-    [SerializeField] float moveSpeed = 20f;
-    [SerializeField] float despawnDistance = 70f;
-    [SerializeField] float height3D = 80f;
-    [SerializeField] float height2D = -20f;
-    [SerializeField] WorldMovement worldMovement;
+    [SerializeField] private PoolManager poolManager;
+    [SerializeField] private float spawnWidth = 200f;
+    [SerializeField] private float spawnDistance = 1400f;
+    [SerializeField] private float spawnInterval = 0.1f;
+    [SerializeField] private float moveSpeed = 20f;
+    [SerializeField] private float despawnDistance = 70f;
+    [SerializeField] private float height3D = 80f;
+    [SerializeField] private float height2D = -20f;
+    [SerializeField] private WorldMovement worldMovement;
 
-    private List<GameObject> activeClouds = new List<GameObject>(800);
+    private readonly List<GameObject> activeClouds = new List<GameObject>(800);
     private float spawnTimer;
     private bool isInitialized;
     private bool is2D;
@@ -34,45 +34,26 @@ public class CloudSpawner : MonoBehaviour
 
     private void InitializeClouds()
     {
-        if (cloudPool == null)
+        if (poolManager == null || worldMovement == null || spawnInterval <= 0f || moveSpeed <= 0f)
+        {
+            Debug.LogError("CloudSpawner 설정을 확인하세요.", this);
+            enabled = false;
             return;
+        }
 
-        float distance =
-            spawnDistance + despawnDistance;
-
-        int count =
-            Mathf.CeilToInt(
-                distance /
-                (moveSpeed * spawnInterval));
+        float distance = spawnDistance + despawnDistance;
+        int count = Mathf.CeilToInt(distance / (moveSpeed * spawnInterval));
 
         for (int i = 0; i < count; i++)
         {
-            GameObject cloud =
-                cloudPool.GetCloud();
+            float z = transform.position.z + spawnDistance - moveSpeed * spawnInterval * i;
+            float x = transform.position.x + Random.Range(-spawnWidth * 0.5f, spawnWidth * 0.5f);
+            Vector3 spawnPosition = new Vector3(x, GetCloudHeight(), z);
+
+            GameObject cloud = poolManager.Rent(PoolId.Cloud, spawnPosition);
 
             if (cloud == null)
                 break;
-
-            float z =
-                transform.position.z +
-                spawnDistance -
-                moveSpeed * spawnInterval * i;
-
-            float x =
-                transform.position.x +
-                Random.Range(
-                    -spawnWidth * 0.5f,
-                    spawnWidth * 0.5f);
-
-            Vector3 spawnPosition =
-                new Vector3(
-                    x,
-                    GetCloudHeight(),
-                    z);
-
-            cloud.transform.SetPositionAndRotation(
-                spawnPosition,
-                cloud.transform.rotation);
 
             activeClouds.Add(cloud);
         }
@@ -89,53 +70,32 @@ public class CloudSpawner : MonoBehaviour
 
         spawnTimer -= spawnInterval;
 
-        GameObject cloud =
-            cloudPool.GetCloud();
+        float x = transform.position.x + Random.Range(-spawnWidth * 0.5f, spawnWidth * 0.5f);
+        Vector3 spawnPosition = new Vector3(x, GetCloudHeight(), transform.position.z + spawnDistance);
 
-        if (cloud == null)
-            return;
+        GameObject cloud = poolManager.Rent(PoolId.Cloud, spawnPosition);
 
-        float x =
-            transform.position.x +
-            Random.Range(
-                -spawnWidth * 0.5f,
-                spawnWidth * 0.5f);
-
-        Vector3 spawnPosition =
-            new Vector3(
-                x,
-                GetCloudHeight(),
-                transform.position.z + spawnDistance);
-
-        cloud.transform.SetPositionAndRotation(
-            spawnPosition,
-            cloud.transform.rotation);
-
-        activeClouds.Add(cloud);
+        if (cloud != null)
+            activeClouds.Add(cloud);
     }
 
     private void MoveClouds()
     {
         for (int i = activeClouds.Count - 1; i >= 0; i--)
         {
-            GameObject cloud =
-                activeClouds[i];
+            GameObject cloud = activeClouds[i];
 
             if (cloud == null)
             {
                 activeClouds.RemoveAt(i);
                 continue;
             }
-            
-            cloud.transform.position +=
-                Vector3.back *
-                (moveSpeed + worldMovement.CurrentSpeed) *
-                Time.deltaTime;
 
-            if (cloud.transform.position.z <
-                transform.position.z - despawnDistance)
+            cloud.transform.position += Vector3.back * (moveSpeed + worldMovement.CurrentSpeed) * Time.deltaTime;
+
+            if (cloud.transform.position.z < transform.position.z - despawnDistance)
             {
-                cloudPool.ReturnCloud(cloud);
+                poolManager.Return(cloud);
                 activeClouds.RemoveAt(i);
             }
         }
@@ -162,17 +122,13 @@ public class CloudSpawner : MonoBehaviour
     {
         for (int i = 0; i < activeClouds.Count; i++)
         {
-            GameObject cloud =
-                activeClouds[i];
+            GameObject cloud = activeClouds[i];
 
             if (cloud == null)
                 continue;
 
-            Vector3 position =
-                cloud.transform.position;
-
+            Vector3 position = cloud.transform.position;
             position.y = height;
-
             cloud.transform.position = position;
         }
     }
