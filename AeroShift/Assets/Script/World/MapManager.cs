@@ -15,6 +15,8 @@ public sealed class MapManager : MonoBehaviour
     [SerializeField] private Transform player;
     [SerializeField] private PoolManager poolManager;
     [SerializeField] private ResourceManager resourceManager;
+    [SerializeField] private WorldMovement worldMovement;
+    [SerializeField] private PlayerRewind playerRewind;
 
     [Header("Chunk Layout")]
     [SerializeField, Min(1f)] private float chunkLength = 80f;
@@ -68,6 +70,11 @@ public sealed class MapManager : MonoBehaviour
     private GameObject transitionWall;
     private bool transitionWallWarned;
 
+    private float LogicalPlayerZ => player == null ? 0f :
+        player.position.z - (worldMovement != null ? worldMovement.transform.position.z : 0f);
+
+    private Vector3 WorldOrigin => worldMovement != null ? worldMovement.transform.position : Vector3.zero;
+
     public int CurrentSeed => seed;
     public int NextChunkIndex => nextChunkIndex;
     public int ActiveChunkCount => activeChunks.Count;
@@ -77,7 +84,7 @@ public sealed class MapManager : MonoBehaviour
     public int TotalFailedSpawnAttempts { get; private set; }
     public float ChunkLength => chunkLength;
     public bool HasRequiredCoverage => initialized && player != null &&
-        (double)nextChunkIndex * chunkLength >= (double)player.position.z + forwardChunkCount * chunkLength;
+        (double)nextChunkIndex * chunkLength >= (double)LogicalPlayerZ + forwardChunkCount * chunkLength;
 
     private void Start()
     {
@@ -86,6 +93,9 @@ public sealed class MapManager : MonoBehaviour
 
         if (resourceManager == null)
             resourceManager = FindFirstObjectByType<ResourceManager>();
+
+        if (worldMovement == null)
+            worldMovement = FindFirstObjectByType<WorldMovement>();
 
         if (player == null || poolManager == null || resourceManager == null)
         {
@@ -170,7 +180,7 @@ public sealed class MapManager : MonoBehaviour
 
     private void Update()
     {
-        if (!initialized || !is3DMapActive)
+        if (!initialized || !is3DMapActive || (playerRewind != null && playerRewind.IsRewinding))
             return;
 
         using (UpdateMarker.Auto())
@@ -184,7 +194,7 @@ public sealed class MapManager : MonoBehaviour
 
     private void InitializeAtPlayerPosition()
     {
-        initialChunkIndex = Mathf.FloorToInt(player.position.z / chunkLength);
+        initialChunkIndex = Mathf.FloorToInt(LogicalPlayerZ / chunkLength);
         nextChunkIndex = initialChunkIndex;
         pendingSafeChunks = 0;
         poolExhaustionWarned = false;
@@ -198,7 +208,7 @@ public sealed class MapManager : MonoBehaviour
     {
         using (RecycleMarker.Auto())
         {
-            float releaseBeforeZ = player.position.z - keepBehindDistance;
+            float releaseBeforeZ = LogicalPlayerZ - keepBehindDistance;
 
             while (activeChunks.Count > 0 && activeChunks.Peek().EndZ < releaseBeforeZ)
             {
@@ -219,7 +229,7 @@ public sealed class MapManager : MonoBehaviour
         if (transitionRequested && nextChunkIndex > transitionLastChunkIndex)
             return;
 
-        double desiredEndZ = (double)player.position.z + forwardChunkCount * chunkLength;
+        double desiredEndZ = (double)LogicalPlayerZ + forwardChunkCount * chunkLength;
         int spawnedThisCall = 0;
 
         while ((double)nextChunkIndex * chunkLength < desiredEndZ && spawnedThisCall < maxCount)
@@ -262,17 +272,20 @@ public sealed class MapManager : MonoBehaviour
                 ChunkSeedUtility.ShouldRotate180(seed, nextChunkIndex);
             float startZ = nextChunkIndex * chunkLength;
             float placementZ = rotated ? startZ + chunkLength : startZ;
-            Vector3 position = new Vector3(mapOriginXY.x, mapOriginXY.y, placementZ);
+            Vector3 position = WorldOrigin + new Vector3(mapOriginXY.x, mapOriginXY.y, placementZ);
             Quaternion rotation = rotated ? Quaternion.Euler(0f, 180f, 0f) : Quaternion.identity;
             GameObject instance = poolManager.Rent(id, position, rotation, variants[prefabIndex]);
 
             if (instance == null)
                 return false;
 
-            if (instance.TryGetComponent(out MapChunk mapChunk))
-            {
-                mapChunk.SetChunkData(nextChunkIndex, startZ, chunkLength, safe, rotated);
-            }
+            if (worldMovement != null)
+                instance.transform.SetParent(worldMovement.transform, true);
+
+            if (!instance.TryGetComponent(out MapChunk mapChunk))
+                mapChunk = instance.AddComponent<MapChunk>();
+
+            mapChunk.SetChunkData(nextChunkIndex, startZ, chunkLength, safe, rotated);
 
             activeChunks.Enqueue(new ActiveChunk(instance, startZ + chunkLength));
 
@@ -419,7 +432,7 @@ public sealed class MapManager : MonoBehaviour
         int requiredCount = transitionLastChunkIndex - transitionFirstChunkIndex + 1;
 
         return transitionSafeChunksPlaced >= requiredCount &&
-            (double)player.position.z >= (double)transitionFirstChunkIndex * chunkLength;
+            (double)LogicalPlayerZ >= ((double)transitionFirstChunkIndex - 0.5d) * chunkLength;
     }
 
     public void HideMaps()
@@ -454,8 +467,11 @@ public sealed class MapManager : MonoBehaviour
             return;
 
         float wallZ = ((float)transitionLastChunkIndex + 1f) * chunkLength + transitionWallOffset;
-        Vector3 wallPosition = new Vector3(mapOriginXY.x, mapOriginXY.y, wallZ);
+        Vector3 wallPosition = WorldOrigin + new Vector3(mapOriginXY.x, mapOriginXY.y, wallZ);
         transitionWall = poolManager.Rent(PoolId.TransitionWall, wallPosition, Quaternion.identity);
+
+        if (transitionWall != null && worldMovement != null)
+            transitionWall.transform.SetParent(worldMovement.transform, true);
 
         if (transitionWall == null && !transitionWallWarned)
         {

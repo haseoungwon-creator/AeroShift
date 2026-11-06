@@ -1115,7 +1115,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74ce5976e680a1048ad6d57078878bb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PoolManager
-  resourceManager: {fileID: 0}
+  resourceManager: {fileID: 1808679688}
   groups:
   - id: 0
     parent: {fileID: 435030245}
@@ -1124,32 +1124,55 @@ MonoBehaviour:
     resourceInitialCount: 300
     resourceMaxCount: 600
     resourceExpandWhenEmpty: 1
-    variants:
-    - prefab: {fileID: 100000, guid: dd8f42ae221df2c4a94f730fc3182b75, type: 3}
-      initialCount: 50
-      maxCount: 100
-      expandWhenEmpty: 1
-    - prefab: {fileID: 100000, guid: 38cd6975161771e48b20626122cea000, type: 3}
-      initialCount: 50
-      maxCount: 100
-      expandWhenEmpty: 1
-    - prefab: {fileID: 100000, guid: 0b5442710dcef8a44ae4b6c746ae08dc, type: 3}
-      initialCount: 50
-      maxCount: 100
-      expandWhenEmpty: 1
-    - prefab: {fileID: 100000, guid: f52466d5b47b6a640a949632c0a9ff6d, type: 3}
-      initialCount: 50
-      maxCount: 100
-      expandWhenEmpty: 1
-    - prefab: {fileID: 100000, guid: c446a98c9e5148c46988e53eeaef0a9e, type: 3}
-      initialCount: 50
-      maxCount: 100
-      expandWhenEmpty: 1
-    - prefab: {fileID: 100000, guid: 69f7735d8518b8a438dd699d12a4ca43, type: 3}
-      initialCount: 50
-      maxCount: 100
-      expandWhenEmpty: 1
+    variants: []
+    maxRuntimeCreationsPerFrame: 300
+    enableAutoShrink: 1
+    resourceMinRetainedCount: 50
+    idleSecondsBeforeShrink: 20
+    shrinkCheckIntervalSeconds: 5
+    maxDestroysPerCheck: 10
+  - id: 2
+    parent: {fileID: 2136591282}
+    prefabSource: 1
+    resourcesFolder: 
+    resourceInitialCount: 28
+    resourceMaxCount: 35
+    resourceExpandWhenEmpty: 1
+    variants: []
     maxRuntimeCreationsPerFrame: 2
+    enableAutoShrink: 1
+    resourceMinRetainedCount: 28
+    idleSecondsBeforeShrink: 10
+    shrinkCheckIntervalSeconds: 2
+    maxDestroysPerCheck: 2
+  - id: 1
+    parent: {fileID: 1731601333}
+    prefabSource: 1
+    resourcesFolder: 
+    resourceInitialCount: 3
+    resourceMaxCount: 5
+    resourceExpandWhenEmpty: 1
+    variants: []
+    maxRuntimeCreationsPerFrame: 2
+    enableAutoShrink: 1
+    resourceMinRetainedCount: 3
+    idleSecondsBeforeShrink: 6
+    shrinkCheckIntervalSeconds: 2
+    maxDestroysPerCheck: 1
+  - id: 3
+    parent: {fileID: 692672769}
+    prefabSource: 1
+    resourcesFolder: 
+    resourceInitialCount: 1
+    resourceMaxCount: 2
+    resourceExpandWhenEmpty: 1
+    variants: []
+    maxRuntimeCreationsPerFrame: 1
+    enableAutoShrink: 0
+    resourceMinRetainedCount: 1
+    idleSecondsBeforeShrink: 60
+    shrinkCheckIntervalSeconds: 10
+    maxDestroysPerCheck: 2
 --- !u!4 &318424435
 Transform:
   m_ObjectHideFlags: 0
@@ -2967,6 +2990,37 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 680340722}
   m_CullTransparentMesh: 1
+--- !u!1 &692672768
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 692672769}
+  m_Layer: 0
+  m_Name: TransitionWall
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &692672769
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 692672768}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1692194059}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &695156781
 GameObject:
   m_ObjectHideFlags: 0
@@ -3368,17 +3422,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2eb22d2b6aa950f4aa4b98e735c44493, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapManager
-  mapPool: {fileID: 774914388}
-  wallPool: {fileID: 774914385}
   player: {fileID: 6349540993517378987}
-  mapLength: 80
-  forwardMapCount: 6
-  safeMapCount: 3
-  worldSpeed: 30
-  keepBegindDistance: 250
-  worldMovement: {fileID: 774914384}
-  wallDistance: 30
-  playerRewind: {fileID: 6349540993517379000}
+  poolManager: {fileID: 0}
+  resourceManager: {fileID: 0}
+  worldMovement: {fileID: 0}
+  playerRewind: {fileID: 0}
+  chunkLength: 80
+  mapOriginXY: {x: 0, y: 0}
+  forwardChunkCount: 6
+  startingSafeChunkCount: 3
+  keepBehindDistance: 160
+  maxSpawnsPerFrame: 2
+  prepareLookaheadChunks: 4
+  transitionSafeChunkCount: 3
+  spawnTransitionWall: 1
+  transitionWallOffset: 30
+  seed: 20261027
+  allow180DegreeRotation: 0
 --- !u!4 &774914390
 Transform:
   m_ObjectHideFlags: 0
@@ -4253,9 +4313,11 @@ MonoBehaviour:
   height3D: 80
   height2D: -20
   worldMovement: {fileID: 774914384}
+  maxInitialPlacementsPerFrame: 50
+  maxStalledFrames: 120
   enableDistanceCulling: 1
   cloudLayerName: Cloud
-  cloudCullDistance: 10
+  cloudCullDistance: 900
   cullingCameras:
   - {fileID: 330585545}
 --- !u!4 &1028732952
@@ -5857,7 +5919,41 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 435030245}
+  - {fileID: 2136591282}
+  - {fileID: 1731601333}
+  - {fileID: 692672769}
   m_Father: {fileID: 1808679687}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1731601332
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1731601333}
+  m_Layer: 0
+  m_Name: SafeMap
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1731601333
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1731601332}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1692194059}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1808679686
 GameObject:
@@ -5911,16 +6007,10 @@ MonoBehaviour:
     resourcesFolder: Cloud
   - poolId: 1
     resourcesFolder: SafeMap
-  - poolId: 2
-    resourcesFolder: NormalMap
   - poolId: 3
     resourcesFolder: TransitionWall
-  - poolId: 4
-    resourcesFolder: Missile
-  - poolId: 5
-    resourcesFolder: MissileWarning
-  - poolId: 6
-    resourcesFolder: Effect
+  - poolId: 2
+    resourcesFolder: NormalMap
 --- !u!1 &1872063680
 GameObject:
   m_ObjectHideFlags: 0
@@ -6308,6 +6398,37 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 593564960}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2136591281
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2136591282}
+  m_Layer: 0
+  m_Name: NormalMap
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2136591282
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2136591281}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1692194059}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &6349540993517378987 stripped
 Transform:

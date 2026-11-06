@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 
 public class MapPool : MonoBehaviour
@@ -14,6 +13,9 @@ public class MapPool : MonoBehaviour
 
     private void Awake()
     {
+        if (!enabled)
+            return;
+
         CreateSafeMapPool();
         CreateMapPool();
     }
@@ -23,7 +25,7 @@ public class MapPool : MonoBehaviour
         if (safeMapPrefab == null)
             return;
 
-        for (int i = 0;i < initialPoolSize; i++)
+        for (int i = 0; i < initialPoolSize; i++)
         {
             GameObject map = Instantiate(safeMapPrefab, transform);
             map.SetActive(false);
@@ -36,7 +38,7 @@ public class MapPool : MonoBehaviour
         if (mapPrefabs == null || mapPrefabs.Length == 0)
             return;
 
-        for(int i = 0; i < mapPrefabs.Length; i++)
+        for (int i = 0; i < mapPrefabs.Length; i++)
         {
             Queue<GameObject> pool = new Queue<GameObject>();
             mapPools.Add(pool);
@@ -44,7 +46,7 @@ public class MapPool : MonoBehaviour
             if (mapPrefabs[i] == null)
                 continue;
 
-            for(int j = 0; j < initialPoolSize; j++)
+            for (int j = 0; j < initialPoolSize; j++)
             {
                 GameObject map = Instantiate(mapPrefabs[i], transform);
                 map.SetActive(false);
@@ -55,7 +57,7 @@ public class MapPool : MonoBehaviour
 
     public GameObject GetSafeMap()
     {
-        if(safeMapPool.Count == 0) return null;
+        if (safeMapPool.Count == 0) return null;
 
         GameObject map = safeMapPool.Dequeue();
         map.SetActive(true);
@@ -64,12 +66,12 @@ public class MapPool : MonoBehaviour
 
     public GameObject GetMap(int mapIndex)
     {
-        if(mapIndex < 0 || mapIndex >= mapPools.Count)
+        if (mapIndex < 0 || mapIndex >= mapPools.Count)
             return null;
 
         Queue<GameObject> pool = mapPools[mapIndex];
 
-        if(pool.Count == 0)
+        if (pool.Count == 0)
             return null;
 
         GameObject map = pool.Dequeue();
@@ -79,13 +81,13 @@ public class MapPool : MonoBehaviour
 
     public void ReturnSafeMap(GameObject map)
     {
-        if(map == null) return;
+        if (map == null) return;
 
         map.SetActive(false);
         safeMapPool.Enqueue(map);
     }
 
-    public void ReturnMap(int mapIndex,GameObject map)
+    public void ReturnMap(int mapIndex, GameObject map)
     {
         if (map == null || mapIndex < 0 || mapIndex >= mapPools.Count) return;
 

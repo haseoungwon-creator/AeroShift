@@ -1,5 +1,3 @@
-
-using UnityEditor.EditorTools;
 using UnityEngine;
 
 [DisallowMultipleComponent]
