@@ -18,6 +18,7 @@ public sealed class PoolManager : MonoBehaviour
         [Min(0)] public int initialCount = 0;
         [Min(1)] public int maxCount = 10;
         public bool expandWhenEmpty;
+        [Min(0)] public int minRetainedCount;
     }
 
     [Serializable]
@@ -32,19 +33,37 @@ public sealed class PoolManager : MonoBehaviour
         public bool resourceExpandWhenEmpty = true;
         public PoolVariantConfig[] variants;
         [Min(0)] public int maxRuntimeCreationsPerFrame;
+        public bool enableAutoShrink;
+        [Min(0)] public int resourceMinRetainedCount;
+        [Min(1f)] public float idleSecondsBeforeShrink = 60f;
+        [Min(0.1f)] public float shrinkCheckIntervalSeconds = 10f;
+        [Min(1)] public int maxDestroysPerCheck = 2;
     }
 
     [SerializeField] private ResourceManager resourceManager;
     [SerializeField] private PoolGroupConfig[] groups;
+
+    private readonly struct AvailableEntry
+    {
+        public readonly PooledObject Pooled;
+        public readonly float IdleSince;
+
+        public AvailableEntry(PooledObject pooled, float idleSince)
+        {
+            Pooled = pooled;
+            IdleSince = idleSince;
+        }
+    }
 
     private sealed class PoolBucket
     {
         public GameObject Prefab;
         public Transform Parent;
         public int MaxCount;
+        public int MinRetainedCount;
         public bool ExpandWhenEmpty;
         public int CreatedCount;
-        public readonly Queue<PooledObject> Available = new Queue<PooledObject>();
+        public readonly Queue<AvailableEntry> Available = new Queue<AvailableEntry>();
         public readonly List<PooledObject> Active = new List<PooledObject>();
     }
 
@@ -59,14 +78,47 @@ public sealed class PoolManager : MonoBehaviour
         public int PeakActiveCount;
         public int RuntimeCreationCount;
         public int FailedRentCount;
+        public int DestroyedCount;
+        public int TotalCreatedCount;
+        public int MaxTotalCount = int.MaxValue;
+        public bool AutoShrink;
+        public float IdleSecondsBeforeShrink;
+        public float ShrinkCheckIntervalSeconds;
+        public int MaxDestroysPerCheck;
+        public float NextShrinkTime;
+        public int NextShrinkBucket;
+        public readonly Dictionary<string, int> VariantByName =
+            new Dictionary<string, int>(StringComparer.Ordinal);
     }
 
     private readonly Dictionary<PoolId, PoolGroup> pools = new Dictionary<PoolId, PoolGroup>();
+    private readonly List<PoolGroup> shrinkingGroups = new List<PoolGroup>();
     private bool initialized;
+
+    public bool AutoShrinkingEnabled { get; set; } = true;
 
     private void Awake()
     {
         Initialize();
+    }
+
+    private void Update()
+    {
+        if (!initialized || !AutoShrinkingEnabled)
+            return;
+
+        float now = Time.unscaledTime;
+
+        for (int i = 0; i < shrinkingGroups.Count; i++)
+        {
+            PoolGroup group = shrinkingGroups[i];
+
+            if (now < group.NextShrinkTime)
+                continue;
+
+            group.NextShrinkTime = now + group.ShrinkCheckIntervalSeconds;
+            ShrinkGroup(group, now);
+        }
     }
 
     private void Initialize()
@@ -125,10 +177,21 @@ public sealed class PoolManager : MonoBehaviour
             PoolGroup group = new PoolGroup
             {
                 Buckets = new PoolBucket[variants.Length],
-                MaxRuntimeCreationsPerFrame = Mathf.Max(0, config.maxRuntimeCreationsPerFrame)
+                MaxRuntimeCreationsPerFrame = Mathf.Max(0, config.maxRuntimeCreationsPerFrame),
+                MaxTotalCount = config.prefabSource == PoolPrefabSource.ResourcesFolder
+                    ? Mathf.Max(1, config.resourceMaxCount)
+                    : int.MaxValue,
+                AutoShrink = config.enableAutoShrink,
+                IdleSecondsBeforeShrink = Mathf.Max(1f, config.idleSecondsBeforeShrink),
+                ShrinkCheckIntervalSeconds = Mathf.Max(0.1f, config.shrinkCheckIntervalSeconds),
+                MaxDestroysPerCheck = Mathf.Max(1, config.maxDestroysPerCheck),
+                NextShrinkTime = Time.unscaledTime + Mathf.Max(0.1f, config.shrinkCheckIntervalSeconds)
             };
 
             pools.Add(config.id, group);
+
+            if (group.AutoShrink)
+                shrinkingGroups.Add(group);
 
             for (int variantIndex = 0; variantIndex < variants.Length; variantIndex++)
             {
@@ -142,15 +205,21 @@ public sealed class PoolManager : MonoBehaviour
                     Prefab = variant.prefab,
                     Parent = config.parent != null ? config.parent : transform,
                     MaxCount = Mathf.Max(1, variant.maxCount),
+                    MinRetainedCount = Mathf.Clamp(variant.minRetainedCount, 0, Mathf.Max(1, variant.maxCount)),
                     ExpandWhenEmpty = variant.expandWhenEmpty
                 };
 
                 group.Buckets[variantIndex] = bucket;
 
+                if (group.VariantByName.ContainsKey(bucket.Prefab.name))
+                    Debug.LogError($"{config.id}에 같은 이름의 프리팹이 중복되었습니다: {bucket.Prefab.name}", this);
+                else
+                    group.VariantByName.Add(bucket.Prefab.name, variantIndex);
+
                 int count = Mathf.Clamp(variant.initialCount, 0, bucket.MaxCount);
 
                 for (int j = 0; j < count; j++)
-                    CreateInstance(config.id, variantIndex, bucket);
+                    CreateInstance(config.id, variantIndex, group, bucket);
             }
         }
     }
@@ -176,18 +245,13 @@ public sealed class PoolManager : MonoBehaviour
 
         int maxTotal = Mathf.Max(1, config.resourceMaxCount);
 
-        if (maxTotal < prefabs.Length)
-        {
-            Debug.LogError($"{config.id} 최대 생성 수가 프리팹 개수보다 작습니다: {maxTotal} / {prefabs.Length}", this);
-            return Array.Empty<PoolVariantConfig>();
-        }
-
         int initialTotal = Mathf.Clamp(config.resourceInitialCount, 0, maxTotal);
         PoolVariantConfig[] variants = new PoolVariantConfig[prefabs.Length];
         int initialBase = initialTotal / prefabs.Length;
         int initialRemainder = initialTotal % prefabs.Length;
-        int maxBase = maxTotal / prefabs.Length;
-        int maxRemainder = maxTotal % prefabs.Length;
+        int minTotal = Mathf.Clamp(config.resourceMinRetainedCount, 0, maxTotal);
+        int minBase = minTotal / prefabs.Length;
+        int minRemainder = minTotal % prefabs.Length;
 
         for (int i = 0; i < prefabs.Length; i++)
         {
@@ -195,7 +259,8 @@ public sealed class PoolManager : MonoBehaviour
             {
                 prefab = prefabs[i],
                 initialCount = initialBase + (i < initialRemainder ? 1 : 0),
-                maxCount = maxBase + (i < maxRemainder ? 1 : 0),
+                maxCount = maxTotal,
+                minRetainedCount = minBase + (i < minRemainder ? 1 : 0),
                 expandWhenEmpty = config.resourceExpandWhenEmpty
             };
         }
@@ -204,9 +269,9 @@ public sealed class PoolManager : MonoBehaviour
         return variants;
     }
 
-    private PooledObject CreateInstance(PoolId id, int variantIndex, PoolBucket bucket)
+    private PooledObject CreateInstance(PoolId id, int variantIndex, PoolGroup group, PoolBucket bucket)
     {
-        if (bucket.CreatedCount >= bucket.MaxCount)
+        if (bucket.CreatedCount >= bucket.MaxCount || group.TotalCreatedCount >= group.MaxTotalCount)
             return null;
 
         GameObject instance = Instantiate(bucket.Prefab, bucket.Parent, false);
@@ -218,7 +283,8 @@ public sealed class PoolManager : MonoBehaviour
 
         pooled.Bind(this, id, variantIndex);
         bucket.CreatedCount++;
-        bucket.Available.Enqueue(pooled);
+        group.TotalCreatedCount++;
+        bucket.Available.Enqueue(new AvailableEntry(pooled, Time.unscaledTime));
 
         return pooled;
     }
@@ -236,6 +302,72 @@ public sealed class PoolManager : MonoBehaviour
     public GameObject Rent(PoolId id, Vector3 position, Quaternion rotation, int variantIndex = -1)
     {
         return RentInternal(id, variantIndex, true, position, true, rotation);
+    }
+
+    public bool TryGetVariantIndex(PoolId id, string prefabName, out int variantIndex)
+    {
+        Initialize();
+        variantIndex = -1;
+
+        return !string.IsNullOrEmpty(prefabName)
+            && pools.TryGetValue(id, out PoolGroup group)
+            && group.VariantByName.TryGetValue(prefabName, out variantIndex);
+    }
+
+    public GameObject Rent(PoolId id, string prefabName)
+    {
+        return TryGetVariantIndex(id, prefabName, out int index) ? Rent(id, index) : null;
+    }
+
+    public GameObject Rent(PoolId id, string prefabName, Vector3 position)
+    {
+        return TryGetVariantIndex(id, prefabName, out int index) ? Rent(id, position, index) : null;
+    }
+
+    public GameObject Rent(PoolId id, string prefabName, Vector3 position, Quaternion rotation)
+    {
+        return TryGetVariantIndex(id, prefabName, out int index) ? Rent(id, position, rotation, index) : null;
+    }
+
+    public int Prepare(PoolId id, string prefabName, int desiredAvailableCount)
+    {
+        if (!TryGetVariantIndex(id, prefabName, out int variantIndex))
+            return 0;
+
+        if (!pools.TryGetValue(id, out PoolGroup group))
+            return 0;
+
+        PoolBucket bucket = group.Buckets[variantIndex];
+
+        if (bucket == null || !bucket.ExpandWhenEmpty)
+            return 0;
+
+        int created = 0;
+        int target = Mathf.Max(0, desiredAvailableCount);
+
+        while (bucket.Available.Count < target && CanCreateThisFrame(group))
+        {
+            if (CreateInstance(id, variantIndex, group, bucket) == null)
+                break;
+
+            group.CreationsThisFrame++;
+            group.RuntimeCreationCount++;
+            created++;
+        }
+
+        return created;
+    }
+
+    private static bool CanCreateThisFrame(PoolGroup group)
+    {
+        if (group.CreationFrame != Time.frameCount)
+        {
+            group.CreationFrame = Time.frameCount;
+            group.CreationsThisFrame = 0;
+        }
+
+        return group.MaxRuntimeCreationsPerFrame == 0 ||
+            group.CreationsThisFrame < group.MaxRuntimeCreationsPerFrame;
     }
 
     private GameObject RentInternal(
@@ -299,30 +431,24 @@ public sealed class PoolManager : MonoBehaviour
 
         while (bucket.Available.Count > 0)
         {
-            pooled = bucket.Available.Dequeue();
+            pooled = bucket.Available.Dequeue().Pooled;
 
             if (pooled != null)
                 break;
 
             bucket.CreatedCount = Mathf.Max(0, bucket.CreatedCount - 1);
+            group.TotalCreatedCount = Mathf.Max(0, group.TotalCreatedCount - 1);
         }
 
         if (pooled == null && bucket.ExpandWhenEmpty && bucket.CreatedCount < bucket.MaxCount)
         {
-            if (group.CreationFrame != Time.frameCount)
+            if (CanCreateThisFrame(group))
             {
-                group.CreationFrame = Time.frameCount;
-                group.CreationsThisFrame = 0;
-            }
-
-            if (group.MaxRuntimeCreationsPerFrame == 0 ||
-                group.CreationsThisFrame < group.MaxRuntimeCreationsPerFrame)
-            {
-                PooledObject created = CreateInstance(id, variantIndex, bucket);
+                PooledObject created = CreateInstance(id, variantIndex, group, bucket);
 
                 if (created != null)
                 {
-                    pooled = bucket.Available.Dequeue();
+                    pooled = bucket.Available.Dequeue().Pooled;
                     group.CreationsThisFrame++;
                     group.RuntimeCreationCount++;
                 }
@@ -389,7 +515,7 @@ public sealed class PoolManager : MonoBehaviour
         if (instance.transform.parent != bucket.Parent)
             instance.transform.SetParent(bucket.Parent, false);
 
-        bucket.Available.Enqueue(pooled);
+        bucket.Available.Enqueue(new AvailableEntry(pooled, Time.unscaledTime));
         return true;
     }
 
@@ -413,6 +539,7 @@ public sealed class PoolManager : MonoBehaviour
                 {
                     bucket.Active.RemoveAt(bucket.Active.Count - 1);
                     bucket.CreatedCount = Mathf.Max(0, bucket.CreatedCount - 1);
+                    group.TotalCreatedCount = Mathf.Max(0, group.TotalCreatedCount - 1);
                     group.CurrentActiveCount = Mathf.Max(0, group.CurrentActiveCount - 1);
                     continue;
                 }
@@ -421,6 +548,66 @@ public sealed class PoolManager : MonoBehaviour
                     bucket.Active.RemoveAt(bucket.Active.Count - 1);
             }
         }
+    }
+
+    private void ShrinkGroup(PoolGroup group, float now)
+    {
+        int bucketCount = group.Buckets.Length;
+
+        if (bucketCount == 0)
+            return;
+
+        int destroyed = 0;
+        int attemptsWithoutProgress = 0;
+
+        while (destroyed < group.MaxDestroysPerCheck && attemptsWithoutProgress < bucketCount)
+        {
+            int index = group.NextShrinkBucket;
+            group.NextShrinkBucket = (group.NextShrinkBucket + 1) % bucketCount;
+
+            PoolBucket bucket = group.Buckets[index];
+
+            if (bucket != null && TryShrinkBucket(group, bucket, now))
+            {
+                destroyed++;
+                attemptsWithoutProgress = 0;
+            }
+            else
+            {
+                attemptsWithoutProgress++;
+            }
+        }
+    }
+
+    private bool TryShrinkBucket(PoolGroup group, PoolBucket bucket, float now)
+    {
+        while (bucket.Available.Count > 0 && bucket.Available.Peek().Pooled == null)
+        {
+            bucket.Available.Dequeue();
+            bucket.CreatedCount = Mathf.Max(0, bucket.CreatedCount - 1);
+            group.TotalCreatedCount = Mathf.Max(0, group.TotalCreatedCount - 1);
+        }
+
+        if (bucket.CreatedCount <= bucket.MinRetainedCount || bucket.Available.Count == 0)
+            return false;
+
+        AvailableEntry oldest = bucket.Available.Peek();
+
+        if (now - oldest.IdleSince < group.IdleSecondsBeforeShrink)
+            return false;
+
+        bucket.Available.Dequeue();
+        bucket.CreatedCount--;
+        group.TotalCreatedCount--;
+        group.DestroyedCount++;
+        Destroy(oldest.Pooled.gameObject);
+        return true;
+    }
+
+    public int GetDestroyedCount(PoolId id)
+    {
+        Initialize();
+        return pools.TryGetValue(id, out PoolGroup group) ? group.DestroyedCount : 0;
     }
 
     public int GetVariantCount(PoolId id)
@@ -446,15 +633,19 @@ public sealed class PoolManager : MonoBehaviour
         if (!pools.TryGetValue(id, out PoolGroup group))
             return 0;
 
-        int total = 0;
+        return group.TotalCreatedCount;
+    }
 
-        for (int i = 0; i < group.Buckets.Length; i++)
-        {
-            if (group.Buckets[i] != null)
-                total += group.Buckets[i].CreatedCount;
-        }
+    public int GetCreatedCount(PoolId id, int variantIndex)
+    {
+        Initialize();
 
-        return total;
+        if (!pools.TryGetValue(id, out PoolGroup group) ||
+            variantIndex < 0 || variantIndex >= group.Buckets.Length)
+            return 0;
+
+        PoolBucket bucket = group.Buckets[variantIndex];
+        return bucket != null ? bucket.CreatedCount : 0;
     }
 
     public int GetPeakActiveCount(PoolId id)
