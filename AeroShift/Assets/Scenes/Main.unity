@@ -3347,8 +3347,6 @@ GameObject:
   m_Component:
   - component: {fileID: 774914390}
   - component: {fileID: 774914389}
-  - component: {fileID: 774914388}
-  - component: {fileID: 774914385}
   - component: {fileID: 774914384}
   - component: {fileID: 774914391}
   m_Layer: 0
@@ -3375,41 +3373,6 @@ MonoBehaviour:
   speedIncrease: 5
   speedIncreaseInterval: 10
   canMove: 1
---- !u!114 &774914385
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 774914383}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4b9b91838e06494ba1db329c959d70f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WallPool
-  wallPrefab: {fileID: 1578066316762817833, guid: cb84d3baeb73cc243b66891b42c8fec2, type: 3}
---- !u!114 &774914388
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 774914383}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 378371c4f715eb84fa6c27e24ebc6596, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MapPool
-  safeMapPrefab: {fileID: 2859785967629440855, guid: 82eadd37c06e49e4f87179044c4b5466, type: 3}
-  mapPrefabs:
-  - {fileID: 6110114320245149243, guid: 3bc09c5760bae6844b54e825354d1af4, type: 3}
-  - {fileID: 4377862132216671279, guid: 0c5ea966bfd857d41aa18c361158a05e, type: 3}
-  - {fileID: 3163139455560374980, guid: 58fdf2e9eec98084bb8cbd9ede0038c0, type: 3}
-  - {fileID: 1478529733654202355, guid: 1aed2cbda52034a449963ecc17087fdd, type: 3}
-  - {fileID: 197110800400862252, guid: 91334ef32aa4b7c49b5a28513c70f4ed, type: 3}
-  - {fileID: 8888267628204532281, guid: 1c3e91a85eecd874fbfa9fb2b9a88c9b, type: 3}
-  - {fileID: 6573022208643476565, guid: e3840db146db7df409fedb4be26e04e0, type: 3}
-  initialPoolSize: 5
 --- !u!114 &774914389
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3423,10 +3386,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapManager
   player: {fileID: 6349540993517378987}
-  poolManager: {fileID: 0}
-  resourceManager: {fileID: 0}
-  worldMovement: {fileID: 0}
-  playerRewind: {fileID: 0}
+  poolManager: {fileID: 318424434}
+  resourceManager: {fileID: 1808679688}
+  worldMovement: {fileID: 774914384}
+  playerRewind: {fileID: 6349540993517379000}
   chunkLength: 80
   mapOriginXY: {x: 0, y: 0}
   forwardChunkCount: 6
@@ -4556,9 +4519,10 @@ MonoBehaviour:
   mapManager: {fileID: 774914389}
   missileSpawner: {fileID: 514009905}
   cloudSpawner: {fileID: 1028732951}
+  worldMovement: {fileID: 774914384}
   riseDelay: 2
   baseWorldSpeed: 30
-  worldMovement: {fileID: 774914384}
+  safeMapWaitTimeout: 45
 --- !u!4 &1187783837
 Transform:
   m_ObjectHideFlags: 0
@@ -6586,6 +6550,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 1853792731185276244, guid: cd49643a87086464889789802f5ee833, type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2256950932409266635, guid: cd49643a87086464889789802f5ee833, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -6657,6 +6625,10 @@ PrefabInstance:
     - target: {fileID: 4178489688046926945, guid: cd49643a87086464889789802f5ee833, type: 3}
       propertyPath: rewindPlayDuration
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6398775114164693663, guid: cd49643a87086464889789802f5ee833, type: 3}
+      propertyPath: m_Layer
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7468196489185759329, guid: cd49643a87086464889789802f5ee833, type: 3}
       propertyPath: skillManager

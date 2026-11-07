@@ -1,8 +1,14 @@
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 
 public class CloudSpawner : MonoBehaviour
 {
+    private static readonly ProfilerMarker InitialPlacementMarker = new ProfilerMarker("AeroShift.Cloud.InitialPlacement");
+    private static readonly ProfilerMarker MoveMarker = new ProfilerMarker("AeroShift.Cloud.MoveAndRecycle");
+    private static readonly ProfilerMarker SpawnMarker = new ProfilerMarker("AeroShift.Cloud.Spawn");
+    private static readonly ProfilerMarker ResetMarker = new ProfilerMarker("AeroShift.Cloud.Reset");
+
     [Header("Pool")]
     [SerializeField] private PoolManager poolManager;
 
@@ -40,6 +46,8 @@ public class CloudSpawner : MonoBehaviour
     private bool isInitialized;
     private bool is2D;
     private int configuredCloudLayer = -1;
+    private GameStates lastObservedGameState;
+    private bool hasObservedGameState;
 
     public bool InitialPlacementComplete => isInitialized && nextInitialIndex < 0;
     public int InitialTargetCount => initialTargetCount;
@@ -70,16 +78,56 @@ public class CloudSpawner : MonoBehaviour
         if (!isInitialized)
             return;
 
+        GameManager gameManager = GameManager.Instance;
+
+        if (gameManager == null)
+            return;
+
+        GameStates currentState = gameManager.CurrentState;
+
+        if (hasObservedGameState && lastObservedGameState != currentState && currentState == GameStates.Ready)
+        {
+            using (ResetMarker.Auto())
+                ResetClouds();
+        }
+
+        lastObservedGameState = currentState;
+        hasObservedGameState = true;
+
+        if (currentState == GameStates.Ready)
+        {
+            if (!InitialPlacementComplete)
+            {
+                using (InitialPlacementMarker.Auto())
+                    PlaceInitialClouds();
+            }
+
+            return;
+        }
+
+        if (currentState != GameStates.Playing || worldMovement.IsRewinding)
+            return;
+
         float deltaTime = Time.deltaTime;
-        float moveDistance = (moveSpeed + worldMovement.CurrentSpeed) * deltaTime;
+
+        if (deltaTime <= 0f)
+            return;
+
+        float moveDistance = Mathf.Max(0f, moveSpeed + worldMovement.CurrentSpeed) * deltaTime;
 
         accumulatedScrollDistance += moveDistance;
-        MoveClouds(moveDistance);
 
-        SpawnClouds(deltaTime);
+        using (MoveMarker.Auto())
+            MoveClouds(moveDistance);
+
+        using (SpawnMarker.Auto())
+            SpawnClouds(deltaTime);
 
         if (!InitialPlacementComplete)
-            PlaceInitialClouds();
+        {
+            using (InitialPlacementMarker.Auto())
+                PlaceInitialClouds();
+        }
     }
 
     private void InitializeClouds()
@@ -169,25 +217,62 @@ public class CloudSpawner : MonoBehaviour
 
     private void MoveClouds(float moveDistance)
     {
-        for (int i = activeClouds.Count - 1; i >= 0; i--)
+        float despawnZ = transform.position.z - despawnDistance;
+        int index = 0;
+
+        while (index < activeClouds.Count)
         {
-            GameObject cloud = activeClouds[i];
+            GameObject cloud = activeClouds[index];
 
             if (cloud == null)
             {
-                activeClouds.RemoveAt(i);
+                RemoveCloudAtSwapBack(index);
                 continue;
             }
 
             Transform cloudTransform = cloud.transform;
-            cloudTransform.position += Vector3.back * moveDistance;
+            Vector3 position = cloudTransform.position;
+            position.z -= moveDistance;
 
-            if (cloudTransform.position.z < transform.position.z - despawnDistance)
+            if (position.z < despawnZ)
             {
                 poolManager.Return(cloud);
-                activeClouds.RemoveAt(i);
+                RemoveCloudAtSwapBack(index);
+                continue;
             }
+
+            cloudTransform.position = position;
+            index++;
         }
+    }
+
+    private void RemoveCloudAtSwapBack(int index)
+    {
+        int lastIndex = activeClouds.Count - 1;
+        activeClouds[index] = activeClouds[lastIndex];
+        activeClouds.RemoveAt(lastIndex);
+    }
+
+    private void ResetClouds()
+    {
+        for (int i = 0; i < activeClouds.Count; i++)
+        {
+            GameObject cloud = activeClouds[i];
+
+            if (cloud != null)
+                poolManager.Return(cloud);
+        }
+
+        activeClouds.Clear();
+        spawnTimer = 0f;
+        accumulatedScrollDistance = 0f;
+        initialOriginX = transform.position.x;
+        initialOriginZ = transform.position.z;
+        initialTargetCount = Mathf.CeilToInt((spawnDistance + despawnDistance) / initialSpacing);
+        nextInitialIndex = initialTargetCount - 1;
+        initialPlacedCount = 0;
+        stalledFrames = 0;
+        is2D = false;
     }
 
     private void ApplyCloudDistanceCulling()

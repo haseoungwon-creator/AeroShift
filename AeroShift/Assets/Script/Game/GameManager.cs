@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using Unity.Profiling;
 
 public enum GameStates
 {
@@ -10,6 +11,7 @@ public enum GameStates
 
 public class GameManager : MonoBehaviour
 {
+    private static readonly ProfilerMarker MapResetMarker = new ProfilerMarker("AeroShift.Game.MapReset");
     public static GameManager Instance { get; private set; }
 
     [SerializeField] WorldMovement worldMoveMent;
@@ -77,7 +79,8 @@ public class GameManager : MonoBehaviour
                 scoreManager.ResetScore();
                 missileSpawner.SetSpawning(false);
                 playerController.ResetPlayer();
-                mapManager.ResetMaps();
+                using (MapResetMarker.Auto())
+                    mapManager.ResetMaps();
                 cameraController.ResetCamera();
                 playerController.SetControlEnabled(false);
                 gameUI.ShowStartPanel();
@@ -90,7 +93,7 @@ public class GameManager : MonoBehaviour
                 break;
 
             case GameStates.GameOver:
-                
+
                 worldMoveMent.SetMovement(false);
                 scoreManager.StopScoring();
                 missileSpawner.SetSpawning(false);
@@ -103,16 +106,15 @@ public class GameManager : MonoBehaviour
     }
     public void RestartGame()
     {
-        cloudSpawner.Set3DMode();
-        mapManager.ResetMaps();
-        worldMoveMent.ResetPosition();
-        cameraController.ResetCamera();
-        scoreManager.ResetScore();
+        if (playerRewind != null)
+            playerRewind.ResetRewind();
+
+        if (nearMissDetector != null)
+            nearMissDetector.ResetDetector();
+
+        if (cloudSpawner != null)
+            cloudSpawner.Set3DMode();
+
         SetGameState(GameStates.Ready);
-        playerController.ResetPlayer();
-        playerRewind.ResetRewind();
-
-        nearMissDetector.ResetDetector();
-
     }
 }

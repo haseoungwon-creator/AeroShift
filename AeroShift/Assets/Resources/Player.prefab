@@ -22,7 +22,7 @@ GameObject:
   - component: {fileID: 7471530741507688732}
   - component: {fileID: 8582985259247376638}
   - component: {fileID: 513486875732545158}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -148,6 +148,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerRewind
   rewindDuration: 5
   recordInterval: 0.05
+  rewindPlayDuration: 2
+  scoreManager: {fileID: 0}
+  playerController: {fileID: 0}
+  nearMissDetector: {fileID: 0}
+  worldMovement: {fileID: 0}
+  playerCollider: {fileID: 0}
 --- !u!114 &7468196489185759329
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -166,7 +172,7 @@ MonoBehaviour:
   playerMovement3D: {fileID: 6694643769207503607}
   playerMovement2D: {fileID: 6159714886292212059}
   rb: {fileID: 513486875732545158}
-  playerRewind: {fileID: 4178489688046926945}
+  skillManager: {fileID: 0}
 --- !u!114 &940202473483910773
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -256,6 +262,10 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: f549d287-b283-4e55-9589-4646e21e3635
     m_ActionName: 'Player3D/MouseClick[/Mouse/leftButton]'
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: e06b59d2-c9fb-4b9e-a823-5533bba277ed
+    m_ActionName: 'Player3D/Rewind[/Mouse/rightButton]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player3D
@@ -398,7 +408,7 @@ GameObject:
   - component: {fileID: 8662793061045092462}
   - component: {fileID: 3647290764641153011}
   - component: {fileID: 7574969381102506873}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: aircraft-roter_001
   m_TagString: Untagged
   m_Icon: {fileID: 0}
