@@ -1,47 +1,47 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Profiling;
 
-[DefaultExecutionOrder(-500)]
 public sealed class PoolManager : MonoBehaviour
 {
+    private static readonly ProfilerMarker CreateInstanceMarker = new ProfilerMarker("AeroShift.Pool.CreateInstance");
+
     public enum PoolPrefabSource
     {
         Inspector,
         ResourcesFolder
     }
 
-    [Serializable]
     public sealed class PoolVariantConfig
     {
         public GameObject prefab;
-        [Min(0)] public int initialCount = 0;
-        [Min(1)] public int maxCount = 10;
+        public int initialCount = 0;
+        public int maxCount = 10;
         public bool expandWhenEmpty;
-        [Min(0)] public int minRetainedCount;
+        public int minRetainedCount;
     }
 
-    [Serializable]
     public sealed class PoolGroupConfig
     {
         public PoolId id;
         public Transform parent;
         public PoolPrefabSource prefabSource = PoolPrefabSource.ResourcesFolder;
-        [HideInInspector] public string resourcesFolder;
-        [Min(0)] public int resourceInitialCount;
-        [Min(1)] public int resourceMaxCount = 32;
+        public string resourcesFolder;
+        public int resourceInitialCount;
+        public int resourceMaxCount = 32;
         public bool resourceExpandWhenEmpty = true;
         public PoolVariantConfig[] variants;
-        [Min(0)] public int maxRuntimeCreationsPerFrame;
+        public int maxRuntimeCreationsPerFrame;
         public bool enableAutoShrink;
-        [Min(0)] public int resourceMinRetainedCount;
-        [Min(1f)] public float idleSecondsBeforeShrink = 60f;
-        [Min(0.1f)] public float shrinkCheckIntervalSeconds = 10f;
-        [Min(1)] public int maxDestroysPerCheck = 2;
+        public int resourceMinRetainedCount;
+        public float idleSecondsBeforeShrink = 60f;
+        public float shrinkCheckIntervalSeconds = 10f;
+        public int maxDestroysPerCheck = 2;
     }
 
-    [SerializeField] private ResourceManager resourceManager;
-    [SerializeField] private PoolGroupConfig[] groups;
+    [SerializeField] ResourceManager resourceManager;
+    [SerializeField] PoolGroupConfig[] groups;
 
     private readonly struct AvailableEntry
     {
@@ -93,6 +93,7 @@ public sealed class PoolManager : MonoBehaviour
 
     private readonly Dictionary<PoolId, PoolGroup> pools = new Dictionary<PoolId, PoolGroup>();
     private readonly List<PoolGroup> shrinkingGroups = new List<PoolGroup>();
+    private Transform inactiveInstantiationRoot;
     private bool initialized;
 
     public bool AutoShrinkingEnabled { get; set; } = true;
@@ -150,7 +151,6 @@ public sealed class PoolManager : MonoBehaviour
 
         if (needsResources && resourceManager == null)
         {
-            Debug.LogError("Resources 풀을 사용하려면 씬에 ResourceManager가 필요합니다.", this);
             return;
         }
 
@@ -170,7 +170,6 @@ public sealed class PoolManager : MonoBehaviour
 
             if (pools.ContainsKey(config.id))
             {
-                Debug.LogError($"PoolId가 중복되었습니다: {config.id}", this);
                 continue;
             }
 
@@ -212,7 +211,7 @@ public sealed class PoolManager : MonoBehaviour
                 group.Buckets[variantIndex] = bucket;
 
                 if (group.VariantByName.ContainsKey(bucket.Prefab.name))
-                    Debug.LogError($"{config.id}에 같은 이름의 프리팹이 중복되었습니다: {bucket.Prefab.name}", this);
+                    Debug.LogError("");
                 else
                     group.VariantByName.Add(bucket.Prefab.name, variantIndex);
 
@@ -231,7 +230,6 @@ public sealed class PoolManager : MonoBehaviour
 
         if (resourceManager == null)
         {
-            Debug.LogError($"{config.id}의 ResourceManager가 연결되지 않았습니다.", this);
             return Array.Empty<PoolVariantConfig>();
         }
 
@@ -239,7 +237,6 @@ public sealed class PoolManager : MonoBehaviour
 
         if (prefabs == null || prefabs.Length == 0)
         {
-            Debug.LogWarning($"{config.id}에 등록된 프리팹이 없습니다.", this);
             return Array.Empty<PoolVariantConfig>();
         }
 
@@ -265,8 +262,20 @@ public sealed class PoolManager : MonoBehaviour
             };
         }
 
-        Debug.Log($"{config.id} 프리팹 {prefabs.Length}종을 ResourceManager에서 등록했습니다.", this);
         return variants;
+    }
+
+    private Transform GetInactiveInstantiationRoot()
+    {
+        if (inactiveInstantiationRoot != null)
+            return inactiveInstantiationRoot;
+
+        GameObject staging = new GameObject("PoolInactiveStaging");
+        staging.SetActive(false);
+        staging.transform.SetParent(transform, false);
+        inactiveInstantiationRoot = staging.transform;
+
+        return inactiveInstantiationRoot;
     }
 
     private PooledObject CreateInstance(PoolId id, int variantIndex, PoolGroup group, PoolBucket bucket)
@@ -274,19 +283,24 @@ public sealed class PoolManager : MonoBehaviour
         if (bucket.CreatedCount >= bucket.MaxCount || group.TotalCreatedCount >= group.MaxTotalCount)
             return null;
 
-        GameObject instance = Instantiate(bucket.Prefab, bucket.Parent, false);
-        instance.name = bucket.Prefab.name;
-        instance.SetActive(false);
+        using (CreateInstanceMarker.Auto())
+        {
+            GameObject instance = Instantiate(bucket.Prefab, GetInactiveInstantiationRoot(), false);
+            instance.name = bucket.Prefab.name;
+            instance.SetActive(false);
 
-        if (!instance.TryGetComponent(out PooledObject pooled))
-            pooled = instance.AddComponent<PooledObject>();
+            if (!instance.TryGetComponent(out PooledObject pooled))
+                pooled = instance.AddComponent<PooledObject>();
 
-        pooled.Bind(this, id, variantIndex);
-        bucket.CreatedCount++;
-        group.TotalCreatedCount++;
-        bucket.Available.Enqueue(new AvailableEntry(pooled, Time.unscaledTime));
+            pooled.Bind(this, id, variantIndex);
+            instance.transform.SetParent(bucket.Parent, false);
 
-        return pooled;
+            bucket.CreatedCount++;
+            group.TotalCreatedCount++;
+            bucket.Available.Enqueue(new AvailableEntry(pooled, Time.unscaledTime));
+
+            return pooled;
+        }
     }
 
     public GameObject Rent(PoolId id, int variantIndex = -1)

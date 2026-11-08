@@ -2529,6 +2529,57 @@ Transform:
   - {fileID: 576024883}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &649451070
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 649451072}
+  - component: {fileID: 649451071}
+  m_Layer: 0
+  m_Name: GCAllocationCapture
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &649451071
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 649451070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af16b502fbdf1304c9fea62b484fe55a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GCAllocationCapture
+  startAutomaticallyWhenPlaying: 1
+  warmupSeconds: 5
+  captureSeconds: 10
+  scenarioName: 3D_Flight_GC
+  saveProfilerRaw: 0
+  captureAllocationCallstacks: 0
+  profilerBufferMiB: 128
+--- !u!4 &649451072
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 649451070}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &653542934
 GameObject:
   m_ObjectHideFlags: 0
@@ -3397,9 +3448,18 @@ MonoBehaviour:
   keepBehindDistance: 160
   maxSpawnsPerFrame: 2
   prepareLookaheadChunks: 4
+  enableCachedPreparation: 1
+  prepareRetryInterval: 0.25
   transitionSafeChunkCount: 3
   spawnTransitionWall: 1
   transitionWallOffset: 30
+  enableProximityCollisionCulling: 1
+  obstacleCollisionLayers:
+    serializedVersion: 2
+    m_Bits: 1
+  collisionEnableAhead: 160
+  collisionKeepBehind: 80
+  collisionCheckInterval: 0.1
   seed: 20261027
   allow180DegreeRotation: 0
 --- !u!4 &774914390
@@ -3824,7 +3884,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 904203619}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9a4393e05c57fed4eb85bad71d37bb35, type: 3}
   m_Name: 
@@ -4278,6 +4338,8 @@ MonoBehaviour:
   worldMovement: {fileID: 774914384}
   maxInitialPlacementsPerFrame: 50
   maxStalledFrames: 120
+  useGroupedMovement: 1
+  rootRebaseDistance: 5000
   enableDistanceCulling: 1
   cloudLayerName: Cloud
   cloudCullDistance: 900
@@ -6317,6 +6379,59 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2104790828}
   m_CullTransparentMesh: 1
+--- !u!1 &2133913285
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2133913287}
+  - component: {fileID: 2133913286}
+  m_Layer: 0
+  m_Name: CloudMovementBenchmark
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2133913286
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2133913285}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 514de63afc54732488a273dd0bd19799, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CloudMovementBenchmark
+  cloudSpawner: {fileID: 1028732951}
+  poolManager: {fileID: 318424434}
+  variantName: Grouped
+  scenarioName: 3D_Flight
+  warmupSeconds: 5
+  measurementSeconds: 30
+  maxSampleFrames: 20000
+  requireInitialPlacementComplete: 1
+  uncapFrameRate: 1
+--- !u!4 &2133913287
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2133913285}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2136318220
 GameObject:
   m_ObjectHideFlags: 0
@@ -6554,6 +6669,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1853792731185276244, guid: cd49643a87086464889789802f5ee833, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2256950932409266635, guid: cd49643a87086464889789802f5ee833, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -6638,10 +6757,18 @@ PrefabInstance:
       propertyPath: dimensionTransition
       value: 
       objectReference: {fileID: 1187783836}
+    - target: {fileID: 7471530741507688732, guid: cd49643a87086464889789802f5ee833, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7902764458775228535, guid: cd49643a87086464889789802f5ee833, type: 3}
       propertyPath: worldMovement
       value: 
       objectReference: {fileID: 774914384}
+    - target: {fileID: 8582985259247376638, guid: cd49643a87086464889789802f5ee833, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -6665,3 +6792,5 @@ SceneRoots:
   - {fileID: 330585546}
   - {fileID: 593564960}
   - {fileID: 1808679687}
+  - {fileID: 2133913287}
+  - {fileID: 649451072}

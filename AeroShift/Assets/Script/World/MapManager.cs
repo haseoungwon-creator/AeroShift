@@ -10,6 +10,7 @@ public sealed class MapManager : MonoBehaviour
     private static readonly ProfilerMarker SpawnMarker = new ProfilerMarker("AeroShift.MapStreaming.Spawn");
     private static readonly ProfilerMarker PrepareMarker = new ProfilerMarker("AeroShift.MapStreaming.Prepare");
     private static readonly ProfilerMarker RecycleMarker = new ProfilerMarker("AeroShift.MapStreaming.Recycle");
+    private static readonly ProfilerMarker CollisionCullingMarker = new ProfilerMarker("AeroShift.Physics.ChunkCollisionCulling");
 
     [Header("References")]
     [SerializeField] private Transform player;
@@ -28,11 +29,20 @@ public sealed class MapManager : MonoBehaviour
 
     [Header("Selective Preparation")]
     [SerializeField, Min(0)] private int prepareLookaheadChunks = 4;
+    [SerializeField] private bool enableCachedPreparation = true;
+    [SerializeField, Min(0.02f)] private float prepareRetryInterval = 0.25f;
 
     [Header("Dimension Transition")]
     [SerializeField, Min(1)] private int transitionSafeChunkCount = 3;
     [SerializeField] private bool spawnTransitionWall = true;
     [SerializeField, Min(0f)] private float transitionWallOffset = 30f;
+
+    [Header("Obstacle Collision Culling")]
+    [SerializeField] private bool enableProximityCollisionCulling = true;
+    [SerializeField] private LayerMask obstacleCollisionLayers = 1;
+    [SerializeField, Min(0f)] private float collisionEnableAhead = 160f;
+    [SerializeField, Min(0f)] private float collisionKeepBehind = 80f;
+    [SerializeField, Min(0.02f)] private float collisionCheckInterval = 0.1f;
 
     [Header("Deterministic Layout")]
     [SerializeField] private int seed = 20261027;
@@ -41,12 +51,16 @@ public sealed class MapManager : MonoBehaviour
     private readonly struct ActiveChunk
     {
         public readonly GameObject Instance;
+        public readonly float StartZ;
         public readonly float EndZ;
+        public readonly ProximityCollisionGroup CollisionGroup;
 
-        public ActiveChunk(GameObject instance, float endZ)
+        public ActiveChunk(GameObject instance, float startZ, float endZ, ProximityCollisionGroup collisionGroup)
         {
             Instance = instance;
+            StartZ = startZ;
             EndZ = endZ;
+            CollisionGroup = collisionGroup;
         }
     }
 
@@ -57,6 +71,9 @@ public sealed class MapManager : MonoBehaviour
     private int[] safeVariantIndices = Array.Empty<int>();
     private int[] normalPrepareDemand = Array.Empty<int>();
     private int[] safePrepareDemand = Array.Empty<int>();
+    private PoolId[] prepareOrderIds = Array.Empty<PoolId>();
+    private int[] prepareOrderVariants = Array.Empty<int>();
+    private int prepareOrderCount;
     private int initialChunkIndex;
     private int nextChunkIndex;
     private int pendingSafeChunks;
@@ -69,6 +86,21 @@ public sealed class MapManager : MonoBehaviour
     private int transitionSafeChunksPlaced;
     private GameObject transitionWall;
     private bool transitionWallWarned;
+    private float collisionCheckTimer;
+    private bool wasCollisionCullingEnabled;
+    private bool lastGameplayCollisionAllowed;
+    private bool prepareCacheValid;
+    private int cachedNextChunkIndex;
+    private int cachedPendingSafeChunks;
+    private int cachedTransitionLastChunkIndex;
+    private int cachedSeed;
+    private int cachedLookaheadChunks;
+    private bool cachedTransitionRequested;
+    private float nextPrepareAttemptTime;
+
+    public int CollisionCullingStateChanges { get; private set; }
+    public int PrepareDemandRebuildCount { get; private set; }
+    public int PreparePassCount { get; private set; }
 
     private float LogicalPlayerZ => player == null ? 0f :
         player.position.z - (worldMovement != null ? worldMovement.transform.position.z : 0f);
@@ -141,6 +173,9 @@ public sealed class MapManager : MonoBehaviour
             return false;
         }
 
+        int variantCount = normalPrefabNames.Length + safePrefabNames.Length;
+        prepareOrderIds = new PoolId[variantCount];
+        prepareOrderVariants = new int[variantCount];
         return true;
     }
 
@@ -192,6 +227,74 @@ public sealed class MapManager : MonoBehaviour
         }
     }
 
+    private void FixedUpdate()
+    {
+        if (!initialized || !is3DMapActive)
+            return;
+
+        if (!enableProximityCollisionCulling)
+        {
+            if (wasCollisionCullingEnabled)
+            {
+                RestoreAllObstacleColliders();
+                wasCollisionCullingEnabled = false;
+            }
+
+            return;
+        }
+
+        bool collisionAllowed = IsGameplayCollisionAllowed();
+        collisionCheckTimer += Time.fixedDeltaTime;
+
+        if (wasCollisionCullingEnabled &&
+            collisionAllowed == lastGameplayCollisionAllowed &&
+            collisionCheckTimer < collisionCheckInterval)
+            return;
+
+        wasCollisionCullingEnabled = true;
+        lastGameplayCollisionAllowed = collisionAllowed;
+        collisionCheckTimer = 0f;
+
+        using (CollisionCullingMarker.Auto())
+        {
+            float logicalZ = LogicalPlayerZ;
+
+            foreach (ActiveChunk chunk in activeChunks)
+            {
+                if (chunk.CollisionGroup == null)
+                    continue;
+
+                bool enable = collisionAllowed && IsChunkInCollisionRange(
+                    chunk.StartZ, chunk.EndZ, logicalZ);
+
+                if (chunk.CollisionGroup.SetCollisionsEnabled(enable))
+                    CollisionCullingStateChanges++;
+            }
+        }
+    }
+
+    private bool IsGameplayCollisionAllowed()
+    {
+        return GameManager.Instance != null &&
+            GameManager.Instance.CurrentState == GameStates.Playing &&
+            (playerRewind == null || !playerRewind.IsRewinding);
+    }
+
+    private bool IsChunkInCollisionRange(float startZ, float endZ, float logicalPlayerZ)
+    {
+        return logicalPlayerZ >= startZ - collisionEnableAhead &&
+            logicalPlayerZ <= endZ + collisionKeepBehind;
+    }
+
+    private void RestoreAllObstacleColliders()
+    {
+        foreach (ActiveChunk chunk in activeChunks)
+        {
+            if (chunk.CollisionGroup != null && chunk.CollisionGroup.SetCollisionsEnabled(true))
+                CollisionCullingStateChanges++;
+        }
+    }
+
     private void InitializeAtPlayerPosition()
     {
         initialChunkIndex = Mathf.FloorToInt(LogicalPlayerZ / chunkLength);
@@ -200,6 +303,9 @@ public sealed class MapManager : MonoBehaviour
         poolExhaustionWarned = false;
         is3DMapActive = true;
         initialized = true;
+        collisionCheckTimer = collisionCheckInterval;
+        wasCollisionCullingEnabled = false;
+        InvalidatePrepareCache();
         SpawnAhead(maxSpawnsPerFrame);
         PrepareUpcoming();
     }
@@ -287,7 +393,23 @@ public sealed class MapManager : MonoBehaviour
 
             mapChunk.SetChunkData(nextChunkIndex, startZ, chunkLength, safe, rotated);
 
-            activeChunks.Enqueue(new ActiveChunk(instance, startZ + chunkLength));
+            ProximityCollisionGroup collisionGroup = null;
+
+            if (!safe)
+            {
+                if (!instance.TryGetComponent(out collisionGroup))
+                    collisionGroup = instance.AddComponent<ProximityCollisionGroup>();
+
+                collisionGroup.Initialize(obstacleCollisionLayers);
+                bool enableCollisions = !enableProximityCollisionCulling ||
+                    (IsGameplayCollisionAllowed() && IsChunkInCollisionRange(
+                        startZ, startZ + chunkLength, LogicalPlayerZ));
+
+                if (collisionGroup.SetCollisionsEnabled(enableCollisions))
+                    CollisionCullingStateChanges++;
+            }
+
+            activeChunks.Enqueue(new ActiveChunk(instance, startZ, startZ + chunkLength, collisionGroup));
 
             if (transitionRequested &&
                 nextChunkIndex >= transitionFirstChunkIndex &&
@@ -312,42 +434,110 @@ public sealed class MapManager : MonoBehaviour
             (transitionRequested && nextChunkIndex > transitionLastChunkIndex))
             return;
 
+        bool windowChanged = !prepareCacheValid ||
+            cachedNextChunkIndex != nextChunkIndex ||
+            cachedPendingSafeChunks != pendingSafeChunks ||
+            cachedTransitionLastChunkIndex != transitionLastChunkIndex ||
+            cachedTransitionRequested != transitionRequested ||
+            cachedSeed != seed ||
+            cachedLookaheadChunks != prepareLookaheadChunks;
+
+        if (enableCachedPreparation && !windowChanged && Time.unscaledTime < nextPrepareAttemptTime)
+            return;
+
         using (PrepareMarker.Auto())
         {
-            Array.Clear(normalPrepareDemand, 0, normalPrepareDemand.Length);
-            Array.Clear(safePrepareDemand, 0, safePrepareDemand.Length);
-            int remainingSafe = pendingSafeChunks;
+            if (windowChanged || !enableCachedPreparation)
+                RebuildPrepareDemands();
 
-            for (int offset = 0; offset < prepareLookaheadChunks; offset++)
+            int createdThisPass = 0;
+
+            for (int i = 0; i < prepareOrderCount; i++)
+                createdThisPass += PrepareVariant(prepareOrderIds[i], prepareOrderVariants[i], 1);
+
+            for (int i = 0; i < prepareOrderCount; i++)
             {
-                int chunkIndex = nextChunkIndex + offset;
+                PoolId id = prepareOrderIds[i];
+                int variantIndex = prepareOrderVariants[i];
+                int desired = id == PoolId.SafeMap
+                    ? safePrepareDemand[variantIndex]
+                    : normalPrepareDemand[variantIndex];
 
-                if (transitionRequested && chunkIndex > transitionLastChunkIndex)
-                    break;
+                if (desired > 1)
+                    createdThisPass += PrepareVariant(id, variantIndex, desired);
+            }
 
-                bool initialSafe = IsInitialSafe(chunkIndex);
-                bool safe = initialSafe || remainingSafe > 0;
+            TotalPrepareCreations += createdThisPass;
+            PreparePassCount++;
+            nextPrepareAttemptTime = Time.unscaledTime +
+                (createdThisPass > 0 ? 0f : prepareRetryInterval);
+        }
 
-                if (!initialSafe && remainingSafe > 0)
-                    remainingSafe--;
+        if (!enableCachedPreparation)
+            prepareCacheValid = false;
+    }
 
-                int prefabIndex = SelectPrefabIndex(chunkIndex, safe);
+    private int PrepareVariant(PoolId id, int variantIndex, int desiredAvailableCount)
+    {
+        string prefabName = id == PoolId.SafeMap
+            ? safePrefabNames[variantIndex]
+            : normalPrefabNames[variantIndex];
 
-                if (prefabIndex < 0)
-                    continue;
+        return poolManager.Prepare(id, prefabName, desiredAvailableCount);
+    }
 
-                if (safe)
-                {
-                    int desired = ++safePrepareDemand[prefabIndex];
-                    TotalPrepareCreations += poolManager.Prepare(PoolId.SafeMap, safePrefabNames[prefabIndex], desired);
-                }
-                else
-                {
-                    int desired = ++normalPrepareDemand[prefabIndex];
-                    TotalPrepareCreations += poolManager.Prepare(PoolId.NormalMap, normalPrefabNames[prefabIndex], desired);
-                }
+    private void RebuildPrepareDemands()
+    {
+        Array.Clear(normalPrepareDemand, 0, normalPrepareDemand.Length);
+        Array.Clear(safePrepareDemand, 0, safePrepareDemand.Length);
+        prepareOrderCount = 0;
+
+        int remainingSafe = pendingSafeChunks;
+
+        for (int offset = 0; offset < prepareLookaheadChunks; offset++)
+        {
+            int chunkIndex = nextChunkIndex + offset;
+
+            if (transitionRequested && chunkIndex > transitionLastChunkIndex)
+                break;
+
+            bool initialSafe = IsInitialSafe(chunkIndex);
+            bool safe = initialSafe || remainingSafe > 0;
+
+            if (!initialSafe && remainingSafe > 0)
+                remainingSafe--;
+
+            int prefabIndex = SelectPrefabIndex(chunkIndex, safe);
+
+            if (prefabIndex < 0)
+                continue;
+
+            int previousDemand = safe
+                ? safePrepareDemand[prefabIndex]++
+                : normalPrepareDemand[prefabIndex]++;
+
+            if (previousDemand == 0)
+            {
+                prepareOrderIds[prepareOrderCount] = safe ? PoolId.SafeMap : PoolId.NormalMap;
+                prepareOrderVariants[prepareOrderCount] = prefabIndex;
+                prepareOrderCount++;
             }
         }
+
+        cachedNextChunkIndex = nextChunkIndex;
+        cachedPendingSafeChunks = pendingSafeChunks;
+        cachedTransitionLastChunkIndex = transitionLastChunkIndex;
+        cachedTransitionRequested = transitionRequested;
+        cachedSeed = seed;
+        cachedLookaheadChunks = prepareLookaheadChunks;
+        prepareCacheValid = true;
+        PrepareDemandRebuildCount++;
+    }
+
+    private void InvalidatePrepareCache()
+    {
+        prepareCacheValid = false;
+        nextPrepareAttemptTime = 0f;
     }
 
     private bool IsInitialSafe(int chunkIndex)
@@ -390,6 +580,8 @@ public sealed class MapManager : MonoBehaviour
         TotalChunksRecycled = 0;
         TotalPrepareCreations = 0;
         TotalFailedSpawnAttempts = 0;
+        PrepareDemandRebuildCount = 0;
+        PreparePassCount = 0;
         InitializeAtPlayerPosition();
     }
 
@@ -441,6 +633,7 @@ public sealed class MapManager : MonoBehaviour
             return;
 
         is3DMapActive = false;
+        wasCollisionCullingEnabled = false;
         ClearActiveChunks();
         ReturnTransitionWall();
     }
@@ -520,7 +713,13 @@ public sealed class MapManager : MonoBehaviour
     {
         int activeNormal = poolManager != null ? poolManager.GetActiveCount(PoolId.NormalMap) : 0;
         int activeSafe = poolManager != null ? poolManager.GetActiveCount(PoolId.SafeMap) : 0;
-        Debug.Log($"MapStreaming | Seed={seed}, Next={nextChunkIndex}, Active={activeChunks.Count}, CoverageReady={HasRequiredCoverage}, Spawned={TotalChunksSpawned}, Recycled={TotalChunksRecycled}, PrepareCreated={TotalPrepareCreations}, FailedAttempts={TotalFailedSpawnAttempts}, NormalActive={activeNormal}, SafeActive={activeSafe}", this);
+        Debug.Log($"MapStreaming | Seed={seed}, Next={nextChunkIndex}, Active={activeChunks.Count}, CoverageReady={HasRequiredCoverage}, Spawned={TotalChunksSpawned}, Recycled={TotalChunksRecycled}, PrepareCreated={TotalPrepareCreations}, PrepareRebuilds={PrepareDemandRebuildCount}, PreparePasses={PreparePassCount}, FailedAttempts={TotalFailedSpawnAttempts}, NormalActive={activeNormal}, SafeActive={activeSafe}, CollisionStateChanges={CollisionCullingStateChanges}", this);
+    }
+
+    private void OnDisable()
+    {
+        RestoreAllObstacleColliders();
+        wasCollisionCullingEnabled = false;
     }
 
     private void OnDestroy()
@@ -537,7 +736,11 @@ public sealed class MapManager : MonoBehaviour
         keepBehindDistance = Mathf.Max(0f, keepBehindDistance);
         maxSpawnsPerFrame = Mathf.Max(1, maxSpawnsPerFrame);
         prepareLookaheadChunks = Mathf.Max(0, prepareLookaheadChunks);
+        prepareRetryInterval = Mathf.Max(0.02f, prepareRetryInterval);
         transitionSafeChunkCount = Mathf.Max(1, transitionSafeChunkCount);
         transitionWallOffset = Mathf.Max(0f, transitionWallOffset);
+        collisionEnableAhead = Mathf.Max(0f, collisionEnableAhead);
+        collisionKeepBehind = Mathf.Max(0f, collisionKeepBehind);
+        collisionCheckInterval = Mathf.Max(0.02f, collisionCheckInterval);
     }
 }

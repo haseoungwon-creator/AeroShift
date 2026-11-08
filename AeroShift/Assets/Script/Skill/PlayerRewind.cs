@@ -1,16 +1,17 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
 public class PlayerRewind : MonoBehaviour
 {
-    [SerializeField] float rewindDuration = 5f;
-    [SerializeField] float recordInterval = 0.02f;
-    [SerializeField] float rewindPlayDuration = 2f;
-    [SerializeField] ScoreManager scoreManager;
-    [SerializeField] PlayerController playerController;
-    [SerializeField] NearMissDetector nearMissDetector;
-    [SerializeField] WorldMovement worldMovement;
-    [SerializeField] Collider playerCollider;
+    [SerializeField, Min(0.01f)] private float rewindDuration = 5f;
+    [SerializeField, Min(0.001f)] private float recordInterval = 0.02f;
+    [SerializeField, Min(0.01f)] private float rewindPlayDuration = 2f;
+    [SerializeField] private ScoreManager scoreManager;
+    [SerializeField] private PlayerController playerController;
+    [SerializeField] private NearMissDetector nearMissDetector;
+    [SerializeField] private WorldMovement worldMovement;
+    [SerializeField] private Collider playerCollider;
 
     private struct PositionData
     {
@@ -18,10 +19,7 @@ public class PlayerRewind : MonoBehaviour
         public Quaternion playerRotation;
         public Vector3 worldPosition;
 
-        public PositionData(
-            Vector3 playerPosition,
-            Quaternion playerRotation,
-            Vector3 worldPosition)
+        public PositionData(Vector3 playerPosition, Quaternion playerRotation, Vector3 worldPosition)
         {
             this.playerPosition = playerPosition;
             this.playerRotation = playerRotation;
@@ -30,33 +28,39 @@ public class PlayerRewind : MonoBehaviour
     }
 
     private PositionData[] positionBuffer;
+    private Collider[] playerColliders;
+    private bool[] colliderEnabledStates;
+    private Coroutine rewindCoroutine;
+
     private int bufferIndex;
     private int bufferCount;
     private float recordTimer;
-
     private bool hasUsed;
     private bool isRewinding;
+    private bool collidersSuspended;
+    private bool controlWasEnabled;
 
     public bool IsRewinding => isRewinding;
     public bool CanRewind => !hasUsed && !isRewinding;
 
     private void Awake()
     {
-        int bufferSize = Mathf.CeilToInt(
-            rewindDuration / recordInterval);
+        rewindDuration = Mathf.Max(0.01f, rewindDuration);
+        recordInterval = Mathf.Max(0.001f, recordInterval);
+        rewindPlayDuration = Mathf.Max(0.01f, rewindPlayDuration);
 
+        int bufferSize = Mathf.Max(2, Mathf.CeilToInt(rewindDuration / recordInterval) + 1);
         positionBuffer = new PositionData[bufferSize];
+
+        if (playerController == null)
+            playerController = GetComponent<PlayerController>();
+
+        CachePlayerColliders();
     }
 
     private void Update()
     {
-        if (GameManager.Instance == null)
-            return;
-
-        if (GameManager.Instance.CurrentState != GameStates.Playing)
-            return;
-
-        if (isRewinding)
+        if (!IsGamePlaying() || isRewinding)
             return;
 
         RecordPosition();
@@ -69,62 +73,49 @@ public class PlayerRewind : MonoBehaviour
         if (recordTimer < recordInterval)
             return;
 
-        recordTimer -= recordInterval;
+        recordTimer = Mathf.Min(recordTimer - recordInterval, recordInterval);
 
-        Vector3 worldPosition = Vector3.zero;
-
-        if (worldMovement != null)
-            worldPosition = worldMovement.transform.position;
-
-        positionBuffer[bufferIndex] = new PositionData(
-            transform.position,
-            transform.rotation,
-            worldPosition);
-
-        bufferIndex =
-            (bufferIndex + 1) % positionBuffer.Length;
+        positionBuffer[bufferIndex] = CapturePosition();
+        bufferIndex = (bufferIndex + 1) % positionBuffer.Length;
 
         if (bufferCount < positionBuffer.Length)
             bufferCount++;
     }
 
+    private PositionData CapturePosition()
+    {
+        Vector3 worldPosition = worldMovement != null
+            ? worldMovement.transform.position
+            : Vector3.zero;
+
+        return new PositionData(transform.position, transform.rotation, worldPosition);
+    }
+
     public void Rewind()
     {
-        if (GameManager.Instance == null)
+        if (!isActiveAndEnabled || !IsGamePlaying() || !CanRewind || bufferCount == 0)
             return;
 
-        if (GameManager.Instance.CurrentState != GameStates.Playing)
+        if (playerController == null)
+        {
+            Debug.LogError("PlayerRewind에 PlayerController가 연결되지 않았습니다.", this);
             return;
+        }
 
-        if (!CanRewind)
-            return;
-
-        if (bufferCount == 0)
-            return;
-
-        positionBuffer[bufferIndex] =
-            new PositionData(
-                transform.position,
-                transform.rotation,
-                worldMovement != null
-                    ? worldMovement.transform.position
-                    : Vector3.zero);
-
-        bufferIndex =
-            (bufferIndex + 1) % positionBuffer.Length;
+        positionBuffer[bufferIndex] = CapturePosition();
+        bufferIndex = (bufferIndex + 1) % positionBuffer.Length;
 
         if (bufferCount < positionBuffer.Length)
             bufferCount++;
 
         hasUsed = true;
-
-        StartCoroutine(RewindSequence());
+        isRewinding = true;
+        controlWasEnabled = playerController.CanControl;
+        rewindCoroutine = StartCoroutine(RewindSequence());
     }
 
     private IEnumerator RewindSequence()
     {
-        isRewinding = true;
-
         playerController.SetControlEnabled(false);
 
         if (worldMovement != null)
@@ -139,90 +130,115 @@ public class PlayerRewind : MonoBehaviour
         if (nearMissDetector != null)
             nearMissDetector.SetRewinding(true);
 
-        if (playerCollider != null)
-            playerCollider.enabled = false;
+        SuspendPlayerColliders();
 
-        int newestIndex = bufferIndex - 1;
-
-        if (newestIndex < 0)
-            newestIndex = positionBuffer.Length - 1;
-
+        int newestIndex = WrapIndex(bufferIndex - 1);
         float elapsedTime = 0f;
 
         while (elapsedTime < rewindPlayDuration)
         {
+            if (!IsGamePlaying())
+            {
+                FinishRewind();
+                yield break;
+            }
+
             elapsedTime += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsedTime / rewindPlayDuration);
+            float historyPosition = t * (bufferCount - 1);
+            int offset = Mathf.FloorToInt(historyPosition);
 
-            float t = Mathf.Clamp01(
-                elapsedTime / rewindPlayDuration);
+            int currentIndex = WrapIndex(newestIndex - offset);
+            int previousIndex = WrapIndex(newestIndex - Mathf.Min(offset + 1, bufferCount - 1));
 
-            float historyPosition =
-                t * (bufferCount - 1);
-
-            int offset =
-                Mathf.FloorToInt(historyPosition);
-
-            int currentIndex =
-                WrapIndex(newestIndex - offset);
-
-            int previousIndex =
-                WrapIndex(
-                    newestIndex -
-                    Mathf.Min(
-                        offset + 1,
-                        bufferCount - 1));
-
-            PositionData current =
-                positionBuffer[currentIndex];
-
-            PositionData previous =
-                positionBuffer[previousIndex];
-
-            float interpolation =
-                historyPosition - offset;
+            PositionData current = positionBuffer[currentIndex];
+            PositionData previous = positionBuffer[previousIndex];
+            float interpolation = historyPosition - offset;
 
             transform.SetPositionAndRotation(
-                Vector3.Lerp(
-                    current.playerPosition,
-                    previous.playerPosition,
-                    interpolation),
-                Quaternion.Slerp(
-                    current.playerRotation,
-                    previous.playerRotation,
-                    interpolation));
+                Vector3.Lerp(current.playerPosition, previous.playerPosition, interpolation),
+                Quaternion.Slerp(current.playerRotation, previous.playerRotation, interpolation));
 
             if (worldMovement != null)
             {
-                worldMovement.transform.position =
-                    Vector3.Lerp(
-                        current.worldPosition,
-                        previous.worldPosition,
-                        interpolation);
+                worldMovement.transform.position = Vector3.Lerp(
+                    current.worldPosition,
+                    previous.worldPosition,
+                    interpolation);
             }
 
             yield return null;
         }
 
-        int oldestIndex =
-            WrapIndex(
-                newestIndex -
-                (bufferCount - 1));
+        int oldestIndex = WrapIndex(newestIndex - (bufferCount - 1));
+        PositionData oldest = positionBuffer[oldestIndex];
 
-        PositionData oldest =
-            positionBuffer[oldestIndex];
-
-        transform.SetPositionAndRotation(
-            oldest.playerPosition,
-            oldest.playerRotation);
+        transform.SetPositionAndRotation(oldest.playerPosition, oldest.playerRotation);
 
         if (worldMovement != null)
+            worldMovement.transform.position = oldest.worldPosition;
+
+        FinishRewind();
+    }
+
+    private void CachePlayerColliders()
+    {
+        playerColliders = GetComponentsInChildren<Collider>(true);
+
+        if (playerCollider != null && Array.IndexOf(playerColliders, playerCollider) < 0)
         {
-            worldMovement.transform.position =
-                oldest.worldPosition;
+            int previousCount = playerColliders.Length;
+            Array.Resize(ref playerColliders, previousCount + 1);
+            playerColliders[previousCount] = playerCollider;
         }
 
-        if (playerCollider != null)
-            playerCollider.enabled = true;
+        colliderEnabledStates = new bool[playerColliders.Length];
+    }
+
+    private void SuspendPlayerColliders()
+    {
+        if (playerColliders == null)
+            CachePlayerColliders();
+
+        collidersSuspended = true;
+
+        for (int i = 0; i < playerColliders.Length; i++)
+        {
+            Collider collider = playerColliders[i];
+
+            if (collider == null)
+                continue;
+
+            colliderEnabledStates[i] = collider.enabled;
+            collider.enabled = false;
+        }
+    }
+
+    private void RestorePlayerColliders()
+    {
+        if (!collidersSuspended)
+            return;
+
+        for (int i = 0; i < playerColliders.Length; i++)
+        {
+            Collider collider = playerColliders[i];
+
+            if (collider != null)
+                collider.enabled = colliderEnabledStates[i];
+        }
+
+        collidersSuspended = false;
+    }
+
+    private void FinishRewind()
+    {
+        RestorePlayerColliders();
+
+        if (!isRewinding)
+            return;
+
+        isRewinding = false;
+        rewindCoroutine = null;
 
         if (nearMissDetector != null)
             nearMissDetector.SetRewinding(false);
@@ -230,35 +246,58 @@ public class PlayerRewind : MonoBehaviour
         if (scoreManager != null)
             scoreManager.SetRewinding(false);
 
+        bool isPlaying = IsGamePlaying();
+
         if (worldMovement != null)
         {
             worldMovement.SetRewinding(false);
-            worldMovement.SetMovement(true);
+            worldMovement.SetMovement(isPlaying);
         }
 
-        playerController.ResetMovementTarget();
-        playerController.SetControlEnabled(true);
+        if (playerController != null)
+        {
+            if (isPlaying)
+                playerController.ResetMovementTarget();
 
-        isRewinding = false;
+            playerController.SetControlEnabled(isPlaying && controlWasEnabled);
+        }
+    }
+
+    private void StopRewindAndRestore()
+    {
+        if (rewindCoroutine != null)
+        {
+            StopCoroutine(rewindCoroutine);
+            rewindCoroutine = null;
+        }
+
+        FinishRewind();
     }
 
     private int WrapIndex(int index)
     {
         index %= positionBuffer.Length;
+        return index < 0 ? index + positionBuffer.Length : index;
+    }
 
-        if (index < 0)
-            index += positionBuffer.Length;
-
-        return index;
+    private static bool IsGamePlaying()
+    {
+        return GameManager.Instance != null &&
+            GameManager.Instance.CurrentState == GameStates.Playing;
     }
 
     public void ResetRewind()
     {
+        StopRewindAndRestore();
+
         bufferIndex = 0;
         bufferCount = 0;
         recordTimer = 0f;
-
         hasUsed = false;
-        isRewinding = false;
+    }
+
+    private void OnDisable()
+    {
+        StopRewindAndRestore();
     }
 }
