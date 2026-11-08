@@ -1,3 +1,4 @@
+
 using System.Reflection;
 using UnityEngine;
 
@@ -11,7 +12,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         CloudSpawnRange,
         CloudGroupedMovement,
         MapPrepareCache,
-        MapColliderCulling
+        MapColliderCulling,
+        CloudDistanceSpawn
     }
 
     [Header("Capture")]
@@ -20,7 +22,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     [Header("Experiment")]
     [SerializeField]
     private ExperimentType experiment =
-        ExperimentType.CloudSpawnRange;
+        ExperimentType.CloudDistanceSpawn;
+
     [SerializeField] private bool optimizationEnabled;
     [SerializeField, Min(1)] private int runNumber = 1;
 
@@ -83,11 +86,22 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                 category = "Map";
                 experimentName = "ColliderCulling";
                 break;
+
+            case ExperimentType.CloudDistanceSpawn:
+                target = cloudSpawner;
+                fieldName = "useDistanceBasedSpawn";
+                category = "Cloud";
+                experimentName = "DistanceSpawn";
+                break;
         }
 
         if (target == null || !target.gameObject.activeInHierarchy)
         {
-            Debug.LogError("실험 대상 오브젝트를 찾지 못했습니다: " + experiment, this);
+            Debug.LogError(
+                "실험 대상 오브젝트를 찾지 못했습니다: " + experiment,
+                this
+            );
+
             gcCapture.enabled = false;
             enabled = false;
             return;
@@ -100,28 +114,45 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
         if (field == null || field.FieldType != typeof(bool))
         {
-            Debug.LogError("실험 옵션 필드가 없습니다: " + fieldName, this);
+            Debug.LogError(
+                "실험 옵션 필드가 없습니다: " + fieldName,
+                this
+            );
+
             gcCapture.enabled = false;
             enabled = false;
             return;
         }
 
         field.SetValue(target, optimizationEnabled);
-        AppliedOptimizationState = (bool)field.GetValue(target);
+
+        AppliedOptimizationState =
+            (bool)field.GetValue(target);
 
         string state = AppliedOptimizationState ? "ON" : "OFF";
+
         ExperimentFilePrefix =
-            "AeroShift_" + category + "_" + experimentName + "_" +
-            state + "_Run" + Mathf.Max(1, runNumber).ToString("D2");
+            "AeroShift_" +
+            category + "_" +
+            experimentName + "_" +
+            state + "_Run" +
+            Mathf.Max(1, runNumber).ToString("D2");
 
         if (!gcCapture.ConfigureScenarioName(ExperimentFilePrefix))
         {
-            Debug.LogError("GC Capture 시나리오 설정 실패", this);
+            Debug.LogError(
+                "GC Capture 시나리오 설정 실패",
+                this
+            );
+
             gcCapture.enabled = false;
             enabled = false;
             return;
         }
 
-        Debug.Log("최적화 실험 설정: " + ExperimentFilePrefix, this);
+        Debug.Log(
+            "최적화 실험 설정: " + ExperimentFilePrefix,
+            this
+        );
     }
 }
