@@ -1125,26 +1125,12 @@ MonoBehaviour:
     resourceMaxCount: 600
     resourceExpandWhenEmpty: 1
     variants: []
-    maxRuntimeCreationsPerFrame: 300
-    enableAutoShrink: 1
-    resourceMinRetainedCount: 50
-    idleSecondsBeforeShrink: 20
-    shrinkCheckIntervalSeconds: 5
-    maxDestroysPerCheck: 10
-  - id: 2
-    parent: {fileID: 2136591282}
-    prefabSource: 1
-    resourcesFolder: 
-    resourceInitialCount: 28
-    resourceMaxCount: 35
-    resourceExpandWhenEmpty: 1
-    variants: []
     maxRuntimeCreationsPerFrame: 2
     enableAutoShrink: 1
-    resourceMinRetainedCount: 28
-    idleSecondsBeforeShrink: 10
+    resourceMinRetainedCount: 300
+    idleSecondsBeforeShrink: 6
     shrinkCheckIntervalSeconds: 2
-    maxDestroysPerCheck: 2
+    maxDestroysPerCheck: 10
   - id: 1
     parent: {fileID: 1731601333}
     prefabSource: 1
@@ -1154,11 +1140,25 @@ MonoBehaviour:
     resourceExpandWhenEmpty: 1
     variants: []
     maxRuntimeCreationsPerFrame: 2
+    enableAutoShrink: 0
+    resourceMinRetainedCount: 0
+    idleSecondsBeforeShrink: 60
+    shrinkCheckIntervalSeconds: 10
+    maxDestroysPerCheck: 2
+  - id: 2
+    parent: {fileID: 2136591282}
+    prefabSource: 1
+    resourcesFolder: 
+    resourceInitialCount: 35
+    resourceMaxCount: 70
+    resourceExpandWhenEmpty: 1
+    variants: []
+    maxRuntimeCreationsPerFrame: 2
     enableAutoShrink: 1
-    resourceMinRetainedCount: 3
-    idleSecondsBeforeShrink: 6
-    shrinkCheckIntervalSeconds: 2
-    maxDestroysPerCheck: 1
+    resourceMinRetainedCount: 50
+    idleSecondsBeforeShrink: 10
+    shrinkCheckIntervalSeconds: 5
+    maxDestroysPerCheck: 2
   - id: 3
     parent: {fileID: 692672769}
     prefabSource: 1
@@ -1167,12 +1167,13 @@ MonoBehaviour:
     resourceMaxCount: 2
     resourceExpandWhenEmpty: 1
     variants: []
-    maxRuntimeCreationsPerFrame: 1
+    maxRuntimeCreationsPerFrame: 2
     enableAutoShrink: 0
-    resourceMinRetainedCount: 1
+    resourceMinRetainedCount: 0
     idleSecondsBeforeShrink: 60
     shrinkCheckIntervalSeconds: 10
     maxDestroysPerCheck: 2
+  autoRegisterMissingResourceGroups: 1
 --- !u!4 &318424435
 Transform:
   m_ObjectHideFlags: 0
@@ -2527,57 +2528,6 @@ Transform:
   - {fileID: 1397169579}
   - {fileID: 408448740}
   - {fileID: 576024883}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &649451070
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 649451072}
-  - component: {fileID: 649451071}
-  m_Layer: 0
-  m_Name: GCAllocationCapture
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &649451071
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 649451070}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: af16b502fbdf1304c9fea62b484fe55a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GCAllocationCapture
-  startAutomaticallyWhenPlaying: 1
-  warmupSeconds: 5
-  captureSeconds: 10
-  scenarioName: 3D_Flight_GC
-  saveProfilerRaw: 0
-  captureAllocationCallstacks: 0
-  profilerBufferMiB: 128
---- !u!4 &649451072
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 649451070}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &653542934
@@ -4345,6 +4295,8 @@ MonoBehaviour:
   cloudCullDistance: 900
   cullingCameras:
   - {fileID: 330585545}
+  restrictSpawnToCullRange: 0
+  cullPreloadMargin: 100
 --- !u!4 &1028732952
 Transform:
   m_ObjectHideFlags: 0
@@ -6246,6 +6198,76 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1990528249}
   m_CullTransparentMesh: 1
+--- !u!1 &2048739003
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2048739006}
+  - component: {fileID: 2048739005}
+  - component: {fileID: 2048739004}
+  m_Layer: 0
+  m_Name: AeroOptimizationExperiment
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2048739004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2048739003}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1082c9336484014fbf24abcb843847a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AeroOptimizationExperiment
+  gcCapture: {fileID: 0}
+  experiment: 0
+  optimizationEnabled: 0
+  runNumber: 1
+  cloudSpawner: {fileID: 1028732951}
+  mapManager: {fileID: 774914389}
+--- !u!114 &2048739005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2048739003}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af16b502fbdf1304c9fea62b484fe55a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GCAllocationCapture
+  startAutomaticallyWhenPlaying: 1
+  warmupSeconds: 5
+  captureSeconds: 30
+  scenarioName: 3D_Flight_GC
+  saveProfilerRaw: 0
+  captureAllocationCallstacks: 0
+  profilerBufferMiB: 128
+--- !u!4 &2048739006
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2048739003}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2104790828
 GameObject:
   m_ObjectHideFlags: 0
@@ -6793,4 +6815,4 @@ SceneRoots:
   - {fileID: 593564960}
   - {fileID: 1808679687}
   - {fileID: 2133913287}
-  - {fileID: 649451072}
+  - {fileID: 2048739006}

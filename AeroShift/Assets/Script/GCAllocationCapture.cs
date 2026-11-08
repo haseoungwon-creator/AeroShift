@@ -12,10 +12,10 @@ public sealed class GCAllocationCapture : MonoBehaviour
 {
     [SerializeField] private bool startAutomaticallyWhenPlaying = true;
     [SerializeField] private float warmupSeconds = 5f;
-    [SerializeField] private float captureSeconds = 10f;
+    [SerializeField] private float captureSeconds = 30f;
     [SerializeField] private string scenarioName = "3D_Flight_GC";
-    [SerializeField] private bool saveProfilerRaw = true;
-    [SerializeField] private bool captureAllocationCallstacks = true;
+    [SerializeField] private bool saveProfilerRaw = false;
+    [SerializeField] private bool captureAllocationCallstacks = false;
     [SerializeField] private int profilerBufferMiB = 128;
 
     private enum CaptureState
@@ -115,6 +115,15 @@ public sealed class GCAllocationCapture : MonoBehaviour
         });
     }
 
+    public bool ConfigureScenarioName(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || state == CaptureState.Capturing)
+            return false;
+
+        scenarioName = value.Trim();
+        return true;
+    }
+
     [ContextMenu("Start GC Capture Now")]
     public void StartCaptureNow()
     {
@@ -155,10 +164,10 @@ public sealed class GCAllocationCapture : MonoBehaviour
 
         try
         {
-            outputDirectory = Path.Combine(Application.persistentDataPath, "AeroBenchmarks", "GCInvestigation");
+            string cleanScenario = CleanFileName(scenarioName);
+            outputDirectory = GetExperimentOutputDirectory(cleanScenario);
             Directory.CreateDirectory(outputDirectory);
 
-            string cleanScenario = CleanFileName(scenarioName);
             outputPrefix = cleanScenario + "_" + DateTime.Now.ToString("yyyyMMdd_HHmmss_fff", Culture);
             profilerRawPath = Path.Combine(outputDirectory, outputPrefix + "_profile.raw");
 
@@ -273,6 +282,10 @@ public sealed class GCAllocationCapture : MonoBehaviour
         long gcMaxBytes = 0;
         long lastGCUsedBytes = -1;
         long lastSystemUsedBytes = -1;
+        int peakSampleFrame = -1;
+        double peakSampleFrameMs = -1d;
+        long peakSampleGCUsedBytes = -1;
+        long peakSampleSystemUsedBytes = -1;
         int gcValidSamples = 0;
         double totalFrameMs = 0;
 
@@ -284,8 +297,16 @@ public sealed class GCAllocationCapture : MonoBehaviour
             if (sample.GCAllocatedBytes >= 0)
             {
                 gcTotalBytes += sample.GCAllocatedBytes;
-                gcMaxBytes = Math.Max(gcMaxBytes, sample.GCAllocatedBytes);
                 gcValidSamples++;
+
+                if (peakSampleFrame < 0 || sample.GCAllocatedBytes > gcMaxBytes)
+                {
+                    gcMaxBytes = sample.GCAllocatedBytes;
+                    peakSampleFrame = sample.Frame;
+                    peakSampleFrameMs = sample.FrameMilliseconds;
+                    peakSampleGCUsedBytes = sample.GCUsedBytes;
+                    peakSampleSystemUsedBytes = sample.SystemUsedBytes;
+                }
             }
 
             if (sample.GCUsedBytes >= 0)
@@ -307,11 +328,16 @@ public sealed class GCAllocationCapture : MonoBehaviour
         AppendMetric(builder, "average_gc_alloc_bytes_per_frame", Average(gcTotalBytes, gcValidSamples));
         AppendMetric(builder, "total_gc_alloc_bytes_observed", gcTotalBytes.ToString(Culture));
         AppendMetric(builder, "maximum_gc_alloc_bytes_per_frame", gcValidSamples == 0 ? "unavailable" : gcMaxBytes.ToString(Culture));
+        AppendMetric(builder, "peak_gc_sample_frame", peakSampleFrame.ToString(Culture));
+        AppendMetric(builder, "peak_gc_sample_frame_ms", peakSampleFrame < 0 ? "unavailable" : peakSampleFrameMs.ToString("F4", Culture));
+        AppendMetric(builder, "peak_gc_sample_gc_used_bytes", peakSampleGCUsedBytes.ToString(Culture));
+        AppendMetric(builder, "peak_gc_sample_system_used_bytes", peakSampleSystemUsedBytes.ToString(Culture));
         AppendMetric(builder, "last_gc_used_bytes", lastGCUsedBytes.ToString(Culture));
         AppendMetric(builder, "last_system_used_bytes", lastSystemUsedBytes.ToString(Culture));
         AppendMetric(builder, "allocation_callstacks_requested", saveProfilerRaw && captureAllocationCallstacks ? "true" : "false");
         AppendMetric(builder, "raw_profiler_requested", saveProfilerRaw ? "true" : "false");
         AppendMetric(builder, "raw_profiler_file", saveProfilerRaw ? profilerRawPath : "none");
+        AppendMetric(builder, "output_directory", outputDirectory);
         File.WriteAllText(path, builder.ToString(), new UTF8Encoding(false));
     }
 
@@ -328,6 +354,37 @@ public sealed class GCAllocationCapture : MonoBehaviour
     private static long ReadLastValue(ProfilerRecorder recorder)
     {
         return recorder.Valid ? recorder.LastValue : -1;
+    }
+
+    private static string GetExperimentOutputDirectory(string cleanScenario)
+    {
+        string root = Path.Combine(
+            Application.persistentDataPath,
+            "AeroBenchmarks",
+            "Experiments"
+        );
+
+        string[] parts = cleanScenario.Split('_');
+
+        if (parts.Length == 5 &&
+            (parts[0] == "AeroShift" || parts[0] == "AeroFlip") &&
+            (parts[3] == "ON" || parts[3] == "OFF") &&
+            parts[4].StartsWith("Run", StringComparison.Ordinal) &&
+            int.TryParse(parts[4].Substring(3), out int runNumber) &&
+            runNumber > 0 &&
+            !string.IsNullOrWhiteSpace(parts[1]) &&
+            !string.IsNullOrWhiteSpace(parts[2]))
+        {
+            return Path.Combine(
+                root,
+                parts[1],
+                parts[2],
+                parts[3],
+                "Run" + runNumber.ToString("D2", Culture)
+            );
+        }
+
+        return Path.Combine(root, "Other", cleanScenario);
     }
 
     private static string CleanFileName(string value)
