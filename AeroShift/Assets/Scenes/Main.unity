@@ -6221,7 +6221,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1082c9336484014fbf24abcb843847a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AeroOptimizationExperiment
-  experiment: 4
+  experiment: 3
   optimizationEnabled: 1
   runNumber: 1
   cloudSpawner: {fileID: 1028732951}
@@ -6495,11 +6495,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad57d613dc335fb4f93c6e0e47208aab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
---- !u!65 &6349540993517378996 stripped
-BoxCollider:
-  m_CorrespondingSourceObject: {fileID: 7471530741507688732, guid: cd49643a87086464889789802f5ee833, type: 3}
-  m_PrefabInstance: {fileID: 6593621555912193820}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &6349540993517379000 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4178489688046926945, guid: cd49643a87086464889789802f5ee833, type: 3}
@@ -6561,6 +6556,28 @@ MonoBehaviour:
   skillManager: {fileID: 204601065}
   rewindButton: {fileID: 311790793}
   timeSlowButton: {fileID: 586739508}
+--- !u!64 &6349540993517379019
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 124129165}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4150850542830065728, guid: b19c72af16de4a1479822acbd030a76f, type: 3}
 --- !u!1001 &6593621555912193820
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6676,7 +6693,7 @@ PrefabInstance:
     - target: {fileID: 4178489688046926945, guid: cd49643a87086464889789802f5ee833, type: 3}
       propertyPath: playerCollider
       value: 
-      objectReference: {fileID: 6349540993517378996}
+      objectReference: {fileID: 6349540993517379019}
     - target: {fileID: 4178489688046926945, guid: cd49643a87086464889789802f5ee833, type: 3}
       propertyPath: recordInterval
       value: 0.02
@@ -6697,6 +6714,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6464397241095128502, guid: cd49643a87086464889789802f5ee833, type: 3}
+      propertyPath: playerRewind
+      value: 
+      objectReference: {fileID: 6349540993517379000}
     - target: {fileID: 7468196489185759329, guid: cd49643a87086464889789802f5ee833, type: 3}
       propertyPath: skillManager
       value: 
@@ -6717,7 +6738,9 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 1
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 7471530741507688732, guid: cd49643a87086464889789802f5ee833, type: 3}
+    - {fileID: 8582985259247376638, guid: cd49643a87086464889789802f5ee833, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
@@ -6730,6 +6753,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1853792731185276244, guid: cd49643a87086464889789802f5ee833, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6349540993517379011}
+    - targetCorrespondingSourceObject: {fileID: 1853792731185276244, guid: cd49643a87086464889789802f5ee833, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6349540993517379019}
   m_SourcePrefab: {fileID: 100100000, guid: cd49643a87086464889789802f5ee833, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

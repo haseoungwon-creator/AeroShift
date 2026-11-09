@@ -49,7 +49,7 @@ GameObject:
   - component: {fileID: 5207656291717125570}
   - component: {fileID: 7924708236091275904}
   - component: {fileID: 147548326476261741}
-  - component: {fileID: 7986298379680165488}
+  - component: {fileID: 4059055728068045808}
   m_Layer: 0
   m_Name: ST_Stone5 (6)
   m_TagString: Untagged
@@ -129,8 +129,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &7986298379680165488
-BoxCollider:
+--- !u!64 &4059055728068045808
+MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -147,9 +147,10 @@ BoxCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1.0274276, y: 1.397608, z: 1.0250072}
-  m_Center: {x: 0.017609468, y: 0.13501725, z: 0.029834121}
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 5090787245838889048, guid: 079c048d0750a6341be30a2cc6a3cca2, type: 3}
 --- !u!1 &1788790906130228153
 GameObject:
   m_ObjectHideFlags: 0
@@ -161,7 +162,7 @@ GameObject:
   - component: {fileID: 997439746159100496}
   - component: {fileID: 1875242372774678866}
   - component: {fileID: 1867072628524598278}
-  - component: {fileID: 8261275274974320976}
+  - component: {fileID: 4419023805629123560}
   m_Layer: 0
   m_Name: ST_Stone5 (2)
   m_TagString: Untagged
@@ -241,8 +242,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &8261275274974320976
-BoxCollider:
+--- !u!64 &4419023805629123560
+MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -259,9 +260,10 @@ BoxCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1.0274276, y: 1.397608, z: 1.0250072}
-  m_Center: {x: 0.017609468, y: 0.13501725, z: 0.029834121}
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 5090787245838889048, guid: 079c048d0750a6341be30a2cc6a3cca2, type: 3}
 --- !u!1 &3704844276731348399
 GameObject:
   m_ObjectHideFlags: 0
@@ -273,7 +275,7 @@ GameObject:
   - component: {fileID: 3270322726972694351}
   - component: {fileID: 1986883042881250873}
   - component: {fileID: 350567878279688723}
-  - component: {fileID: 3712919106779616998}
+  - component: {fileID: 8356027561680664594}
   m_Layer: 0
   m_Name: ST_Stone5 (1)
   m_TagString: Untagged
@@ -353,8 +355,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &3712919106779616998
-BoxCollider:
+--- !u!64 &8356027561680664594
+MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -371,9 +373,10 @@ BoxCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1.0274276, y: 1.397608, z: 1.0250072}
-  m_Center: {x: 0.017609654, y: 0.13501725, z: 0.029833883}
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 5090787245838889048, guid: 079c048d0750a6341be30a2cc6a3cca2, type: 3}
 --- !u!1 &4431584973661788797
 GameObject:
   m_ObjectHideFlags: 0
@@ -385,7 +388,7 @@ GameObject:
   - component: {fileID: 2329870100668248852}
   - component: {fileID: 1704191561999938441}
   - component: {fileID: 4648435036230577886}
-  - component: {fileID: 6596753098090793534}
+  - component: {fileID: 4802249257440795766}
   m_Layer: 0
   m_Name: ST_Stone5 (5)
   m_TagString: Untagged
@@ -465,8 +468,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &6596753098090793534
-BoxCollider:
+--- !u!64 &4802249257440795766
+MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -483,9 +486,10 @@ BoxCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1.0274276, y: 1.397608, z: 1.0250072}
-  m_Center: {x: 0.017609468, y: 0.13501725, z: 0.029834121}
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 5090787245838889048, guid: 079c048d0750a6341be30a2cc6a3cca2, type: 3}
 --- !u!1 &4927465287755439922
 GameObject:
   m_ObjectHideFlags: 0
@@ -497,7 +501,7 @@ GameObject:
   - component: {fileID: 4713037200949299886}
   - component: {fileID: 5016756593002466436}
   - component: {fileID: 2015887994617985816}
-  - component: {fileID: 8017510829298150430}
+  - component: {fileID: 2445236744490223226}
   m_Layer: 0
   m_Name: ST_Stone5 (4)
   m_TagString: Untagged
@@ -577,8 +581,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &8017510829298150430
-BoxCollider:
+--- !u!64 &2445236744490223226
+MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -595,9 +599,10 @@ BoxCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1.0274276, y: 1.397608, z: 1.0250072}
-  m_Center: {x: 0.017609468, y: 0.13501725, z: 0.029834121}
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 5090787245838889048, guid: 079c048d0750a6341be30a2cc6a3cca2, type: 3}
 --- !u!1 &8994572515413618660
 GameObject:
   m_ObjectHideFlags: 0
@@ -609,7 +614,7 @@ GameObject:
   - component: {fileID: 8813566796688201485}
   - component: {fileID: 5607444830607258700}
   - component: {fileID: 6015304249831173445}
-  - component: {fileID: 265170558147499866}
+  - component: {fileID: 4297417531412584695}
   m_Layer: 0
   m_Name: ST_Stone5 (3)
   m_TagString: Untagged
@@ -689,8 +694,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &265170558147499866
-BoxCollider:
+--- !u!64 &4297417531412584695
+MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -707,9 +712,10 @@ BoxCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1.0274276, y: 1.397608, z: 1.0250072}
-  m_Center: {x: 0.017609468, y: 0.13501725, z: 0.029834121}
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 5090787245838889048, guid: 079c048d0750a6341be30a2cc6a3cca2, type: 3}
 --- !u!1 &9053350633356586459
 GameObject:
   m_ObjectHideFlags: 0

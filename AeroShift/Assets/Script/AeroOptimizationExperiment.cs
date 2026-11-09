@@ -9,8 +9,8 @@ using UnityEngine;
 using UnityEngine.Profiling;
 
 /// <summary>
-/// AeroShift 최적화 실험의 통합 관리자.
-/// 실험 선택 -> bool 최적화 ON/OFF -> 워밍업 -> 프레임/GC/메모리 측정 -> CSV 저장.
+/// AeroShift 개별 최적화 실험 관리자 (개별 실험 전용).
+/// 실험 선택 -> bool ON/OFF -> 워밍업 -> 프레임/CPU/물리/GC/메모리 측정 -> CSV 저장.
 /// 이전 AeroOptimizationExperiment + GCAllocationCapture를 이 스크립트 하나로 대체합니다.
 /// </summary>
 [DefaultExecutionOrder(-900)]
@@ -35,7 +35,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
     [Header("1. 최적화 실험 선택")]
     [Tooltip("어떤 최적화 기능을 시험할지 선택합니다.")]
-    [SerializeField] private ExperimentType experiment = ExperimentType.CloudDistanceSpawn;
+    [SerializeField] private ExperimentType experiment = ExperimentType.MapPrepareCache;
 
     [Tooltip("OFF = 기존 방식, ON = 개선 방식. Awake에서 실제 대상 필드에 적용합니다.")]
     [SerializeField] private bool optimizationEnabled;
@@ -63,7 +63,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     [Tooltip("MissileCustom 결과 파일에 사용할 실험 이름(영문/숫자 권장)")]
     [SerializeField] private string missileExperimentName = "Custom";
 
-    [Header("4. 측정 시간")]
+    [Header("4. 개별 측정 시간")]
     [Tooltip("게임이 Playing 상태가 되면 자동으로 측정 시작")]
     [SerializeField] private bool startAutomaticallyWhenPlaying = true;
     [Tooltip("GameManager.CurrentState == Playing인 경우에만 자동 측정. 수동 시작은 예외")]
@@ -115,6 +115,10 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         public float ElapsedSeconds;
         public float FrameMilliseconds;
         public long MainThreadNanoseconds;
+        public long RenderThreadNanoseconds;
+        public long PhysicsSimulateNanoseconds;
+        public long PhysicsProcessingNanoseconds;
+        public long PhysicsSyncColliderNanoseconds;
         public long GCAllocatedBytes;
         public long GCUsedBytes;
         public long SystemUsedBytes;
@@ -138,6 +142,30 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         public int PoolRuntimeCreation;
     }
 
+    // 맵 실험에서만 기록하는 세부 지표. 기존 FeatureSample과 CSV 형식은 유지합니다.
+    private struct MapSample
+    {
+        public int Frame;
+        public float ElapsedSeconds;
+        public int ActiveChunks;
+        public int NextChunkIndex;
+        public int Spawned;
+        public int Recycled;
+        public int PrepareCreations;
+        public int FailedSpawns;
+        public int PrepareRebuilds;
+        public int PreparePasses;
+        public int CollisionStateChanges;
+        public int CoverageReady;
+        public int NormalActive;
+        public int SafeActive;
+        public int NormalAvailable;
+        public int SafeAvailable;
+    }
+
+    // 씬 재로드/자동 반복 기능은 사용하지 않습니다.
+    private readonly List<MapSample> mapSamples = new List<MapSample>(512);
+
     private readonly List<FrameSample> frames = new List<FrameSample>(4096);
     private readonly List<FeatureSample> featureSamples = new List<FeatureSample>(512);
 
@@ -156,6 +184,11 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     private ProfilerRecorder gcUsedRecorder;
     private ProfilerRecorder systemUsedRecorder;
     private ProfilerRecorder mainThreadRecorder;
+    // CPU 시간(나노초). 사용 불가능한 마커는 -1로 기록합니다.
+    private ProfilerRecorder renderThreadRecorder;
+    private ProfilerRecorder physicsSimulateRecorder;
+    private ProfilerRecorder physicsProcessingRecorder;
+    private ProfilerRecorder physicsSyncColliderRecorder;
 
     private bool profilerStateSaved;
     private bool previousProfilerEnabled;
@@ -176,23 +209,21 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         string boolFieldName;
         if (!ResolveExperiment(out target, out boolFieldName))
         {
-            enabled = false;
+            FailSetup("실험 종류/필드 설정이 올바르지 않습니다.");
             return;
         }
 
         if (target == null || !target.gameObject.activeInHierarchy)
         {
-            Debug.LogError("[AeroExperiment] 실험 대상이 없거나 비활성 상태입니다: " + experiment, this);
-            enabled = false;
+            FailSetup("실험 대상이 없거나 비활성 상태입니다: " + experiment);
             return;
         }
 
         FieldInfo option = FindBoolField(target.GetType(), boolFieldName);
         if (option == null)
         {
-            Debug.LogError("[AeroExperiment] bool 필드가 없습니다: " + boolFieldName +
-                           " (" + target.GetType().Name + ")", this);
-            enabled = false;
+            FailSetup("bool 필드가 없습니다: " + boolFieldName +
+                      " (" + target.GetType().Name + ")");
             return;
         }
 
@@ -203,8 +234,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         }
         catch (Exception exception)
         {
-            Debug.LogError("[AeroExperiment] 최적화 옵션 적용 실패: " + exception.Message, this);
-            enabled = false;
+            FailSetup("최적화 옵션 적용 실패: " + exception.Message);
             return;
         }
 
@@ -215,6 +245,13 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
         Debug.Log("[AeroExperiment] 적용 완료: " + ExperimentFilePrefix +
                   " / 변경 필드: " + boolFieldName, this);
+    }
+
+    /// <summary>실험별 대상과 실제 bool 필드 이름을 한 곳에서 결정합니다.</summary>
+    private void FailSetup(string message)
+    {
+        Debug.LogError("[AeroExperiment] " + message, this);
+        enabled = false;
     }
 
     /// <summary>실험별 대상과 실제 bool 필드 이름을 한 곳에서 결정합니다.</summary>
@@ -304,7 +341,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     {
         if (state == CaptureState.Waiting)
         {
-            if (startAutomaticallyWhenPlaying && (!waitForGamePlaying || IsGamePlaying()))
+            if (startAutomaticallyWhenPlaying &&
+                (!waitForGamePlaying || IsGamePlaying()))
                 EnterWarmup(false);
             return;
         }
@@ -342,6 +380,10 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             FrameMilliseconds = Time.unscaledDeltaTime * 1000f,
             // LastValue는 '마지막으로 완료된 프레임'의 값입니다.
             MainThreadNanoseconds = ReadLastValue(mainThreadRecorder),
+            RenderThreadNanoseconds = ReadLastValue(renderThreadRecorder),
+            PhysicsSimulateNanoseconds = ReadLastValue(physicsSimulateRecorder),
+            PhysicsProcessingNanoseconds = ReadLastValue(physicsProcessingRecorder),
+            PhysicsSyncColliderNanoseconds = ReadLastValue(physicsSyncColliderRecorder),
             GCAllocatedBytes = ReadLastValue(gcAllocatedRecorder),
             GCUsedBytes = ReadLastValue(gcUsedRecorder),
             SystemUsedBytes = ReadLastValue(systemUsedRecorder)
@@ -389,12 +431,13 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     {
         frames.Clear();
         featureSamples.Clear();
+        mapSamples.Clear();
         lastFeatureSampleFrame = -1;
 
         try
         {
-            outputDirectory = Path.Combine(
-                Application.persistentDataPath, "AeroBenchmarks", "Experiments",
+            // 기존과 동일: AeroBenchmarks/Experiments/{분류}/{실험}/{ON|OFF}/RunXX/
+            outputDirectory = Path.Combine(GetExperimentsRoot(),
                 category.ToString(), CleanFileName(experimentName),
                 AppliedOptimizationState ? "ON" : "OFF",
                 "Run" + Mathf.Max(1, runNumber).ToString("D2", Culture));
@@ -423,6 +466,17 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                 ProfilerCategory.Memory, "System Used Memory", 1);
             mainThreadRecorder = ProfilerRecorder.StartNew(
                 ProfilerCategory.Internal, "Main Thread", 1);
+
+            // 기본 ProfilerRecorder 옵션은 프레임에 발생한 같은 마커를 합산합니다.
+            // 메인 스레드 시간은 전체 CPU 사용률(%)과 동일하지 않습니다.
+            renderThreadRecorder = ProfilerRecorder.StartNew(
+                ProfilerCategory.Internal, "Render Thread", 1);
+            physicsSimulateRecorder = ProfilerRecorder.StartNew(
+                ProfilerCategory.Physics, "Physics.Simulate", 1);
+            physicsProcessingRecorder = ProfilerRecorder.StartNew(
+                ProfilerCategory.Physics, "Physics.Processing", 1);
+            physicsSyncColliderRecorder = ProfilerRecorder.StartNew(
+                ProfilerCategory.Physics, "Physics.SyncColliderTransform", 1);
 
             captureStart = Time.unscaledTime;
             state = CaptureState.Capturing;
@@ -509,7 +563,33 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         }
 
         featureSamples.Add(sample);
+        if (category == ExperimentCategory.Map && mapManager != null)
+            RecordMapSample();
         lastFeatureSampleFrame = Time.frameCount;
+    }
+
+    private void RecordMapSample()
+    {
+        MapSample sample = new MapSample
+        {
+            Frame = Time.frameCount,
+            ElapsedSeconds = Time.unscaledTime - captureStart,
+            ActiveChunks = mapManager.ActiveChunkCount,
+            NextChunkIndex = mapManager.NextChunkIndex,
+            Spawned = mapManager.TotalChunksSpawned,
+            Recycled = mapManager.TotalChunksRecycled,
+            PrepareCreations = mapManager.TotalPrepareCreations,
+            FailedSpawns = mapManager.TotalFailedSpawnAttempts,
+            PrepareRebuilds = mapManager.PrepareDemandRebuildCount,
+            PreparePasses = mapManager.PreparePassCount,
+            CollisionStateChanges = mapManager.CollisionCullingStateChanges,
+            CoverageReady = mapManager.HasRequiredCoverage ? 1 : 0,
+            NormalActive = poolManager != null ? poolManager.GetActiveCount(PoolId.NormalMap) : -1,
+            SafeActive = poolManager != null ? poolManager.GetActiveCount(PoolId.SafeMap) : -1,
+            NormalAvailable = poolManager != null ? poolManager.GetAvailableCount(PoolId.NormalMap) : -1,
+            SafeAvailable = poolManager != null ? poolManager.GetAvailableCount(PoolId.SafeMap) : -1
+        };
+        mapSamples.Add(sample);
     }
 
     private static int ReadIntMember(MonoBehaviour target, string name)
@@ -549,14 +629,14 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
         try
         {
-            string framesPath = Path.Combine(outputDirectory, outputPrefix + "_frames.csv");
-            string summaryPath = Path.Combine(outputDirectory, outputPrefix + "_summary.csv");
-            SaveFrames(framesPath);
-            SaveSummary(summaryPath, completed);
+            SaveFrames(Path.Combine(outputDirectory, outputPrefix + "_frames.csv"));
+            SaveSummary(Path.Combine(outputDirectory, outputPrefix + "_summary.csv"), completed);
             if (featureSamples.Count > 0)
                 SaveFeatureMetrics(Path.Combine(outputDirectory, outputPrefix + "_feature_metrics.csv"));
+            if (mapSamples.Count > 0)
+                SaveMapMetrics(Path.Combine(outputDirectory, outputPrefix + "_map_metrics.csv"));
 
-            Debug.Log("[AeroExperiment] 측정 저장: " + outputDirectory, this);
+            Debug.Log("[AeroExperiment] 개별 측정 저장: " + outputDirectory, this);
         }
         catch (Exception exception)
         {
@@ -564,10 +644,18 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         }
     }
 
+    private static string GetExperimentsRoot()
+    {
+        return Path.Combine(Application.persistentDataPath,
+            "AeroBenchmarks", "Experiments");
+    }
+
     private void SaveFrames(string path)
     {
         StringBuilder sb = new StringBuilder(Math.Max(1024, frames.Count * 90));
-        sb.AppendLine("frame,elapsed_seconds,frame_ms,main_thread_ms,gc_alloc_bytes,gc_used_bytes,system_used_bytes");
+        // 기존 열 이름/순서를 유지하고 오른쪽에 CPU 세부 지표를 덧붙입니다.
+        sb.AppendLine("frame,elapsed_seconds,frame_ms,main_thread_ms,gc_alloc_bytes,gc_used_bytes,system_used_bytes," +
+            "render_thread_ms,physics_simulate_ms,physics_processing_ms,physics_sync_collider_ms");
         foreach (FrameSample sample in frames)
         {
             sb.Append(sample.Frame).Append(',')
@@ -576,7 +664,11 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
               .Append(ToMilliseconds(sample.MainThreadNanoseconds)).Append(',')
               .Append(sample.GCAllocatedBytes).Append(',')
               .Append(sample.GCUsedBytes).Append(',')
-              .Append(sample.SystemUsedBytes).AppendLine();
+              .Append(sample.SystemUsedBytes).Append(',')
+              .Append(ToMilliseconds(sample.RenderThreadNanoseconds)).Append(',')
+              .Append(ToMilliseconds(sample.PhysicsSimulateNanoseconds)).Append(',')
+              .Append(ToMilliseconds(sample.PhysicsProcessingNanoseconds)).Append(',')
+              .Append(ToMilliseconds(sample.PhysicsSyncColliderNanoseconds)).AppendLine();
         }
         File.WriteAllText(path, sb.ToString(), Utf8NoBom);
     }
@@ -608,12 +700,52 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         File.WriteAllText(path, sb.ToString(), Utf8NoBom);
     }
 
+    private void SaveMapMetrics(string path)
+    {
+        StringBuilder sb = new StringBuilder(Math.Max(1024, mapSamples.Count * 130));
+        sb.AppendLine("frame,elapsed_seconds,active_chunks,next_chunk_index," +
+                      "total_spawned,total_recycled,prepare_creations,failed_spawns," +
+                      "prepare_demand_rebuilds,prepare_passes,collision_state_changes," +
+                      "coverage_ready,normal_pool_active,safe_pool_active," +
+                      "normal_pool_available,safe_pool_available");
+
+        foreach (MapSample s in mapSamples)
+        {
+            sb.Append(s.Frame).Append(',')
+              .Append(s.ElapsedSeconds.ToString("F4", Culture)).Append(',')
+              .Append(s.ActiveChunks).Append(',')
+              .Append(s.NextChunkIndex).Append(',')
+              .Append(s.Spawned).Append(',')
+              .Append(s.Recycled).Append(',')
+              .Append(s.PrepareCreations).Append(',')
+              .Append(s.FailedSpawns).Append(',')
+              .Append(s.PrepareRebuilds).Append(',')
+              .Append(s.PreparePasses).Append(',')
+              .Append(s.CollisionStateChanges).Append(',')
+              .Append(s.CoverageReady).Append(',')
+              .Append(s.NormalActive).Append(',')
+              .Append(s.SafeActive).Append(',')
+              .Append(s.NormalAvailable).Append(',')
+              .Append(s.SafeAvailable).AppendLine();
+        }
+
+        File.WriteAllText(path, sb.ToString(), Utf8NoBom);
+    }
+
     private void SaveSummary(string path, bool completed)
     {
         double totalFrameMs = 0;
         double totalMainThreadMs = 0;
+        double totalRenderThreadMs = 0;
+        double totalPhysicsSimulateMs = 0;
+        double totalPhysicsProcessingMs = 0;
+        double totalPhysicsSyncColliderMs = 0;
         double totalGC = 0;
         int mainThreadValid = 0;
+        int renderThreadValid = 0;
+        int physicsSimulateValid = 0;
+        int physicsProcessingValid = 0;
+        int physicsSyncColliderValid = 0;
         int gcValid = 0;
         long maximumGC = -1;
         long lastGCUsed = -1;
@@ -627,6 +759,26 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             {
                 totalMainThreadMs += f.MainThreadNanoseconds * 0.000001;
                 mainThreadValid++;
+            }
+            if (f.RenderThreadNanoseconds >= 0)
+            {
+                totalRenderThreadMs += f.RenderThreadNanoseconds * 0.000001;
+                renderThreadValid++;
+            }
+            if (f.PhysicsSimulateNanoseconds >= 0)
+            {
+                totalPhysicsSimulateMs += f.PhysicsSimulateNanoseconds * 0.000001;
+                physicsSimulateValid++;
+            }
+            if (f.PhysicsProcessingNanoseconds >= 0)
+            {
+                totalPhysicsProcessingMs += f.PhysicsProcessingNanoseconds * 0.000001;
+                physicsProcessingValid++;
+            }
+            if (f.PhysicsSyncColliderNanoseconds >= 0)
+            {
+                totalPhysicsSyncColliderMs += f.PhysicsSyncColliderNanoseconds * 0.000001;
+                physicsSyncColliderValid++;
             }
             if (f.GCAllocatedBytes >= 0)
             {
@@ -654,8 +806,16 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         AppendMetric(sb, "frame_count", frames.Count.ToString(Culture));
         AppendMetric(sb, "valid_gc_samples", gcValid.ToString(Culture));
         AppendMetric(sb, "valid_main_thread_samples", mainThreadValid.ToString(Culture));
+        AppendMetric(sb, "valid_render_thread_samples", renderThreadValid.ToString(Culture));
+        AppendMetric(sb, "valid_physics_simulate_samples", physicsSimulateValid.ToString(Culture));
+        AppendMetric(sb, "valid_physics_processing_samples", physicsProcessingValid.ToString(Culture));
+        AppendMetric(sb, "valid_physics_sync_collider_samples", physicsSyncColliderValid.ToString(Culture));
         AppendMetric(sb, "average_frame_ms", Average(totalFrameMs, frames.Count));
         AppendMetric(sb, "average_main_thread_ms", Average(totalMainThreadMs, mainThreadValid));
+        AppendMetric(sb, "average_render_thread_ms", Average(totalRenderThreadMs, renderThreadValid));
+        AppendMetric(sb, "average_physics_simulate_ms", Average(totalPhysicsSimulateMs, physicsSimulateValid));
+        AppendMetric(sb, "average_physics_processing_ms", Average(totalPhysicsProcessingMs, physicsProcessingValid));
+        AppendMetric(sb, "average_physics_sync_collider_ms", Average(totalPhysicsSyncColliderMs, physicsSyncColliderValid));
         AppendMetric(sb, "average_gc_alloc_bytes_per_frame", Average(totalGC, gcValid));
         AppendMetric(sb, "total_gc_alloc_bytes_observed", totalGC.ToString("F0", Culture));
         AppendMetric(sb, "maximum_gc_alloc_bytes_per_frame",
@@ -693,6 +853,32 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                         ? "unavailable"
                         : (last.CloudRentFailures - first.CloudRentFailures).ToString(Culture));
             }
+        }
+        if (category == ExperimentCategory.Map && mapSamples.Count > 0)
+        {
+            MapSample first = mapSamples[0];
+            MapSample last = mapSamples[mapSamples.Count - 1];
+            int uncoveredSamples = 0;
+            int peakActiveChunks = 0;
+            foreach (MapSample s in mapSamples)
+            {
+                if (s.CoverageReady == 0) uncoveredSamples++;
+                if (s.ActiveChunks > peakActiveChunks) peakActiveChunks = s.ActiveChunks;
+            }
+
+            AppendMetric(sb, "map_sample_count", mapSamples.Count.ToString(Culture));
+            AppendMetric(sb, "map_active_chunks_end", last.ActiveChunks.ToString(Culture));
+            AppendMetric(sb, "map_active_chunks_peak_observed", peakActiveChunks.ToString(Culture));
+            AppendMetric(sb, "map_spawned_delta", (last.Spawned - first.Spawned).ToString(Culture));
+            AppendMetric(sb, "map_recycled_delta", (last.Recycled - first.Recycled).ToString(Culture));
+            AppendMetric(sb, "map_prepare_creations_delta", (last.PrepareCreations - first.PrepareCreations).ToString(Culture));
+            AppendMetric(sb, "map_failed_spawns_delta", (last.FailedSpawns - first.FailedSpawns).ToString(Culture));
+            AppendMetric(sb, "map_prepare_rebuilds_delta", (last.PrepareRebuilds - first.PrepareRebuilds).ToString(Culture));
+            AppendMetric(sb, "map_prepare_passes_delta", (last.PreparePasses - first.PreparePasses).ToString(Culture));
+            AppendMetric(sb, "map_collision_state_changes_delta", (last.CollisionStateChanges - first.CollisionStateChanges).ToString(Culture));
+            AppendMetric(sb, "map_uncovered_samples", uncoveredSamples.ToString(Culture));
+            AppendMetric(sb, "map_normal_pool_active_end", last.NormalActive.ToString(Culture));
+            AppendMetric(sb, "map_safe_pool_active_end", last.SafeActive.ToString(Culture));
         }
         AppendMetric(sb, "raw_profiler_requested", saveProfilerRaw ? "true" : "false");
         AppendMetric(sb, "allocation_callstacks_requested",
@@ -732,10 +918,18 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         gcUsedRecorder.Dispose();
         systemUsedRecorder.Dispose();
         mainThreadRecorder.Dispose();
+        renderThreadRecorder.Dispose();
+        physicsSimulateRecorder.Dispose();
+        physicsProcessingRecorder.Dispose();
+        physicsSyncColliderRecorder.Dispose();
         gcAllocatedRecorder = default;
         gcUsedRecorder = default;
         systemUsedRecorder = default;
         mainThreadRecorder = default;
+        renderThreadRecorder = default;
+        physicsSimulateRecorder = default;
+        physicsProcessingRecorder = default;
+        physicsSyncColliderRecorder = default;
     }
 
     private void OnDisable()
