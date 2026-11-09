@@ -6186,6 +6186,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1991887548}
+  - component: {fileID: 1991887549}
   m_Layer: 0
   m_Name: pro
   m_TagString: Untagged
@@ -6205,85 +6206,47 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2133913287}
-  - {fileID: 2048739006}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &2048739003
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2048739006}
-  - component: {fileID: 2048739005}
-  - component: {fileID: 2048739004}
-  m_Layer: 0
-  m_Name: AeroOptimizationExperiment
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &2048739004
+--- !u!114 &1991887549
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2048739003}
+  m_GameObject: {fileID: 1991887547}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c1082c9336484014fbf24abcb843847a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AeroOptimizationExperiment
-  gcCapture: {fileID: 2048739005}
-  experiment: 1
+  experiment: 4
   optimizationEnabled: 1
-  runNumber: 2
+  runNumber: 1
   cloudSpawner: {fileID: 1028732951}
   mapManager: {fileID: 774914389}
---- !u!114 &2048739005
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2048739003}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: af16b502fbdf1304c9fea62b484fe55a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GCAllocationCapture
+  poolManager: {fileID: 318424434}
+  customMapTarget: {fileID: 0}
+  mapBooleanFieldName: 
+  mapExperimentName: Custom
+  missileTarget: {fileID: 0}
+  missileBooleanFieldName: 
+  missileExperimentName: Custom
   startAutomaticallyWhenPlaying: 1
+  waitForGamePlaying: 1
   warmupSeconds: 5
   captureSeconds: 30
-  scenarioName: 3D_Flight_GC
+  maxRecordedFrames: 36000
   saveProfilerRaw: 0
   captureAllocationCallstacks: 0
   profilerBufferMiB: 128
-  captureCloudMetrics: 1
-  cloudSpawner: {fileID: 1028732951}
-  poolManager: {fileID: 318424434}
-  cloudSampleIntervalFrames: 10
---- !u!4 &2048739006
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2048739003}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1991887548}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  captureFeatureMetrics: 1
+  featureSampleIntervalFrames: 10
+  mapActiveCountMemberName: 
+  missileActiveCountMemberName: 
+  mapPoolIdName: 
+  missilePoolIdName: 
 --- !u!1 &2104790828
 GameObject:
   m_ObjectHideFlags: 0
@@ -6417,59 +6380,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2104790828}
   m_CullTransparentMesh: 1
---- !u!1 &2133913285
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2133913287}
-  - component: {fileID: 2133913286}
-  m_Layer: 0
-  m_Name: CloudMovementBenchmark
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &2133913286
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2133913285}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 514de63afc54732488a273dd0bd19799, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CloudMovementBenchmark
-  cloudSpawner: {fileID: 1028732951}
-  poolManager: {fileID: 318424434}
-  variantName: Grouped
-  scenarioName: 3D_Flight
-  warmupSeconds: 5
-  measurementSeconds: 30
-  maxSampleFrames: 20000
-  requireInitialPlacementComplete: 1
-  uncapFrameRate: 1
---- !u!4 &2133913287
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2133913285}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1991887548}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2136318220
 GameObject:
   m_ObjectHideFlags: 0
