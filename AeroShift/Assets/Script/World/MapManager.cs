@@ -128,7 +128,7 @@ public sealed class MapManager : MonoBehaviour
     // 실제 3D 스트림의 커버리지가 충족된 것으로 기록하지 않습니다.
     public bool HasRequiredCoverage => initialized && is3DMapActive &&
         player != null && activeChunks.Count > 0 &&
-        (double)nextChunkIndex * chunkLength >=
+        ((double)nextChunkIndex - 0.5d) * chunkLength >=
         (double)LogicalPlayerZ + forwardChunkCount * chunkLength;
 
     private void Start()
@@ -356,7 +356,9 @@ public sealed class MapManager : MonoBehaviour
 
     private void InitializeAtPlayerPosition()
     {
-        initialChunkIndex = Mathf.FloorToInt(LogicalPlayerZ / chunkLength);
+        // Map prefab floors are centered on the chunk root (-length/2 to +length/2).
+        // Select the chunk containing the player, including after 2D -> 3D ResetMaps.
+        initialChunkIndex = Mathf.FloorToInt(LogicalPlayerZ / chunkLength + 0.5f);
         nextChunkIndex = initialChunkIndex;
         pendingSafeChunks = 0;
         poolExhaustionWarned = false;
@@ -401,7 +403,9 @@ public sealed class MapManager : MonoBehaviour
         double desiredEndZ = (double)LogicalPlayerZ + forwardChunkCount * chunkLength;
         int spawnedThisCall = 0;
 
-        while ((double)nextChunkIndex * chunkLength < desiredEndZ && spawnedThisCall < maxCount)
+        // nextChunkIndex is the CENTER, not the leading edge of the next prefab.
+        while (((double)nextChunkIndex - 0.5d) * chunkLength < desiredEndZ &&
+               spawnedThisCall < maxCount)
         {
             if (transitionRequested && nextChunkIndex > transitionLastChunkIndex)
                 break;
@@ -439,9 +443,12 @@ public sealed class MapManager : MonoBehaviour
 
             bool rotated = !safe && allow180DegreeRotation &&
                 ChunkSeedUtility.ShouldRotate180(seed, nextChunkIndex);
-            float startZ = nextChunkIndex * chunkLength;
-            float placementZ = rotated ? startZ + chunkLength : startZ;
-            Vector3 position = WorldOrigin + new Vector3(mapOriginXY.x, mapOriginXY.y, placementZ);
+            // All current road/safe-road prefab roots are at the FLOOR CENTER.
+            // Rotating around that center must NOT translate a map by one chunk.
+            float centerZ = nextChunkIndex * chunkLength;
+            float startZ = centerZ - chunkLength * 0.5f;
+            float endZ = centerZ + chunkLength * 0.5f;
+            Vector3 position = WorldOrigin + new Vector3(mapOriginXY.x, mapOriginXY.y, centerZ);
             Quaternion rotation = rotated ? Quaternion.Euler(0f, 180f, 0f) : Quaternion.identity;
             GameObject instance = poolManager.RentInactive(id, position, rotation,
                 worldMovement != null ? worldMovement.transform : null, variants[prefabIndex]);
@@ -471,7 +478,7 @@ public sealed class MapManager : MonoBehaviour
                 wasCollisionCullingEnabled = true;
             }
 
-            activeChunks.Enqueue(new ActiveChunk(instance, startZ, startZ + chunkLength, mapChunk));
+            activeChunks.Enqueue(new ActiveChunk(instance, startZ, endZ, mapChunk));
             instance.SetActive(true);
 
             if (transitionRequested &&
@@ -741,7 +748,8 @@ public sealed class MapManager : MonoBehaviour
         if (transitionSafeChunksPlaced < requiredCount)
             return;
 
-        float wallZ = ((float)transitionLastChunkIndex + 1f) * chunkLength + transitionWallOffset;
+        // Offset is measured from the actual forward edge of the last centered safe map.
+        float wallZ = ((float)transitionLastChunkIndex + 0.5f) * chunkLength + transitionWallOffset;
         Vector3 wallPosition = WorldOrigin + new Vector3(mapOriginXY.x, mapOriginXY.y, wallZ);
         transitionWall = poolManager.RentInactive(PoolId.TransitionWall, wallPosition, Quaternion.identity,
             worldMovement != null ? worldMovement.transform : null);

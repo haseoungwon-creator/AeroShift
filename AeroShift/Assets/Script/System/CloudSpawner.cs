@@ -75,6 +75,9 @@ public sealed class CloudSpawner : MonoBehaviour
 
     private int cloudLayer = -1;
 
+    // 구름 최적화는 CloudSpawner의 Distance Culling 옵션에서 직접 설정합니다.
+    public bool DistanceCullingEnabled => enableDistanceCulling;
+
     public int InitialTargetCount => initialTargetCount;
     public int InitialPlacedCount => initialPlacedCount;
     public int ActiveCloudCount => cloudHeap.Count;

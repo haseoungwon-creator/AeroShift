@@ -3332,7 +3332,6 @@ GameObject:
   - component: {fileID: 774914390}
   - component: {fileID: 774914389}
   - component: {fileID: 774914384}
-  - component: {fileID: 774914391}
   m_Layer: 0
   m_Name: World
   m_TagString: Untagged
@@ -3393,8 +3392,8 @@ MonoBehaviour:
   collisionEnableAhead: 160
   collisionKeepBehind: 80
   collisionCheckInterval: 0.1
-  seed: 20261027
-  allow180DegreeRotation: 0
+  seed: 0
+  allow180DegreeRotation: 1
 --- !u!4 &774914390
 Transform:
   m_ObjectHideFlags: 0
@@ -3410,36 +3409,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 593564960}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &774914391
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 774914383}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 66f6067e3ecad244cbd25cb12fb22cdc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MapManager_Unoptimized
-  safeMapPrefab: {fileID: 2859785967629440855, guid: 82eadd37c06e49e4f87179044c4b5466, type: 3}
-  mapPrefabs:
-  - {fileID: 6110114320245149243, guid: 3bc09c5760bae6844b54e825354d1af4, type: 3}
-  - {fileID: 4377862132216671279, guid: 0c5ea966bfd857d41aa18c361158a05e, type: 3}
-  - {fileID: 3163139455560374980, guid: 58fdf2e9eec98084bb8cbd9ede0038c0, type: 3}
-  - {fileID: 1478529733654202355, guid: 1aed2cbda52034a449963ecc17087fdd, type: 3}
-  - {fileID: 197110800400862252, guid: 91334ef32aa4b7c49b5a28513c70f4ed, type: 3}
-  - {fileID: 8888267628204532281, guid: 1c3e91a85eecd874fbfa9fb2b9a88c9b, type: 3}
-  - {fileID: 6573022208643476565, guid: e3840db146db7df409fedb4be26e04e0, type: 3}
-  player: {fileID: 6349540993517378987}
-  mapLength: 80
-  forwardMapCount: 6
-  safeMapCount: 3
-  keepBehindDistance: 250
-  moveSpeed: 30
-  maxSpeed: 60
-  speedIncrease: 5
-  speedIncreaseInterval: 10
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -6221,32 +6190,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1082c9336484014fbf24abcb843847a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AeroOptimizationExperiment
-  experiment: 3
-  optimizationEnabled: 1
-  runNumber: 1
-  cloudSpawner: {fileID: 1028732951}
-  mapManager: {fileID: 774914389}
-  poolManager: {fileID: 318424434}
-  customMapTarget: {fileID: 0}
-  mapBooleanFieldName: 
-  mapExperimentName: Custom
-  missileTarget: {fileID: 0}
-  missileBooleanFieldName: 
-  missileExperimentName: Custom
-  startAutomaticallyWhenPlaying: 1
-  waitForGamePlaying: 1
+  saveSubfolder: ProfilerCaptures
+  startAutomatically: 1
   warmupSeconds: 5
   captureSeconds: 30
-  maxRecordedFrames: 36000
-  saveProfilerRaw: 0
-  captureAllocationCallstacks: 0
-  profilerBufferMiB: 128
-  captureFeatureMetrics: 1
-  featureSampleIntervalFrames: 10
-  mapActiveCountMemberName: 
-  missileActiveCountMemberName: 
-  mapPoolIdName: 
-  missilePoolIdName: 
 --- !u!1 &2104790828
 GameObject:
   m_ObjectHideFlags: 0

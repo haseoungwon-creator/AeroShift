@@ -286,6 +286,15 @@ public sealed class PoolManager : MonoBehaviour
 
         pooled.Bind(this, id, variantIndex);
 
+        // MapChunk was previously added on the first streamed spawn.
+        // Prepare it while the pooled map is still inactive, shifting the
+        // one-time AddComponent allocation out of active gameplay.
+        if (id == PoolId.NormalMap || id == PoolId.SafeMap)
+        {
+            if (!instance.TryGetComponent(out MapChunk chunk))
+                instance.AddComponent<MapChunk>();
+        }
+
         instance.transform.SetParent(bucket.Parent, false);
 
         bucket.CreatedCount++;
@@ -852,4 +861,3 @@ public sealed class PoolManager : MonoBehaviour
             : 0;
     }
 }
-    

@@ -4,7 +4,6 @@ using UnityEngine.Profiling;
 public class PerformanceMonitor : MonoBehaviour
 {
     [SerializeField] bool showMonitor = true;
-    [SerializeField] int targetFrameRate = 60;
 
     private float fps;
     private float frameTime;
@@ -12,10 +11,10 @@ public class PerformanceMonitor : MonoBehaviour
 
     private GUIStyle labelStyle;
 
-    private void Awake()
+    // A disabled monitor must not silently change the game's FPS limit.
+    // This component only presents performance data when enabled.
+    private void OnEnable()
     {
-        Application.targetFrameRate = targetFrameRate;
-
         labelStyle = new GUIStyle();
         labelStyle.fontSize = 24;
         labelStyle.normal.textColor = Color.white;
