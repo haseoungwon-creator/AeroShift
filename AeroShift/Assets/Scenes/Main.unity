@@ -6148,6 +6148,10 @@ MonoBehaviour:
   warmupSeconds: 5
   captureSeconds: 30
   slowFrameThresholdMs: 40
+  recordEveryAvailableMetric: 1
+  maxRecorders: 512
+  maxMetricBufferMiB: 192
+  frameTimingSampleEveryNFrames: 8
 --- !u!1 &2104790828
 GameObject:
   m_ObjectHideFlags: 0
