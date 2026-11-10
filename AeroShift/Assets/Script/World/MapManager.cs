@@ -38,7 +38,7 @@ public sealed class MapManager : MonoBehaviour
     [SerializeField, Min(0f)] private float transitionWallOffset = 30f;
 
     [Header("Obstacle Collision Culling")]
-    [SerializeField] private bool enableProximityCollisionCulling = true;
+    [SerializeField] private bool enableProximityCollisionCulling;
     [SerializeField] private LayerMask obstacleCollisionLayers = 1;
     [SerializeField, Min(0f)] private float collisionEnableAhead = 160f;
     [SerializeField, Min(0f)] private float collisionKeepBehind = 80f;
@@ -53,14 +53,15 @@ public sealed class MapManager : MonoBehaviour
         public readonly GameObject Instance;
         public readonly float StartZ;
         public readonly float EndZ;
-        public readonly ProximityCollisionGroup CollisionGroup;
+        public readonly MapChunk Chunk;
+        public ProximityCollisionGroup CollisionGroup => Chunk != null ? Chunk.CollisionGroup : null;
 
-        public ActiveChunk(GameObject instance, float startZ, float endZ, ProximityCollisionGroup collisionGroup)
+        public ActiveChunk(GameObject instance, float startZ, float endZ, MapChunk chunk)
         {
             Instance = instance;
             StartZ = startZ;
             EndZ = endZ;
-            CollisionGroup = collisionGroup;
+            Chunk = chunk;
         }
     }
 
@@ -89,6 +90,10 @@ public sealed class MapManager : MonoBehaviour
     private float collisionCheckTimer;
     private bool wasCollisionCullingEnabled;
     private bool lastGameplayCollisionAllowed;
+    private int lastCollisionLayerMask;
+    private Transform collisionBoundsPlayer;
+    private Bounds playerLocalCollisionBounds;
+    private bool playerCollisionBoundsValid;
     private bool prepareCacheValid;
     private int cachedNextChunkIndex;
     private int cachedPendingSafeChunks;
@@ -96,6 +101,10 @@ public sealed class MapManager : MonoBehaviour
     private int cachedSeed;
     private int cachedLookaheadChunks;
     private bool cachedTransitionRequested;
+    private int cachedStartingSafeChunkCount;
+    private uint cachedNormalAvailabilityVersion;
+    private uint cachedSafeAvailabilityVersion;
+    private bool preparationSatisfied;
     private float nextPrepareAttemptTime;
 
     public int CollisionCullingStateChanges { get; private set; }
@@ -115,8 +124,12 @@ public sealed class MapManager : MonoBehaviour
     public int TotalPrepareCreations { get; private set; }
     public int TotalFailedSpawnAttempts { get; private set; }
     public float ChunkLength => chunkLength;
-    public bool HasRequiredCoverage => initialized && player != null &&
-        (double)nextChunkIndex * chunkLength >= (double)LogicalPlayerZ + forwardChunkCount * chunkLength;
+    // 논리 인덱스가 충분해도 맵이 숨겨졌거나 모두 반환된 상태라면
+    // 실제 3D 스트림의 커버리지가 충족된 것으로 기록하지 않습니다.
+    public bool HasRequiredCoverage => initialized && is3DMapActive &&
+        player != null && activeChunks.Count > 0 &&
+        (double)nextChunkIndex * chunkLength >=
+        (double)LogicalPlayerZ + forwardChunkCount * chunkLength;
 
     private void Start()
     {
@@ -248,26 +261,29 @@ public sealed class MapManager : MonoBehaviour
 
         if (wasCollisionCullingEnabled &&
             collisionAllowed == lastGameplayCollisionAllowed &&
+            lastCollisionLayerMask == obstacleCollisionLayers.value &&
             collisionCheckTimer < collisionCheckInterval)
             return;
 
         wasCollisionCullingEnabled = true;
         lastGameplayCollisionAllowed = collisionAllowed;
+        lastCollisionLayerMask = obstacleCollisionLayers.value;
         collisionCheckTimer = 0f;
 
         using (CollisionCullingMarker.Auto())
         {
-            float logicalZ = LogicalPlayerZ;
+            bool hasWindow = TryGetCollisionWindow(out float minZ, out float maxZ);
 
             foreach (ActiveChunk chunk in activeChunks)
             {
-                if (chunk.CollisionGroup == null)
+                if (chunk.Chunk == null || chunk.Chunk.IsSafe)
                     continue;
 
+                ProximityCollisionGroup group = chunk.Chunk.GetCollisionGroup(obstacleCollisionLayers);
                 bool enable = collisionAllowed && IsChunkInCollisionRange(
-                    chunk.StartZ, chunk.EndZ, logicalZ);
+                    group, hasWindow, minZ, maxZ);
 
-                if (chunk.CollisionGroup.SetCollisionsEnabled(enable))
+                if (group.SetCollisionsEnabled(enable))
                     CollisionCullingStateChanges++;
             }
         }
@@ -280,10 +296,53 @@ public sealed class MapManager : MonoBehaviour
             (playerRewind == null || !playerRewind.IsRewinding);
     }
 
-    private bool IsChunkInCollisionRange(float startZ, float endZ, float logicalPlayerZ)
+    private bool TryGetCollisionWindow(out float minZ, out float maxZ)
     {
-        return logicalPlayerZ >= startZ - collisionEnableAhead &&
-            logicalPlayerZ <= endZ + collisionKeepBehind;
+        minZ = maxZ = 0f;
+
+        if (player == null)
+            return false;
+
+        if (collisionBoundsPlayer != player)
+        {
+            collisionBoundsPlayer = player;
+            Collider[] colliders = player.GetComponentsInChildren<Collider>(true);
+            playerCollisionBoundsValid = colliders.Length > 0;
+            bool hasBounds = false;
+
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                if (!ProximityCollisionGroup.TryGetLocalBounds(player, colliders[i], out Bounds bounds))
+                {
+                    playerCollisionBoundsValid = false;
+                    break;
+                }
+
+                if (hasBounds)
+                    playerLocalCollisionBounds.Encapsulate(bounds);
+                else
+                    playerLocalCollisionBounds = bounds;
+
+                hasBounds = true;
+            }
+        }
+
+        if (!playerCollisionBoundsValid)
+            return false;
+
+        ProximityCollisionGroup.GetWorldZRange(player, playerLocalCollisionBounds, out minZ, out maxZ);
+        float speed = worldMovement != null ? Mathf.Abs(worldMovement.CurrentSpeed) : 0f;
+        // Include movement until the next check, one long render frame and a physics step.
+        float travelPadding = speed * (collisionCheckInterval + Time.maximumDeltaTime + Time.fixedDeltaTime);
+        minZ -= collisionKeepBehind + travelPadding + Physics.defaultContactOffset;
+        maxZ += collisionEnableAhead + travelPadding + Physics.defaultContactOffset;
+        return true;
+    }
+
+    private static bool IsChunkInCollisionRange(ProximityCollisionGroup group, bool hasWindow, float minZ, float maxZ)
+    {
+        return !hasWindow || !group.TryGetWorldZRange(out float groupMinZ, out float groupMaxZ) ||
+            (groupMaxZ >= minZ && groupMinZ <= maxZ);
     }
 
     private void RestoreAllObstacleColliders()
@@ -315,6 +374,10 @@ public sealed class MapManager : MonoBehaviour
         using (RecycleMarker.Auto())
         {
             float releaseBeforeZ = LogicalPlayerZ - keepBehindDistance;
+
+            // A rewind must not reach a chunk that has already been returned.
+            if (playerRewind != null && playerRewind.TryGetOldestLogicalZ(out float rewindZ))
+                releaseBeforeZ = Mathf.Min(releaseBeforeZ, rewindZ - chunkLength);
 
             while (activeChunks.Count > 0 && activeChunks.Peek().EndZ < releaseBeforeZ)
             {
@@ -380,36 +443,36 @@ public sealed class MapManager : MonoBehaviour
             float placementZ = rotated ? startZ + chunkLength : startZ;
             Vector3 position = WorldOrigin + new Vector3(mapOriginXY.x, mapOriginXY.y, placementZ);
             Quaternion rotation = rotated ? Quaternion.Euler(0f, 180f, 0f) : Quaternion.identity;
-            GameObject instance = poolManager.Rent(id, position, rotation, variants[prefabIndex]);
+            GameObject instance = poolManager.RentInactive(id, position, rotation,
+                worldMovement != null ? worldMovement.transform : null, variants[prefabIndex]);
 
             if (instance == null)
+            {
+                InvalidatePrepareCache();
                 return false;
-
-            if (worldMovement != null)
-                instance.transform.SetParent(worldMovement.transform, true);
+            }
 
             if (!instance.TryGetComponent(out MapChunk mapChunk))
                 mapChunk = instance.AddComponent<MapChunk>();
 
             mapChunk.SetChunkData(nextChunkIndex, startZ, chunkLength, safe, rotated);
 
-            ProximityCollisionGroup collisionGroup = null;
-
-            if (!safe)
+            if (!safe && enableProximityCollisionCulling)
             {
-                if (!instance.TryGetComponent(out collisionGroup))
-                    collisionGroup = instance.AddComponent<ProximityCollisionGroup>();
-
-                collisionGroup.Initialize(obstacleCollisionLayers);
-                bool enableCollisions = !enableProximityCollisionCulling ||
-                    (IsGameplayCollisionAllowed() && IsChunkInCollisionRange(
-                        startZ, startZ + chunkLength, LogicalPlayerZ));
+                ProximityCollisionGroup collisionGroup = mapChunk.GetCollisionGroup(obstacleCollisionLayers);
+                bool hasWindow = TryGetCollisionWindow(out float minZ, out float maxZ);
+                bool enableCollisions = IsGameplayCollisionAllowed() &&
+                    IsChunkInCollisionRange(collisionGroup, hasWindow, minZ, maxZ);
 
                 if (collisionGroup.SetCollisionsEnabled(enableCollisions))
                     CollisionCullingStateChanges++;
+
+                // OFF must restore these groups even before the first FixedUpdate.
+                wasCollisionCullingEnabled = true;
             }
 
-            activeChunks.Enqueue(new ActiveChunk(instance, startZ, startZ + chunkLength, collisionGroup));
+            activeChunks.Enqueue(new ActiveChunk(instance, startZ, startZ + chunkLength, mapChunk));
+            instance.SetActive(true);
 
             if (transitionRequested &&
                 nextChunkIndex >= transitionFirstChunkIndex &&
@@ -440,10 +503,18 @@ public sealed class MapManager : MonoBehaviour
             cachedTransitionLastChunkIndex != transitionLastChunkIndex ||
             cachedTransitionRequested != transitionRequested ||
             cachedSeed != seed ||
+            cachedStartingSafeChunkCount != startingSafeChunkCount ||
             cachedLookaheadChunks != prepareLookaheadChunks;
 
-        if (enableCachedPreparation && !windowChanged && Time.unscaledTime < nextPrepareAttemptTime)
-            return;
+        if (enableCachedPreparation && !windowChanged)
+        {
+            bool availabilityUnchanged =
+                cachedNormalAvailabilityVersion == poolManager.GetAvailabilityVersion(PoolId.NormalMap) &&
+                cachedSafeAvailabilityVersion == poolManager.GetAvailabilityVersion(PoolId.SafeMap);
+
+            if (availabilityUnchanged && (preparationSatisfied || Time.unscaledTime < nextPrepareAttemptTime))
+                return;
+        }
 
         using (PrepareMarker.Auto())
         {
@@ -455,6 +526,8 @@ public sealed class MapManager : MonoBehaviour
             for (int i = 0; i < prepareOrderCount; i++)
                 createdThisPass += PrepareVariant(prepareOrderIds[i], prepareOrderVariants[i], 1);
 
+            preparationSatisfied = true;
+
             for (int i = 0; i < prepareOrderCount; i++)
             {
                 PoolId id = prepareOrderIds[i];
@@ -465,10 +538,17 @@ public sealed class MapManager : MonoBehaviour
 
                 if (desired > 1)
                     createdThisPass += PrepareVariant(id, variantIndex, desired);
+
+                int poolVariant = id == PoolId.SafeMap
+                    ? safeVariantIndices[variantIndex] : normalVariantIndices[variantIndex];
+                if (poolManager.GetAvailableCount(id, poolVariant) < desired)
+                    preparationSatisfied = false;
             }
 
             TotalPrepareCreations += createdThisPass;
             PreparePassCount++;
+            cachedNormalAvailabilityVersion = poolManager.GetAvailabilityVersion(PoolId.NormalMap);
+            cachedSafeAvailabilityVersion = poolManager.GetAvailabilityVersion(PoolId.SafeMap);
             nextPrepareAttemptTime = Time.unscaledTime +
                 (createdThisPass > 0 ? 0f : prepareRetryInterval);
         }
@@ -479,11 +559,11 @@ public sealed class MapManager : MonoBehaviour
 
     private int PrepareVariant(PoolId id, int variantIndex, int desiredAvailableCount)
     {
-        string prefabName = id == PoolId.SafeMap
-            ? safePrefabNames[variantIndex]
-            : normalPrefabNames[variantIndex];
+        int poolVariant = id == PoolId.SafeMap
+            ? safeVariantIndices[variantIndex]
+            : normalVariantIndices[variantIndex];
 
-        return poolManager.Prepare(id, prefabName, desiredAvailableCount);
+        return poolManager.Prepare(id, poolVariant, desiredAvailableCount);
     }
 
     private void RebuildPrepareDemands()
@@ -530,6 +610,7 @@ public sealed class MapManager : MonoBehaviour
         cachedTransitionRequested = transitionRequested;
         cachedSeed = seed;
         cachedLookaheadChunks = prepareLookaheadChunks;
+        cachedStartingSafeChunkCount = startingSafeChunkCount;
         prepareCacheValid = true;
         PrepareDemandRebuildCount++;
     }
@@ -537,6 +618,7 @@ public sealed class MapManager : MonoBehaviour
     private void InvalidatePrepareCache()
     {
         prepareCacheValid = false;
+        preparationSatisfied = false;
         nextPrepareAttemptTime = 0f;
     }
 
@@ -661,10 +743,11 @@ public sealed class MapManager : MonoBehaviour
 
         float wallZ = ((float)transitionLastChunkIndex + 1f) * chunkLength + transitionWallOffset;
         Vector3 wallPosition = WorldOrigin + new Vector3(mapOriginXY.x, mapOriginXY.y, wallZ);
-        transitionWall = poolManager.Rent(PoolId.TransitionWall, wallPosition, Quaternion.identity);
+        transitionWall = poolManager.RentInactive(PoolId.TransitionWall, wallPosition, Quaternion.identity,
+            worldMovement != null ? worldMovement.transform : null);
 
-        if (transitionWall != null && worldMovement != null)
-            transitionWall.transform.SetParent(worldMovement.transform, true);
+        if (transitionWall != null)
+            transitionWall.SetActive(true);
 
         if (transitionWall == null && !transitionWallWarned)
         {

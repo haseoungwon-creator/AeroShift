@@ -1,0 +1,32 @@
+[
+  {
+    "path": "Assets/Script/World/MapManager.cs",
+    "modified": true,
+    "sha256": "e2173987ba652aa521b1ce5d2dd4d75e3d12a92eb6731a1f1a0d86ab61175543"
+  },
+  {
+    "path": "Assets/Script/Poolin/PoolManager.cs",
+    "modified": false,
+    "sha256": "44e5d585b7163e8904eded3aed1e800370bc518abd065eced52f751f3ca83fde"
+  },
+  {
+    "path": "Assets/Script/World/MapChunk.cs",
+    "modified": false,
+    "sha256": "ba145c5c5b9fe50ebe7c03c9f74b8283963c2a6afceb78c1b7193432576bdd2a"
+  },
+  {
+    "path": "Assets/Script/ProximityCollisionGroup.cs",
+    "modified": false,
+    "sha256": "11259e11ca9c4a44528cd8d96b1038f084309a8edf50a2dfd045390574c4e3ed"
+  },
+  {
+    "path": "Assets/Script/Skill/PlayerRewind.cs",
+    "modified": true,
+    "sha256": "822e65b22c5c762fb8b5b4ec7e7dc8e2ce679f85db0f596709f2b52b2621fb3e"
+  },
+  {
+    "path": "Assets/Script/AeroOptimizationExperiment.cs",
+    "modified": true,
+    "sha256": "2275a3f9a753027008736e4782eee1fa2e64638e1ec174b9c5020e7046252eb4"
+  }
+]

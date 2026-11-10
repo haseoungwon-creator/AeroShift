@@ -1,0 +1,11 @@
+{
+  "single_profiler_only": true,
+  "csv_root_unchanged": true,
+  "rewind_skill_selected_gate": true,
+  "rewind_map_guard_preserved": true,
+  "coverage_checks_3D_map": true,
+  "buffer_capacity_scaled": true,
+  "unmodified_pool_manager": true,
+  "full_six_scripts": true,
+  "unchanged_metas": true
+}

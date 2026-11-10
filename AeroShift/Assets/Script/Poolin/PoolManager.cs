@@ -85,6 +85,7 @@ public sealed class PoolManager : MonoBehaviour
         public int FailedRentCount;
         public int DestroyedCount;
         public int TotalCreatedCount;
+        public uint AvailabilityVersion;
 
         public bool AutoShrink;
         public float IdleSecondsBeforeShrink;
@@ -293,6 +294,7 @@ public sealed class PoolManager : MonoBehaviour
         bucket.Available.Enqueue(
             new AvailableEntry(pooled, Time.unscaledTime)
         );
+        unchecked { group.AvailabilityVersion++; }
 
         return pooled;
     }
@@ -330,6 +332,18 @@ public sealed class PoolManager : MonoBehaviour
         return TryGetVariantIndex(id, prefabName, out int index)
             ? Rent(id, index)
             : null;
+    }
+
+    // The caller finishes initialization before calling SetActive(true).
+    // Existing Rent overloads keep their immediate-activation behavior.
+    public GameObject RentInactive(
+        PoolId id,
+        Vector3 position,
+        Quaternion rotation,
+        Transform parent,
+        int variantIndex = -1)
+    {
+        return RentInternal(id, variantIndex, true, position, true, rotation, false, parent);
     }
 
     public GameObject Rent(
@@ -378,7 +392,17 @@ public sealed class PoolManager : MonoBehaviour
         if (!TryGetVariantIndex(id, prefabName, out int index))
             return 0;
 
-        PoolGroup group = pools[id];
+        return Prepare(id, index, desiredAvailableCount);
+    }
+
+    public int Prepare(PoolId id, int index, int desiredAvailableCount)
+    {
+        Initialize();
+
+        if (!pools.TryGetValue(id, out PoolGroup group) ||
+            index < 0 || index >= group.Buckets.Length)
+            return 0;
+
         PoolBucket bucket = group.Buckets[index];
 
         if (bucket == null || !bucket.ExpandWhenEmpty)
@@ -420,7 +444,9 @@ public sealed class PoolManager : MonoBehaviour
         bool hasPosition,
         Vector3 position,
         bool hasRotation,
-        Quaternion rotation)
+        Quaternion rotation,
+        bool activate = true,
+        Transform parent = null)
     {
         Initialize();
 
@@ -440,7 +466,9 @@ public sealed class PoolManager : MonoBehaviour
                 hasPosition,
                 position,
                 hasRotation,
-                rotation
+                rotation,
+                activate,
+                parent
             );
 
             if (result == null)
@@ -463,7 +491,9 @@ public sealed class PoolManager : MonoBehaviour
                 hasPosition,
                 position,
                 hasRotation,
-                rotation
+                rotation,
+                activate,
+                parent
             );
 
             if (result == null)
@@ -487,7 +517,9 @@ public sealed class PoolManager : MonoBehaviour
         bool hasPosition,
         Vector3 position,
         bool hasRotation,
-        Quaternion rotation)
+        Quaternion rotation,
+        bool activate,
+        Transform parent)
     {
         if (bucket == null)
             return null;
@@ -497,6 +529,7 @@ public sealed class PoolManager : MonoBehaviour
         while (bucket.Available.Count > 0)
         {
             pooled = bucket.Available.Dequeue().Pooled;
+            unchecked { group.AvailabilityVersion++; }
 
             if (pooled != null)
                 break;
@@ -520,6 +553,7 @@ public sealed class PoolManager : MonoBehaviour
             );
 
             bucket.Available.Dequeue();
+            unchecked { group.AvailabilityVersion++; }
 
             group.CreationsThisFrame++;
             group.RuntimeCreationCount++;
@@ -529,6 +563,9 @@ public sealed class PoolManager : MonoBehaviour
             return null;
 
         Transform target = pooled.transform;
+
+        if (parent != null && target.parent != parent)
+            target.SetParent(parent, true);
 
         if (hasPosition && hasRotation)
             target.SetPositionAndRotation(position, rotation);
@@ -547,7 +584,8 @@ public sealed class PoolManager : MonoBehaviour
         if (group.CurrentActiveCount > group.PeakActiveCount)
             group.PeakActiveCount = group.CurrentActiveCount;
 
-        pooled.gameObject.SetActive(true);
+        if (activate)
+            pooled.gameObject.SetActive(true);
 
         return pooled.gameObject;
     }
@@ -604,6 +642,7 @@ public sealed class PoolManager : MonoBehaviour
         bucket.Available.Enqueue(
             new AvailableEntry(pooled, Time.unscaledTime)
         );
+        unchecked { group.AvailabilityVersion++; }
 
         return true;
     }
@@ -668,6 +707,7 @@ public sealed class PoolManager : MonoBehaviour
                    bucket.Available.Peek().Pooled == null)
             {
                 bucket.Available.Dequeue();
+                unchecked { group.AvailabilityVersion++; }
 
                 bucket.CreatedCount =
                     Mathf.Max(0, bucket.CreatedCount - 1);
@@ -687,6 +727,7 @@ public sealed class PoolManager : MonoBehaviour
                 continue;
 
             bucket.Available.Dequeue();
+            unchecked { group.AvailabilityVersion++; }
             bucket.CreatedCount--;
             group.TotalCreatedCount--;
             group.DestroyedCount++;
@@ -755,6 +796,26 @@ public sealed class PoolManager : MonoBehaviour
         return total;
     }
 
+    public int GetAvailableCount(PoolId id, int variantIndex)
+    {
+        Initialize();
+
+        if (!pools.TryGetValue(id, out PoolGroup group) ||
+            variantIndex < 0 || variantIndex >= group.Buckets.Length)
+            return 0;
+
+        PoolBucket bucket = group.Buckets[variantIndex];
+        return bucket != null ? bucket.Available.Count : 0;
+    }
+
+    // Cache invalidation token, not a performance statistic.
+    public uint GetAvailabilityVersion(PoolId id)
+    {
+        Initialize();
+        return pools.TryGetValue(id, out PoolGroup group)
+            ? group.AvailabilityVersion : 0;
+    }
+
     public int GetPeakActiveCount(PoolId id)
     {
         Initialize();
@@ -791,3 +852,4 @@ public sealed class PoolManager : MonoBehaviour
             : 0;
     }
 }
+    

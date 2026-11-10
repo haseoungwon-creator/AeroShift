@@ -1,0 +1,105 @@
+--- other_ai/Assets/Script/World/MapManager.cs
++++ final/Assets/Script/World/MapManager.cs
+@@ -124,8 +124,12 @@
+     public int TotalPrepareCreations { get; private set; }
+     public int TotalFailedSpawnAttempts { get; private set; }
+     public float ChunkLength => chunkLength;
+-    public bool HasRequiredCoverage => initialized && player != null &&
+-        (double)nextChunkIndex * chunkLength >= (double)LogicalPlayerZ + forwardChunkCount * chunkLength;
++    // 논리 인덱스가 충분해도 맵이 숨겨졌거나 모두 반환된 상태라면
++    // 실제 3D 스트림의 커버리지가 충족된 것으로 기록하지 않습니다.
++    public bool HasRequiredCoverage => initialized && is3DMapActive &&
++        player != null && activeChunks.Count > 0 &&
++        (double)nextChunkIndex * chunkLength >=
++        (double)LogicalPlayerZ + forwardChunkCount * chunkLength;
+ 
+     private void Start()
+     {
+--- other_ai/Assets/Script/Skill/PlayerRewind.cs
++++ final/Assets/Script/Skill/PlayerRewind.cs
+@@ -12,6 +12,7 @@
+     [SerializeField] private NearMissDetector nearMissDetector;
+     [SerializeField] private WorldMovement worldMovement;
+     [SerializeField] private Collider playerCollider;
++    [SerializeField] private SkillManager skillManager;
+ 
+     private struct PositionData
+     {
+@@ -42,13 +43,16 @@
+ 
+     public bool IsRewinding => isRewinding;
+     public bool CanRewind => !hasUsed && !isRewinding;
++    // 선택되지 않은 스킬의 기록/맵 보관 비용을 발생시키지 않습니다.
++    private bool IsRewindSelected =>
++        skillManager != null && skillManager.IsSelected(SkillType.Rewind);
+ 
+     // Streaming retains actual recorded history, including at low frame rates.
+     public bool TryGetOldestLogicalZ(out float logicalZ)
+     {
+         logicalZ = 0f;
+ 
+-        if (!CanRewind || bufferCount == 0 || !isActiveAndEnabled)
++        if (!IsRewindSelected || !CanRewind || bufferCount == 0 || !isActiveAndEnabled)
+             return false;
+ 
+         PositionData oldest = positionBuffer[WrapIndex(bufferIndex - bufferCount)];
+@@ -68,12 +72,17 @@
+         if (playerController == null)
+             playerController = GetComponent<PlayerController>();
+ 
++        // Main 씬의 SkillManager를 시작 시 한 번만 탐색합니다.
++        if (skillManager == null)
++            skillManager = FindFirstObjectByType<SkillManager>();
++
+         CachePlayerColliders();
+     }
+ 
+     private void Update()
+     {
+-        if (!IsGamePlaying() || isRewinding)
++        // TimeSlow/미선택/이미 사용한 Rewind는 기록할 필요가 없습니다.
++        if (!IsGamePlaying() || !IsRewindSelected || !CanRewind)
+             return;
+ 
+         RecordPosition();
+@@ -106,7 +115,8 @@
+ 
+     public void Rewind()
+     {
+-        if (!isActiveAndEnabled || !IsGamePlaying() || !CanRewind || bufferCount == 0)
++        if (!isActiveAndEnabled || !IsGamePlaying() || !IsRewindSelected ||
++            !CanRewind || bufferCount == 0)
+             return;
+ 
+         if (playerController == null)
+--- other_ai/Assets/Script/AeroOptimizationExperiment.cs
++++ final/Assets/Script/AeroOptimizationExperiment.cs
+@@ -416,14 +416,25 @@
+ 
+     private void EnterWarmup(bool isManual)
+     {
+-        // Reserve before warmup so the recorder's own List growth is not sampled as game GC.
+-        int frameCapacity = Mathf.Max(1, maxRecordedFrames);
++        // 최대 제한(기본 36,000)을 무조건 예약하지 않고, 측정 시간과
++        // 예상 FPS에 맞는 메모리만 워밍업 전에 확보합니다.
++        // FPS가 예상치를 넘으면 List가 측정 중 확장될 수 있으므로,
++        // 프레임 상한이 없는 환경은 보수적으로 240FPS를 가정합니다.
++        const int assumedUncappedFps = 240;
++        int expectedFps = Application.targetFrameRate > 0
++            ? Application.targetFrameRate : assumedUncappedFps;
++        double expectedFrameCount = Math.Ceiling(
++            Math.Max(1.0, captureSeconds) * expectedFps * 1.25 + 8.0);
++        int frameCapacity = (int)Math.Min(
++            Math.Max(1, maxRecordedFrames), expectedFrameCount);
++
+         if (frames.Capacity < frameCapacity)
+             frames.Capacity = frameCapacity;
+ 
+         if (captureFeatureMetrics)
+         {
+-            int sampleCapacity = frameCapacity / Mathf.Max(1, featureSampleIntervalFrames) + 3;
++            int interval = Mathf.Max(1, featureSampleIntervalFrames);
++            int sampleCapacity = frameCapacity / interval + 3;
+             if (featureSamples.Capacity < sampleCapacity)
+                 featureSamples.Capacity = sampleCapacity;
+             if (category == ExperimentCategory.Map && mapSamples.Capacity < sampleCapacity)

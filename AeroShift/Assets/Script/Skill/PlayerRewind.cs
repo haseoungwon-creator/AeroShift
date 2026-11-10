@@ -12,6 +12,7 @@ public class PlayerRewind : MonoBehaviour
     [SerializeField] private NearMissDetector nearMissDetector;
     [SerializeField] private WorldMovement worldMovement;
     [SerializeField] private Collider playerCollider;
+    [SerializeField] private SkillManager skillManager;
 
     private struct PositionData
     {
@@ -42,6 +43,22 @@ public class PlayerRewind : MonoBehaviour
 
     public bool IsRewinding => isRewinding;
     public bool CanRewind => !hasUsed && !isRewinding;
+    // 선택되지 않은 스킬의 기록/맵 보관 비용을 발생시키지 않습니다.
+    private bool IsRewindSelected =>
+        skillManager != null && skillManager.IsSelected(SkillType.Rewind);
+
+    // Streaming retains actual recorded history, including at low frame rates.
+    public bool TryGetOldestLogicalZ(out float logicalZ)
+    {
+        logicalZ = 0f;
+
+        if (!IsRewindSelected || !CanRewind || bufferCount == 0 || !isActiveAndEnabled)
+            return false;
+
+        PositionData oldest = positionBuffer[WrapIndex(bufferIndex - bufferCount)];
+        logicalZ = oldest.playerPosition.z - oldest.worldPosition.z;
+        return true;
+    }
 
     private void Awake()
     {
@@ -55,12 +72,17 @@ public class PlayerRewind : MonoBehaviour
         if (playerController == null)
             playerController = GetComponent<PlayerController>();
 
+        // Main 씬의 SkillManager를 시작 시 한 번만 탐색합니다.
+        if (skillManager == null)
+            skillManager = FindFirstObjectByType<SkillManager>();
+
         CachePlayerColliders();
     }
 
     private void Update()
     {
-        if (!IsGamePlaying() || isRewinding)
+        // TimeSlow/미선택/이미 사용한 Rewind는 기록할 필요가 없습니다.
+        if (!IsGamePlaying() || !IsRewindSelected || !CanRewind)
             return;
 
         RecordPosition();
@@ -93,7 +115,8 @@ public class PlayerRewind : MonoBehaviour
 
     public void Rewind()
     {
-        if (!isActiveAndEnabled || !IsGamePlaying() || !CanRewind || bufferCount == 0)
+        if (!isActiveAndEnabled || !IsGamePlaying() || !IsRewindSelected ||
+            !CanRewind || bufferCount == 0)
             return;
 
         if (playerController == null)

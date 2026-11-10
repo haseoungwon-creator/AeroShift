@@ -416,6 +416,31 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
     private void EnterWarmup(bool isManual)
     {
+        // 최대 제한(기본 36,000)을 무조건 예약하지 않고, 측정 시간과
+        // 예상 FPS에 맞는 메모리만 워밍업 전에 확보합니다.
+        // FPS가 예상치를 넘으면 List가 측정 중 확장될 수 있으므로,
+        // 프레임 상한이 없는 환경은 보수적으로 240FPS를 가정합니다.
+        const int assumedUncappedFps = 240;
+        int expectedFps = Application.targetFrameRate > 0
+            ? Application.targetFrameRate : assumedUncappedFps;
+        double expectedFrameCount = Math.Ceiling(
+            Math.Max(1.0, captureSeconds) * expectedFps * 1.25 + 8.0);
+        int frameCapacity = (int)Math.Min(
+            Math.Max(1, maxRecordedFrames), expectedFrameCount);
+
+        if (frames.Capacity < frameCapacity)
+            frames.Capacity = frameCapacity;
+
+        if (captureFeatureMetrics)
+        {
+            int interval = Mathf.Max(1, featureSampleIntervalFrames);
+            int sampleCapacity = frameCapacity / interval + 3;
+            if (featureSamples.Capacity < sampleCapacity)
+                featureSamples.Capacity = sampleCapacity;
+            if (category == ExperimentCategory.Map && mapSamples.Capacity < sampleCapacity)
+                mapSamples.Capacity = sampleCapacity;
+        }
+
         manualCapture = isManual;
         warmupStart = Time.unscaledTime;
         state = CaptureState.WarmingUp;
