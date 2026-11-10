@@ -2494,7 +2494,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 904203621}
   - {fileID: 204601066}
   - {fileID: 1217938055}
   - {fileID: 57591645}
@@ -2504,7 +2503,6 @@ Transform:
   - {fileID: 153399454}
   - {fileID: 1611086823}
   - {fileID: 514009907}
-  - {fileID: 2136318222}
   - {fileID: 1187783837}
   - {fileID: 774914390}
   - {fileID: 6349540993517378987}
@@ -3762,51 +3760,6 @@ MonoBehaviour:
   scoreManager: {fileID: 1397169578}
   scoreText: {fileID: 1588218512}
   highScoreText: {fileID: 735750094}
---- !u!1 &904203619
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 904203621}
-  - component: {fileID: 904203620}
-  m_Layer: 0
-  m_Name: PerformanceMonitor1
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &904203620
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 904203619}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9a4393e05c57fed4eb85bad71d37bb35, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PerformanceMonitor1
-  measureDuration: 5
---- !u!4 &904203621
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 904203619}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 593564960}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &922813165
 GameObject:
   m_ObjectHideFlags: 0
@@ -6194,6 +6147,7 @@ MonoBehaviour:
   startAutomatically: 1
   warmupSeconds: 5
   captureSeconds: 30
+  slowFrameThresholdMs: 40
 --- !u!1 &2104790828
 GameObject:
   m_ObjectHideFlags: 0
@@ -6327,51 +6281,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2104790828}
   m_CullTransparentMesh: 1
---- !u!1 &2136318220
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2136318222}
-  - component: {fileID: 2136318221}
-  m_Layer: 0
-  m_Name: PerformanceMonitor
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &2136318221
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2136318220}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: def595e30b1c2604493febcd7dbb8104, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PerformanceMonitor
-  showMonitor: 1
---- !u!4 &2136318222
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2136318220}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 45.592064, y: 0, z: -44.78895}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 593564960}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2136591281
 GameObject:
   m_ObjectHideFlags: 0
@@ -6632,6 +6541,10 @@ PrefabInstance:
       propertyPath: scoreManager
       value: 
       objectReference: {fileID: 1397169578}
+    - target: {fileID: 4178489688046926945, guid: cd49643a87086464889789802f5ee833, type: 3}
+      propertyPath: skillManager
+      value: 
+      objectReference: {fileID: 204601065}
     - target: {fileID: 4178489688046926945, guid: cd49643a87086464889789802f5ee833, type: 3}
       propertyPath: worldMovement
       value: 
