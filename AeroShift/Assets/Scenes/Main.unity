@@ -6357,7 +6357,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PerformanceMonitor
   showMonitor: 1
-  targetFrameRate: 60
 --- !u!4 &2136318222
 Transform:
   m_ObjectHideFlags: 0
@@ -6520,7 +6519,7 @@ MeshCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 5
   m_Convex: 1
   m_CookingOptions: 30
@@ -6685,9 +6684,7 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 1
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 7471530741507688732, guid: cd49643a87086464889789802f5ee833, type: 3}
-    - {fileID: 8582985259247376638, guid: cd49643a87086464889789802f5ee833, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
