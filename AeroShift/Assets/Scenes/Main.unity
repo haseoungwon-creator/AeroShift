@@ -1109,6 +1109,7 @@ MonoBehaviour:
     resourceInitialCount: 192
     resourceExpandWhenEmpty: 1
     variants: []
+    initializeOnFirstUse: 0
     enableAutoShrink: 1
     idleSecondsBeforeShrink: 6
     shrinkCheckIntervalSeconds: 2
@@ -1119,6 +1120,7 @@ MonoBehaviour:
     resourceInitialCount: 3
     resourceExpandWhenEmpty: 1
     variants: []
+    initializeOnFirstUse: 0
     enableAutoShrink: 0
     idleSecondsBeforeShrink: 60
     shrinkCheckIntervalSeconds: 10
@@ -1129,6 +1131,7 @@ MonoBehaviour:
     resourceInitialCount: 14
     resourceExpandWhenEmpty: 1
     variants: []
+    initializeOnFirstUse: 0
     enableAutoShrink: 1
     idleSecondsBeforeShrink: 10
     shrinkCheckIntervalSeconds: 5
@@ -1139,6 +1142,7 @@ MonoBehaviour:
     resourceInitialCount: 1
     resourceExpandWhenEmpty: 1
     variants: []
+    initializeOnFirstUse: 0
     enableAutoShrink: 0
     idleSecondsBeforeShrink: 60
     shrinkCheckIntervalSeconds: 10
@@ -1149,7 +1153,8 @@ MonoBehaviour:
     resourceInitialCount: 20
     resourceExpandWhenEmpty: 1
     variants: []
-    enableAutoShrink: 1
+    initializeOnFirstUse: 1
+    enableAutoShrink: 0
     idleSecondsBeforeShrink: 30
     shrinkCheckIntervalSeconds: 1
   - id: 5
@@ -1159,6 +1164,7 @@ MonoBehaviour:
     resourceInitialCount: 30
     resourceExpandWhenEmpty: 1
     variants: []
+    initializeOnFirstUse: 1
     enableAutoShrink: 0
     idleSecondsBeforeShrink: 30
     shrinkCheckIntervalSeconds: 1
@@ -5647,7 +5653,6 @@ GameObject:
   - component: {fileID: 1611086822}
   - component: {fileID: 1611086821}
   - component: {fileID: 1611086820}
-  - component: {fileID: 1611086819}
   m_Layer: 5
   m_Name: MissileUI
   m_TagString: Untagged
@@ -5655,20 +5660,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1611086819
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1611086818}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 920bec99a880ec04ab3b0e20dc4865e5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MissileWarningPool
-  warningPrefab: {fileID: 7874237327558278909, guid: 28606f15c1f1b93409e7e96f52614ba9, type: 3}
-  initialPoolSize: 40
 --- !u!114 &1611086820
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6104,7 +6095,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1991887548
 Transform:
   m_ObjectHideFlags: 0
@@ -6127,7 +6118,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1991887547}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c1082c9336484014fbf24abcb843847a, type: 3}
   m_Name: 
@@ -6139,9 +6130,10 @@ MonoBehaviour:
   slowFrameThresholdMs: 40
   recordEveryAvailableMetric: 0
   maxRecorders: 128
-  maxMetricBufferMiB: 64
+  maxMetricBufferMiB: 32
   enableEditorDiagnostics: 0
   capacityFramesPerSecond: 1000
+  sizeBufferFromWarmup: 1
   settleAfterAllocationSeconds: 1
   frameTimingSampleEveryNFrames: 10
 --- !u!1 &2104790828

@@ -29,15 +29,29 @@ public class MissileSpawner : MonoBehaviour
         if (poolManager == null)
             poolManager = FindFirstObjectByType<PoolManager>();
 
+        // Do not instantiate 2D-only prefabs during 3D startup.
         poolsReady = poolManager != null &&
-            poolManager.GetVariantCount(PoolId.Missile) > 0 &&
-            poolManager.GetVariantCount(PoolId.MissileWarning) > 0;
+            poolManager.IsGroupConfigured(PoolId.Missile) &&
+            poolManager.IsGroupConfigured(PoolId.MissileWarning);
 
         if (!poolsReady)
             Debug.LogError("MissileSpawner: PoolManager의 Missile 및 MissileWarning 그룹을 확인하세요.", this);
 
         warningWait = new WaitForSeconds(warningDuration);
         gameCamera = Camera.main;
+    }
+
+    // Called every frame while the safe transition map approaches.
+    // Prepares the two 2D groups incrementally before any missile can fire.
+    public bool PrewarmFor2D()
+    {
+        if (!poolsReady || poolManager == null)
+            return false;
+
+        // Do not short-circuit: each group can prepare two objects per frame.
+        bool missilesReady = poolManager.PrewarmInitialCount(PoolId.Missile);
+        bool warningsReady = poolManager.PrewarmInitialCount(PoolId.MissileWarning);
+        return missilesReady && warningsReady;
     }
 
     private void Update()

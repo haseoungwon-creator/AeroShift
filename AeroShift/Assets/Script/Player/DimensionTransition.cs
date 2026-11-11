@@ -64,8 +64,12 @@ public class DimensionTransition : MonoBehaviour
         LastSafeMapWaitSeconds = 0f;
         mapManager.SpawnTransitionSafeMaps();
 
-        while (!mapManager.IsTransitionMapArrived(0f))
+        // 2D pools are not needed in 3D. Prepare them across transition frames,
+        // while the safe map approaches, before enabling 2D missile spawning.
+        bool missilePoolsPrepared = false;
+        while (!mapManager.IsTransitionMapArrived(0f) || !missilePoolsPrepared)
         {
+            missilePoolsPrepared = missileSpawner.PrewarmFor2D();
             if (!IsGamePlaying())
             {
                 CancelCurrentTransition("게임 상태가 변경되어 3D→2D 전환을 취소했습니다.");

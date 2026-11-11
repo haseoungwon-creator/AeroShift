@@ -46,6 +46,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     [SerializeField] private bool enableEditorDiagnostics;
     [Tooltip("Preallocate for this FPS. The capture reports truncation if this capacity is exceeded.")]
     [SerializeField, Range(60, 2000)] private int capacityFramesPerSecond = 1000;
+    [Tooltip("Use warmup FPS and a safety margin instead of allocating for the maximum FPS.")]
+    [SerializeField] private bool sizeBufferFromWarmup = true;
     [SerializeField, Min(0.1f)] private float settleAfterAllocationSeconds = 1f;
     [Header("CPU/GPU ������ Ÿ�̹�")]
     [Tooltip("Unity FrameTimingManager�� N�����Ӹ��� ȣ���մϴ�. ����� 4������ �̻� �ʰ� ������ �� �־� ���� CSV�� �����մϴ�.")]
@@ -89,6 +91,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         public int CloudNames;
         public int RoadNames;
         public int MissileNames;
+        public int MissilePoolCreated;
+        public int WarningPoolCreated;
     }
 
     private SceneCensus initialCensus;
@@ -152,6 +156,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     private string finishReason;
 
     private int frameCapacity;
+    private int actualCapacityFramesPerSecond;
+    private float warmupMeasuredFps;
     private int recordedFrames;
     private int[] frameNumbers;
     private int[] fixedUpdateCounts;
@@ -384,9 +390,23 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
         try
         {
-            // ���־� ���� FPS�� ���� �� �ʿ��� ���۸� �� ���� �Ҵ��մϴ�.
+            // Size buffers from the real warmup, with 50% headroom and a
+            // 480 FPS floor. The configured FPS remains the upper safety cap.
+            // No per-frame allocation or growth happens during measurement.
+            float warmupElapsed = Time.realtimeSinceStartup - warmupStart;
+            warmupMeasuredFps = warmupElapsed > 0.1f
+                ? (Time.frameCount - warmupStartFrame) / warmupElapsed
+                : 0f;
+            int maxCapacityFps = Mathf.Max(60, capacityFramesPerSecond);
+            actualCapacityFramesPerSecond = maxCapacityFps;
+            if (sizeBufferFromWarmup && warmupMeasuredFps > 0f)
+            {
+                int targetFps = Mathf.Max(480, Mathf.CeilToInt(warmupMeasuredFps * 1.5f));
+                actualCapacityFramesPerSecond = Mathf.Min(maxCapacityFps, targetFps);
+            }
+
             frameCapacity = Mathf.Clamp(
-                Mathf.CeilToInt(captureSeconds * capacityFramesPerSecond) + 32,
+                Mathf.CeilToInt(captureSeconds * actualCapacityFramesPerSecond) + 32,
                 256, 120000);
             rejectedMetricValues = 0;
 
@@ -721,6 +741,12 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         c.Rigidbodies = UnityEngine.Object.FindObjectsByType<Rigidbody>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length;
         c.ParticleSystems = UnityEngine.Object.FindObjectsByType<ParticleSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length;
         c.Behaviours = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length;
+        PoolManager pool = UnityEngine.Object.FindFirstObjectByType<PoolManager>();
+        if (pool != null)
+        {
+            c.MissilePoolCreated = pool.GetCreatedCount(PoolId.Missile);
+            c.WarningPoolCreated = pool.GetCreatedCount(PoolId.MissileWarning);
+        }
         return c;
     }
 
@@ -728,7 +754,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     {
         using (var w = NewCsv("_scene_census.csv"))
         {
-            w.WriteLine("stage,gameobjects_total,gameobjects_active,renderers_total,colliders_total,mesh_colliders_total,rigidbodies_total,particle_systems_total,monobehaviours_total,cloud_name_matches,road_or_chunk_name_matches,missile_name_matches,colliders_active_enabled,mesh_colliders_active_enabled,note");
+            w.WriteLine("stage,gameobjects_total,gameobjects_active,renderers_total,colliders_total,mesh_colliders_total,rigidbodies_total,particle_systems_total,monobehaviours_total,cloud_name_matches,road_or_chunk_name_matches,missile_name_matches,colliders_active_enabled,mesh_colliders_active_enabled,missile_pool_created,warning_pool_created,note");
             WriteOneCensus(w, initialCensus);
             WriteOneCensus(w, finalCensus);
         }
@@ -740,7 +766,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         WriteEscaped(w, c.Stage); w.Write(',');
         int[] v = { c.GameObjects, c.ActiveGameObjects, c.Renderers, c.Colliders, c.MeshColliders,
                     c.Rigidbodies, c.ParticleSystems, c.Behaviours, c.CloudNames, c.RoadNames, c.MissileNames,
-                    c.EnabledColliders, c.EnabledMeshColliders };
+                    c.EnabledColliders, c.EnabledMeshColliders, c.MissilePoolCreated, c.WarningPoolCreated };
         for (int i = 0; i < v.Length; i++) { w.Write(v[i].ToString(Invariant)); w.Write(','); }
         WriteEscaped(w, "scene+loaded objects include inactive; name-based cloud/road/missile counts are heuristic; census runs outside measurement");
         w.WriteLine();
@@ -1029,6 +1055,10 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             WriteMetadata(writer, "editor_diagnostics_enabled", enableEditorDiagnostics.ToString().ToLowerInvariant());
             WriteMetadata(writer, "global_profiler_was_enabled", previousProfilerEnabled.ToString().ToLowerInvariant());
             WriteMetadata(writer, "frame_capacity", frameCapacity.ToString(Invariant));
+            WriteMetadata(writer, "configured_capacity_fps", capacityFramesPerSecond.ToString(Invariant));
+            WriteMetadata(writer, "actual_capacity_fps", actualCapacityFramesPerSecond.ToString(Invariant));
+            WriteMetadata(writer, "warmup_measured_fps", warmupMeasuredFps.ToString("R", Invariant));
+            WriteMetadata(writer, "buffer_adaptive", sizeBufferFromWarmup.ToString());
             WriteMetadata(writer, "metric_array_bytes", ((long)frameCapacity * metrics.Count * sizeof(double)).ToString(Invariant));
             WriteMetadata(writer, "rejected_invalid_metric_values", rejectedMetricValues.ToString(Invariant));
             WriteMetadata(writer, "buffer_settle_seconds", settleAfterAllocationSeconds.ToString("R", Invariant));

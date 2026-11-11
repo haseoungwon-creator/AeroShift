@@ -40,6 +40,9 @@ public sealed class PoolManager : MonoBehaviour
         public bool resourceExpandWhenEmpty = true;
         public PoolVariantConfig[] variants;
 
+        // Defer inactive-mode pools until a transition requests them.
+        public bool initializeOnFirstUse;
+
         public bool enableAutoShrink;
         public float idleSecondsBeforeShrink = 60f;
         public float shrinkCheckIntervalSeconds = 10f;
@@ -112,6 +115,10 @@ public sealed class PoolManager : MonoBehaviour
     private readonly List<PoolGroup> shrinkingGroups =
         new List<PoolGroup>();
 
+    // Configurations stay lightweight; Resources.LoadAll and Instantiate are deferred.
+    private readonly Dictionary<PoolId, PoolGroupConfig> deferredGroups =
+        new Dictionary<PoolId, PoolGroupConfig>();
+
     private Transform inactiveInstantiationRoot;
     private bool initialized;
 
@@ -164,58 +171,128 @@ public sealed class PoolManager : MonoBehaviour
         {
             PoolGroupConfig config = groups[i];
 
-            if (config == null || pools.ContainsKey(config.id))
+            if (config == null || pools.ContainsKey(config.id) ||
+                deferredGroups.ContainsKey(config.id))
                 continue;
 
-            PoolVariantConfig[] variants = ResolveVariants(config);
+            if (config.initializeOnFirstUse)
+                deferredGroups.Add(config.id, config);
+            else
+                InitializeGroup(config, true);
+        }
+    }
 
-            if (variants == null || variants.Length == 0)
-                continue;
+    // Returns true without loading Resources assets or creating pooled objects.
+    // A valid folder/prefab is verified when the group is actually initialized.
+    public bool IsGroupConfigured(PoolId id)
+    {
+        Initialize();
 
-            PoolGroup group = new PoolGroup
+        if (pools.ContainsKey(id))
+            return true;
+
+        if (!deferredGroups.TryGetValue(id, out PoolGroupConfig config))
+            return false;
+
+        if (config.prefabSource == PoolPrefabSource.Inspector)
+        {
+            if (config.variants == null || config.variants.Length == 0)
+                return false;
+
+            for (int i = 0; i < config.variants.Length; i++)
             {
-                Buckets = new PoolBucket[variants.Length],
-                AutoShrink = config.enableAutoShrink,
-                IdleSecondsBeforeShrink =
-                    Mathf.Max(1f, config.idleSecondsBeforeShrink),
-                ShrinkCheckIntervalSeconds =
-                    Mathf.Max(0.1f, config.shrinkCheckIntervalSeconds),
-                NextShrinkTime = Time.unscaledTime +
-                    Mathf.Max(0.1f, config.shrinkCheckIntervalSeconds)
+                if (config.variants[i] != null && config.variants[i].prefab != null)
+                    return true;
+            }
+            return false;
+        }
+
+        return resourceManager != null &&
+            resourceManager.TryGetGroupPath(id, out _);
+    }
+
+    private void EnsureDeferredInitialized(PoolId id)
+    {
+        if (pools.ContainsKey(id) ||
+            !deferredGroups.TryGetValue(id, out PoolGroupConfig config))
+            return;
+
+        deferredGroups.Remove(id);
+        InitializeGroup(config, false);
+    }
+
+    // Called once, on the first transition to 2D; limit prewarming to the
+    // existing two creations per frame, avoiding a single-frame instantiate burst.
+    public bool PrewarmInitialCount(PoolId id)
+    {
+        Initialize();
+        EnsureDeferredInitialized(id);
+
+        if (!pools.TryGetValue(id, out PoolGroup group))
+            return false;
+
+        bool complete = true;
+        for (int i = 0; i < group.Buckets.Length; i++)
+        {
+            PoolBucket bucket = group.Buckets[i];
+            if (bucket == null)
+            {
+                complete = false;
+                continue;
+            }
+
+            if (bucket.Available.Count < bucket.InitialCount)
+                Prepare(id, i, bucket.InitialCount);
+
+            if (bucket.Available.Count < bucket.InitialCount)
+                complete = false;
+        }
+
+        return complete;
+    }
+
+    private void InitializeGroup(PoolGroupConfig config, bool prewarmImmediately)
+    {
+        PoolVariantConfig[] variants = ResolveVariants(config);
+        if (variants == null || variants.Length == 0)
+            return;
+
+        PoolGroup group = new PoolGroup
+        {
+            Buckets = new PoolBucket[variants.Length],
+            AutoShrink = config.enableAutoShrink,
+            IdleSecondsBeforeShrink =
+                Mathf.Max(1f, config.idleSecondsBeforeShrink),
+            ShrinkCheckIntervalSeconds =
+                Mathf.Max(0.1f, config.shrinkCheckIntervalSeconds),
+            NextShrinkTime = Time.unscaledTime +
+                Mathf.Max(0.1f, config.shrinkCheckIntervalSeconds)
+        };
+
+        pools.Add(config.id, group);
+        if (group.AutoShrink)
+            shrinkingGroups.Add(group);
+
+        for (int j = 0; j < variants.Length; j++)
+        {
+            PoolVariantConfig variant = variants[j];
+            if (variant == null || variant.prefab == null)
+                continue;
+
+            PoolBucket bucket = new PoolBucket
+            {
+                Prefab = variant.prefab,
+                Parent = config.parent != null ? config.parent : transform,
+                InitialCount = Mathf.Max(0, variant.initialCount),
+                ExpandWhenEmpty = variant.expandWhenEmpty
             };
 
-            pools.Add(config.id, group);
+            group.Buckets[j] = bucket;
+            if (!group.VariantByName.ContainsKey(bucket.Prefab.name))
+                group.VariantByName.Add(bucket.Prefab.name, j);
 
-            if (group.AutoShrink)
-                shrinkingGroups.Add(group);
-
-            for (int j = 0; j < variants.Length; j++)
+            if (prewarmImmediately)
             {
-                PoolVariantConfig variant = variants[j];
-
-                if (variant == null || variant.prefab == null)
-                    continue;
-
-                PoolBucket bucket = new PoolBucket
-                {
-                    Prefab = variant.prefab,
-                    Parent = config.parent != null
-                        ? config.parent
-                        : transform,
-                    InitialCount = Mathf.Max(0, variant.initialCount),
-                    ExpandWhenEmpty = variant.expandWhenEmpty
-                };
-
-                group.Buckets[j] = bucket;
-
-                if (!group.VariantByName.ContainsKey(bucket.Prefab.name))
-                {
-                    group.VariantByName.Add(
-                        bucket.Prefab.name,
-                        j
-                    );
-                }
-
                 for (int k = 0; k < bucket.InitialCount; k++)
                     CreateInstance(config.id, j, group, bucket);
             }
@@ -402,6 +479,7 @@ public sealed class PoolManager : MonoBehaviour
         out int variantIndex)
     {
         Initialize();
+        EnsureDeferredInitialized(id);
 
         variantIndex = -1;
 
@@ -427,6 +505,7 @@ public sealed class PoolManager : MonoBehaviour
     public int Prepare(PoolId id, int index, int desiredAvailableCount)
     {
         Initialize();
+        EnsureDeferredInitialized(id);
 
         if (!pools.TryGetValue(id, out PoolGroup group) ||
             index < 0 || index >= group.Buckets.Length)
@@ -478,6 +557,7 @@ public sealed class PoolManager : MonoBehaviour
         Transform parent = null)
     {
         Initialize();
+        EnsureDeferredInitialized(id);
 
         if (!pools.TryGetValue(id, out PoolGroup group))
             return null;
@@ -769,6 +849,7 @@ public sealed class PoolManager : MonoBehaviour
     public int GetVariantCount(PoolId id)
     {
         Initialize();
+        EnsureDeferredInitialized(id);
 
         return pools.TryGetValue(id, out PoolGroup group)
             ? group.Buckets.Length
