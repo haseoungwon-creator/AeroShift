@@ -4,8 +4,6 @@ using UnityEngine;
 public class ScoreManager : MonoBehaviour
 {
     [SerializeField] WorldMovement worldMovement;
-    [SerializeField] PlayerMode playerMode;
-    [SerializeField] int nearMissScore = 5;
     [SerializeField] float distanceScoreMultiplier = 0.05f;
 
     public int CurrentScore { get; private set; }
@@ -50,23 +48,6 @@ public class ScoreManager : MonoBehaviour
 
         accumulatedDistance -= score;
         CurrentScore += score;
-
-        OnScoreChanged?.Invoke(CurrentScore);
-
-        UpdateHighScore();
-    }
-
-    public void AddNearMiss()
-    {
-        if (isRewinding)
-            return;
-
-        if (!scoringEnabled ||
-            playerMode == null ||
-            !playerMode.Is3D())
-            return;
-
-        CurrentScore += nearMissScore;
 
         OnScoreChanged?.Invoke(CurrentScore);
 
@@ -122,4 +103,4 @@ public class ScoreManager : MonoBehaviour
 
         OnHighScoreChanged?.Invoke(HighScore);
     }
-}
+} 

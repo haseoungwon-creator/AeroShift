@@ -4,14 +4,14 @@ public class Missile : MonoBehaviour
 {
     [SerializeField] float speed = 100f;
 
-    private MissilePool missilePool;
+    private PoolManager poolManager;
     private Vector3 direction;
     private float travelDistance;
     private float movedDistance;
 
-    public void Initialize(MissilePool pool,Vector3 direction,float travelDistance)
+    public void Initialize(PoolManager pool, Vector3 direction, float travelDistance)
     {
-        missilePool = pool;
+        poolManager = pool;
         this.direction = direction.normalized;
         this.travelDistance = travelDistance;
         movedDistance = 0f;
@@ -23,16 +23,16 @@ public class Missile : MonoBehaviour
         transform.position += direction * moveDistance;
         movedDistance += moveDistance;
 
-        if(movedDistance >= travelDistance)
+        if (movedDistance >= travelDistance)
             ReturnToPool();
     }
 
     public void ReturnToPool()
     {
-        if (missilePool == null)
+        if (poolManager == null)
             return;
 
-        missilePool.ReturnMissile(gameObject);
+        poolManager.Return(gameObject);
     }
 
     private void OnTriggerEnter(Collider other)

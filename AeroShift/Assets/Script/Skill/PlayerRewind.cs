@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections;
 using UnityEngine;
 
@@ -9,7 +9,6 @@ public class PlayerRewind : MonoBehaviour
     [SerializeField, Min(0.01f)] private float rewindPlayDuration = 2f;
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private PlayerController playerController;
-    [SerializeField] private NearMissDetector nearMissDetector;
     [SerializeField] private WorldMovement worldMovement;
     [SerializeField] private Collider playerCollider;
     [SerializeField] private SkillManager skillManager;
@@ -43,7 +42,7 @@ public class PlayerRewind : MonoBehaviour
 
     public bool IsRewinding => isRewinding;
     public bool CanRewind => !hasUsed && !isRewinding;
-    // ¼±ÅÃµÇÁö ¾ÊÀº ½ºÅ³ÀÇ ±â·Ï/¸Ê º¸°ü ºñ¿ëÀ» ¹ß»ý½ÃÅ°Áö ¾Ê½À´Ï´Ù.
+    // ï¿½ï¿½ï¿½Ãµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Å³ï¿½ï¿½ ï¿½ï¿½ï¿½/ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ß»ï¿½ï¿½ï¿½Å°ï¿½ï¿½ ï¿½Ê½ï¿½ï¿½Ï´ï¿½.
     private bool IsRewindSelected =>
         skillManager != null && skillManager.IsSelected(SkillType.Rewind);
 
@@ -72,7 +71,7 @@ public class PlayerRewind : MonoBehaviour
         if (playerController == null)
             playerController = GetComponent<PlayerController>();
 
-        // Main ¾ÀÀÇ SkillManager¸¦ ½ÃÀÛ ½Ã ÇÑ ¹ø¸¸ Å½»öÇÕ´Ï´Ù.
+        // Main ï¿½ï¿½ï¿½ï¿½ SkillManagerï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Å½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
         if (skillManager == null)
             skillManager = FindFirstObjectByType<SkillManager>();
 
@@ -81,7 +80,7 @@ public class PlayerRewind : MonoBehaviour
 
     private void Update()
     {
-        // TimeSlow/¹Ì¼±ÅÃ/ÀÌ¹Ì »ç¿ëÇÑ Rewind´Â ±â·ÏÇÒ ÇÊ¿ä°¡ ¾ø½À´Ï´Ù.
+        // TimeSlow/ï¿½Ì¼ï¿½ï¿½ï¿½/ï¿½Ì¹ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ Rewindï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¿ä°¡ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½.
         if (!IsGamePlaying() || !IsRewindSelected || !CanRewind)
             return;
 
@@ -121,7 +120,7 @@ public class PlayerRewind : MonoBehaviour
 
         if (playerController == null)
         {
-            Debug.LogError("PlayerRewind¿¡ PlayerController°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.", this);
+            Debug.LogError("PlayerRewindï¿½ï¿½ PlayerControllerï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¾Ò½ï¿½ï¿½Ï´ï¿½.", this);
             return;
         }
 
@@ -149,9 +148,6 @@ public class PlayerRewind : MonoBehaviour
 
         if (scoreManager != null)
             scoreManager.SetRewinding(true);
-
-        if (nearMissDetector != null)
-            nearMissDetector.SetRewinding(true);
 
         SuspendPlayerColliders();
 
@@ -262,9 +258,6 @@ public class PlayerRewind : MonoBehaviour
 
         isRewinding = false;
         rewindCoroutine = null;
-
-        if (nearMissDetector != null)
-            nearMissDetector.SetRewinding(false);
 
         if (scoreManager != null)
             scoreManager.SetRewinding(false);

@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -16,33 +16,33 @@ using UnityEditor.Profiling;
 using UnityEditorInternal;
 #endif
 
-// ÃÖÀûÈ­ ON/OFF¸¦ º¯°æÇÏÁö ¾Ê°í, Unity°¡ Á¦°øÇÏ´Â Profiler ¼öÄ¡¸¸ CSV·Î ÀúÀåÇÕ´Ï´Ù.
-// ½ÇÇè enum, Reflection, RAW ÆÄÀÏ, Batch ½ÇÇà ±â´ÉÀº ¾ø½À´Ï´Ù.
+// ï¿½ï¿½ï¿½ï¿½È­ ON/OFFï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê°ï¿½, Unityï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ Profiler ï¿½ï¿½Ä¡ï¿½ï¿½ CSVï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
+// ï¿½ï¿½ï¿½ï¿½ enum, Reflection, RAW ï¿½ï¿½ï¿½ï¿½, Batch ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½.
 [DisallowMultipleComponent]
 public sealed class AeroOptimizationExperiment : MonoBehaviour
 {
-    [Header("CSV ÀúÀå Æú´õ")]
-    [Tooltip("AeroBenchmarks/Experiments ¾Æ·¡ÀÇ »ó´ë °æ·ÎÀÔ´Ï´Ù. ¿¹: Map/ColliderCulling/ON/Run01")]
+    [Header("CSV ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½")]
+    [Tooltip("AeroBenchmarks/Experiments ï¿½Æ·ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ô´Ï´ï¿½. ï¿½ï¿½: Map/ColliderCulling/ON/Run01")]
     [SerializeField] private string saveSubfolder = "ProfilerCaptures";
 
-    [Header("ÃøÁ¤ ½Ã°£")]
+    [Header("ï¿½ï¿½ï¿½ï¿½ ï¿½Ã°ï¿½")]
     [SerializeField] private bool startAutomatically = true;
     [SerializeField, Min(0f)] private float warmupSeconds = 5f;
     [SerializeField, Min(1f)] private float captureSeconds = 30f;
 
-    [Header("´À¸° ÇÁ·¹ÀÓ ¿øÀÎ ±â·Ï")]
-    [Tooltip("ÀÌ ½Ã°£ ÀÌ»óÀÎ ÇÁ·¹ÀÓ¸¸ Editor Profiler È£Ãâ Æ®¸®¸¦ Ãß°¡ ÀúÀåÇÕ´Ï´Ù. ±âº» 40ms.")]
+    [Header("ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½")]
+    [Tooltip("ï¿½ï¿½ ï¿½Ã°ï¿½ ï¿½Ì»ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ó¸ï¿½ Editor Profiler È£ï¿½ï¿½ Æ®ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½. ï¿½âº» 40ms.")]
     [SerializeField, Min(20f)] private float slowFrameThresholdMs = 40f;
 
-    [Header("¼öÁý ¹üÀ§ - °°Àº Á¶°ÇÀ¸·Î AeroFlip / AeroShift ºñ±³")]
-    [Tooltip("±âº» OFF: ÁÖ¿ä CPU/GPU/Physics/GC/Render Ä«¿îÅÍ¸¸ ¼öÁýÇØ °èÃø ºñ¿ëÀ» ³·Ãä´Ï´Ù. ONÀº ³ëÃâµÈ ¸ðµç ÁöÇ¥¸¦ ´ë»óÀ¸·Î ÇÏ¹Ç·Î ¼º´É ºñ±³¿ëÀÌ ¾Æ´Ñ Á¤¹Ð Å½»ç¿ëÀÔ´Ï´Ù.")]
+    [Header("ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ - ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ AeroFlip / AeroShift ï¿½ï¿½")]
+    [Tooltip("ï¿½âº» OFF: ï¿½Ö¿ï¿½ CPU/GPU/Physics/GC/Render Ä«ï¿½ï¿½ï¿½Í¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï´ï¿½. ONï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½Ç¥ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ï¹Ç·ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ñ±³¿ï¿½ï¿½ï¿½ ï¿½Æ´ï¿½ ï¿½ï¿½ï¿½ï¿½ Å½ï¿½ï¿½ï¿½ï¿½Ô´Ï´ï¿½.")]
     [SerializeField] private bool recordEveryAvailableMetric = false;
-    [Tooltip("µ¿½Ã¿¡ ÀÐ´Â Recorder ¼öÀÇ »óÇÑÀÔ´Ï´Ù. ¼öÃµ °³ÀÇ ÁöÇ¥¸¦ ¿­¸é ÃøÁ¤ ÀÚÃ¼°¡ ´À·ÁÁú ¼ö ÀÖ½À´Ï´Ù.")]
+    [Tooltip("ï¿½ï¿½ï¿½Ã¿ï¿½ ï¿½Ð´ï¿½ Recorder ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ô´Ï´ï¿½. ï¿½ï¿½Ãµ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ç¥ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Ö½ï¿½ï¿½Ï´ï¿½.")]
     [SerializeField, Range(64, 8192)] private int maxRecorders = 512;
-    [Tooltip("Recorder °á°ú ÀúÀå ¹è¿­ÀÇ ÃÖ´ë ¸Þ¸ð¸® ¿¹»ê. ³ôÀº °ªÀº Editor ¸Þ¸ð¸®¸¦ Å©°Ô »ç¿ëÇÕ´Ï´Ù.")]
+    [Tooltip("Recorder ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½è¿­ï¿½ï¿½ ï¿½Ö´ï¿½ ï¿½Þ¸ï¿½ ï¿½ï¿½ï¿½ï¿½. ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Editor ï¿½Þ¸ð¸®¸ï¿½ Å©ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.")]
     [SerializeField, Range(64, 2048)] private int maxMetricBufferMiB = 192;
-    [Header("CPU/GPU ÇÁ·¹ÀÓ Å¸ÀÌ¹Ö")]
-    [Tooltip("Unity FrameTimingManager¸¦ NÇÁ·¹ÀÓ¸¶´Ù È£ÃâÇÕ´Ï´Ù. °á°ú´Â 4ÇÁ·¹ÀÓ ÀÌ»ó ´Ê°Ô µµÂøÇÒ ¼ö ÀÖ¾î º°µµ CSV·Î ÀúÀåÇÕ´Ï´Ù.")]
+    [Header("CPU/GPU ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Å¸ï¿½Ì¹ï¿½")]
+    [Tooltip("Unity FrameTimingManagerï¿½ï¿½ Nï¿½ï¿½ï¿½ï¿½ï¿½Ó¸ï¿½ï¿½ï¿½ È£ï¿½ï¿½ï¿½Õ´Ï´ï¿½. ï¿½ï¿½ï¿½ï¿½ï¿½ 4ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ì»ï¿½ ï¿½Ê°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Ö¾ï¿½ ï¿½ï¿½ï¿½ï¿½ CSVï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.")]
     [SerializeField, Range(4, 120)] private int frameTimingSampleEveryNFrames = 8;
 
     private sealed class AvailableMetric
@@ -145,14 +145,14 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     private double[,] metricValues;
     private int invalidRecorderCount;
 #if UNITY_EDITOR
-    // Editor ÇÁ·ÎÆÄÀÏ·¯ ÇÁ·¹ÀÓÀº °ÔÀÓ Time.frameCount¿Í º°°³ÀÇ ÀÎµ¦½ºÀÔ´Ï´Ù.
+    // Editor ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï·ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Time.frameCountï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Îµï¿½ï¿½ï¿½ï¿½Ô´Ï´ï¿½.
     private int editorStartFrame = -1;
     private int editorTraceFrames;
     private string editorTraceStatus = "not_started";
 
-    // ProfilerDriver´Â Game Time.frameCount¿Í º°°³ÀÇ ÇÁ·¹ÀÓ ÀÎµ¦½º¸¦ »ç¿ëÇÕ´Ï´Ù.
-    // ÀüÃ¼ 30ÃÊ¸¦ ¸¶Áö¸· 180ÇÁ·¹ÀÓ¸¸ ÃßÃâÇÏ¸é ÃÊ¹Ý ¹°¸® ½ºÆÄÀÌÅ©¸¦ ³õÄ¨´Ï´Ù.
-    // ±×·¡¼­ Editor ¾÷µ¥ÀÌÆ®¿¡¼­ ¿Ï·áµÈ ÇÁ·¹ÀÓÀÇ ½Ã°£¸¸ È®ÀÎÇÏ°í, ´À¸° ÇÁ·¹ÀÓ¸¸ Áï½Ã º¸Á¸ÇÕ´Ï´Ù.
+    // ProfilerDriverï¿½ï¿½ Game Time.frameCountï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Îµï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
+    // ï¿½ï¿½Ã¼ 30ï¿½Ê¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 180ï¿½ï¿½ï¿½ï¿½ï¿½Ó¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¸ï¿½ ï¿½Ê¹ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å©ï¿½ï¿½ ï¿½ï¿½Ä¨ï¿½Ï´ï¿½.
+    // ï¿½×·ï¿½ï¿½ï¿½ Editor ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®ï¿½ï¿½ï¿½ï¿½ ï¿½Ï·ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ã°ï¿½ï¿½ï¿½ È®ï¿½ï¿½ï¿½Ï°ï¿½, ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ó¸ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
     private readonly List<EditorSpikeFrame> editorSpikeFrames = new List<EditorSpikeFrame>(24);
     private int editorLastInspected = -1;
     private int editorInspectedFrameCount;
@@ -164,9 +164,9 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     private const int MaxEditorThreads = 64;
 #endif
 
-    // ºü¸¥ ¿øÀÎ ºÐ¸®¸¦ À§ÇØ Àü ÇÁ·¹ÀÓ¿¡ ³²±â´Â ±â·ÏÀº ¼ýÀÚÇü¸¸ »ç¿ëÇÕ´Ï´Ù.
-    // Physics.SimulateÀÇ ProfilerRecorder.LastValue´Â ÀÌÀü ¿Ï·á ÇÁ·¹ÀÓÀÏ ¼ö ÀÖÀ¸¹Ç·Î
-    // CSVÀÇ frame_ms¿Í ¿ÏÀüÇÑ ÀÏ´ëÀÏ µ¿±âÈ­¸¦ º¸ÀåÇÏÁö ¾Ê½À´Ï´Ù.
+    // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ð¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ó¿ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
+    // Physics.Simulateï¿½ï¿½ ProfilerRecorder.LastValueï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ï·ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½
+    // CSVï¿½ï¿½ frame_msï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ï´ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½È­ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê½ï¿½ï¿½Ï´ï¿½.
     private void Start()
     {
         if (startAutomatically)
@@ -183,7 +183,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
         if (preparingCapture && Time.frameCount >= preparationFrame + 3)
         {
-            // ´ë±Ô¸ð ÃøÁ¤ ¹öÆÛ »ý¼ºÀÌ ÀÏ¾î³­ ÇÁ·¹ÀÓÀ» GC ºñ±³¿¡ Æ÷ÇÔÇÏÁö ¾Ê½À´Ï´Ù.
+            // ï¿½ï¿½Ô¸ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ï¾î³­ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ GC ï¿½ñ±³¿ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê½ï¿½ï¿½Ï´ï¿½.
             preparingCapture = false;
 #if UNITY_EDITOR
             editorStartFrame = ProfilerDriver.lastFrameIndex + 1;
@@ -226,8 +226,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         elapsedSeconds[row] = Time.realtimeSinceStartup - recordStart;
         frameMilliseconds[row] = Time.unscaledDeltaTime * 1000f;
 
-        // LastValue´Â Unity°¡ '¸¶Áö¸·À¸·Î ¿Ï·áÇÑ ÇÁ·¹ÀÓ'ÀÇ °á°úÀÔ´Ï´Ù.
-        // ÇöÀç LateUpdate¿Í Á¤È®È÷ °°Àº ÇÁ·¹ÀÓÀÇ ¸¶Ä¿¶ó°í °¡Á¤ÇÏ¸é ¾È µË´Ï´Ù.
+        // LastValueï¿½ï¿½ Unityï¿½ï¿½ 'ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ï·ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½'ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ô´Ï´ï¿½.
+        // ï¿½ï¿½ï¿½ï¿½ LateUpdateï¿½ï¿½ ï¿½ï¿½È®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¸ï¿½ ï¿½ï¿½ ï¿½Ë´Ï´ï¿½.
         int validReads = 0;
         for (int i = 0; i < metrics.Count; i++)
         {
@@ -242,7 +242,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         gcGen2[row] = GC.CollectionCount(2);
         readRecorderMs[row] = (Stopwatch.GetTimestamp() - readStartTicks) * 1000.0 / Stopwatch.Frequency;
 
-        // FrameTimingÀº ¿Ï·áµÈ ÀÌÀü ÇÁ·¹ÀÓÀÇ ºñµ¿±â °á°úÀÔ´Ï´Ù. ÇöÀç °ÔÀÓ ÇÁ·¹ÀÓ°ú °áÇÕÇÏÁö ¾Ê½À´Ï´Ù.
+        // FrameTimingï¿½ï¿½ ï¿½Ï·ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ñµ¿±ï¿½ ï¿½ï¿½ï¿½ï¿½Ô´Ï´ï¿½. ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ó°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê½ï¿½ï¿½Ï´ï¿½.
         if (frameTimingSupported && frameTimingSampleEveryNFrames > 0 &&
             (recordedFrames % frameTimingSampleEveryNFrames) == 0)
         {
@@ -275,7 +275,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         recordedFrames++;
     }
 
-    [ContextMenu("CSV ÃøÁ¤ - Áö±Ý ½ÃÀÛ")]
+    [ContextMenu("CSV ï¿½ï¿½ï¿½ï¿½ - ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½")]
     public void StartCaptureNow()
     {
         if (!Application.isPlaying || recording || preparingCapture || warmingUp)
@@ -285,7 +285,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         BeginWarmup();
     }
 
-    [ContextMenu("CSV ÃøÁ¤ - Á¾·á ¹× ÀúÀå")]
+    [ContextMenu("CSV ï¿½ï¿½ï¿½ï¿½ - ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½")]
     public void StopCapture()
     {
         if (recording)
@@ -309,7 +309,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
         try
         {
-            // ¿ö¹Ö¾÷ µ¿¾È Profiler¸¦ È°¼ºÈ­ÇØ µ¿Àû ¸¶Ä¿°¡ µî·ÏµÉ ±âÈ¸¸¦ ÁÝ´Ï´Ù.
+            // ï¿½ï¿½ï¿½Ö¾ï¿½ ï¿½ï¿½ï¿½ï¿½ Profilerï¿½ï¿½ È°ï¿½ï¿½È­ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¿ï¿½ï¿½ ï¿½ï¿½Ïµï¿½ ï¿½ï¿½È¸ï¿½ï¿½ ï¿½Ý´Ï´ï¿½.
             if (!profilerStateSaved)
             {
                 previousProfilerEnabled = Profiler.enabled;
@@ -321,7 +321,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
             Profiler.enabled = true;
 #if UNITY_EDITOR
-            // Profiler Ã¢ÀÇ Record ½ºÀ§Ä¡°¡ ²¨Á® ÀÖ¾îµµ Áø´Ü ÇÁ·¹ÀÓÀ» ¼öÁýÇÕ´Ï´Ù.
+            // Profiler Ã¢ï¿½ï¿½ Record ï¿½ï¿½ï¿½ï¿½Ä¡ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ö¾îµµ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
             ProfilerDriver.enabled = true;
 #endif
             warmupStart = Time.realtimeSinceStartup;
@@ -344,7 +344,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
         try
         {
-            // ¿ö¹Ö¾÷ °üÃø FPS·Î ÃøÁ¤ Áß ÇÊ¿äÇÑ ¹öÆÛ¸¦ ÇÑ ¹ø¸¸ ÇÒ´çÇÕ´Ï´Ù.
+            // ï¿½ï¿½ï¿½Ö¾ï¿½ ï¿½ï¿½ï¿½ï¿½ FPSï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Ê¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Û¸ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ò´ï¿½ï¿½Õ´Ï´ï¿½.
             float observedSeconds = Time.realtimeSinceStartup - warmupStart;
             float observedFps = observedSeconds > 0.5f
                 ? (Time.frameCount - warmupStartFrame) / observedSeconds
@@ -400,7 +400,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             recordedFrames = 0;
             preparationFrame = Time.frameCount;
             preparingCapture = true;
-            Debug.Log("[AeroProfiler] ÃøÁ¤ ¹öÆÛ ÁØºñ ¿Ï·á. 3ÇÁ·¹ÀÓ ÀÌÈÄ CSV ±â·Ï ½ÃÀÛ: " + metrics.Count + "°³ ÁöÇ¥", this);
+            Debug.Log("[AeroProfiler] ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Øºï¿½ ï¿½Ï·ï¿½. 3ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ CSV ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½: " + metrics.Count + "ï¿½ï¿½ ï¿½ï¿½Ç¥", this);
         }
         catch (Exception ex)
         {
@@ -420,7 +420,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     {
         string c = category ?? "";
         string n = name ?? "";
-        // ÁÖ¿ä ÇÁ·¹ÀÓ/´ë±â/¹°¸®/GC/·»´õ/»ç¿ëÀÚ ½Ã½ºÅÛÀÇ ¸¶Ä¿¸¦ ¿ì¼± È®º¸ÇÕ´Ï´Ù.
+        // ï¿½Ö¿ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½/GC/ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¿ï¿½ï¿½ ï¿½ì¼± È®ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
         if (n == "Main Thread" || n == "Render Thread" || n == "PlayerLoop" ||
             n == "EditorLoop" || n == "GC.Alloc" || n == "GC.Collect" ||
             n.IndexOf("Frame Time", StringComparison.OrdinalIgnoreCase) >= 0 ||
@@ -515,7 +515,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             }
             try
             {
-                // capacity=1: ³×ÀÌÆ¼ºê ¹öÆÛ¿¡ ¿Ï·áµÈ ¸¶Áö¸· ÇÁ·¹ÀÓ °ª ÇÏ³ª¸¸ º¸°ü.
+                // capacity=1: ï¿½ï¿½ï¿½ï¿½Æ¼ï¿½ï¿½ ï¿½ï¿½ï¿½Û¿ï¿½ ï¿½Ï·ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Ï³ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½.
                 ProfilerRecorder recorder = new ProfilerRecorder(a.Handle, 1, ProfilerRecorderOptions.Default);
                 if (!recorder.Valid)
                 {
@@ -549,23 +549,23 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             return;
 
 #if UNITY_EDITOR
-        // ¼öÁý Á¾·á Á÷Àü ÀÌ¹Ì ¿Ï·áµÈ Editor ÇÁ·¹ÀÓÀ» ¸¶Áö¸·À¸·Î ÀÐ½À´Ï´Ù.
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ì¹ï¿½ ï¿½Ï·ï¿½ï¿½ Editor ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ð½ï¿½ï¿½Ï´ï¿½.
         CollectEditorSpikeFrames();
 #endif
         recording = false;
         finished = true;
         finishReason = reason;
-        // ÃøÁ¤ÀÌ ³¡³­ µÚ ¿ÀºêÁ§Æ® Àü¼ö Á¶»ç¸¦ ¼öÇàÇÕ´Ï´Ù. ÃøÁ¤ ÇÁ·¹ÀÓ¿¡ Æ÷ÇÔµÇÁö ¾Ê½À´Ï´Ù.
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ç¸¦ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½. ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ó¿ï¿½ ï¿½ï¿½ï¿½Ôµï¿½ï¿½ï¿½ ï¿½Ê½ï¿½ï¿½Ï´ï¿½.
         try { finalCensus = TakeSceneCensus("after_capture_finished"); }
-        catch (Exception e) { Debug.LogWarning("[AeroProfiler] Scene Census ½ÇÆÐ: " + e.Message, this); }
+        catch (Exception e) { Debug.LogWarning("[AeroProfiler] Scene Census ï¿½ï¿½ï¿½ï¿½: " + e.Message, this); }
 #if UNITY_EDITOR
         StopEditorSpikeObserver();
 #endif
-        // Recorder¸¸ Á¤Áö/ÇØÁ¦ÇÏ°í ÀÌ¸§¡¤´ÜÀ§ ¸ÞÅ¸µ¥ÀÌÅÍ´Â CSV ÀÛ¼º±îÁö º¸°üÇÕ´Ï´Ù.
+        // Recorderï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½Ï°ï¿½ ï¿½Ì¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Å¸ï¿½ï¿½ï¿½ï¿½ï¿½Í´ï¿½ CSV ï¿½Û¼ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
         DisposeRecorders(true);
 #if UNITY_EDITOR
-        // ½ÇÁ¦ ÃøÁ¤ ±¸°£ÀÌ ³¡³­ µÚ, Unity Editor¿¡ ³²¾Æ ÀÖ´Â Profiler ÇÁ·¹ÀÓ¸¸
-        // ÇØ¼®ÇÕ´Ï´Ù. ºÐ¼®¿¡ µå´Â CPU/GC´Â ÃøÁ¤ ¹öÆÛ¿¡ Æ÷ÇÔµÇÁö ¾Ê½À´Ï´Ù.
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½, Unity Editorï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ö´ï¿½ Profiler ï¿½ï¿½ï¿½ï¿½ï¿½Ó¸ï¿½
+        // ï¿½Ø¼ï¿½ï¿½Õ´Ï´ï¿½. ï¿½Ð¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ CPU/GCï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Û¿ï¿½ ï¿½ï¿½ï¿½Ôµï¿½ï¿½ï¿½ ï¿½Ê½ï¿½ï¿½Ï´ï¿½.
         try
         {
             WriteEditorSampleDiagnostics();
@@ -573,7 +573,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         catch (Exception editorEx)
         {
             editorTraceStatus = "error: " + editorEx.GetType().Name + ": " + editorEx.Message;
-            Debug.LogWarning("[AeroProfiler] Editor Áø´Ü CSV ÃßÃâ ½ÇÆÐ: " + editorEx, this);
+            Debug.LogWarning("[AeroProfiler] Editor ï¿½ï¿½ï¿½ï¿½ CSV ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½: " + editorEx, this);
         }
 #endif
         RestoreProfilerState();
@@ -593,7 +593,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             WriteEditorPhysicsSpikeDiagnostics();
 #endif
             WriteSummary();
-            Debug.Log("[AeroProfiler] CSV ÀúÀå ¿Ï·á: " + outputDirectory, this);
+            Debug.Log("[AeroProfiler] CSV ï¿½ï¿½ï¿½ï¿½ ï¿½Ï·ï¿½: " + outputDirectory, this);
         }
         catch (Exception ex)
         {
@@ -633,7 +633,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
     private static SceneCensus TakeSceneCensus(string stage)
     {
-        // FindObjectsByType´Â ¹è¿­À» ÇÒ´çÇÕ´Ï´Ù. ¿ö¹Ö¾÷ ÁØºñ/ÃøÁ¤ Á¾·á ½Ã¿¡¸¸ È£ÃâÇÕ´Ï´Ù.
+        // FindObjectsByTypeï¿½ï¿½ ï¿½è¿­ï¿½ï¿½ ï¿½Ò´ï¿½ï¿½Õ´Ï´ï¿½. ï¿½ï¿½ï¿½Ö¾ï¿½ ï¿½Øºï¿½/ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ã¿ï¿½ï¿½ï¿½ È£ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
         var c = new SceneCensus { Stage = stage };
         GameObject[] objects = UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         c.GameObjects = objects.Length;
@@ -817,8 +817,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
     private void WriteAllMetrics()
     {
-        // ¿­(°¡·Î) Çü½Ä: ÇÑ ÇàÀÌ ÇÏ³ªÀÇ ±â·Ï ÇÁ·¹ÀÓÀÔ´Ï´Ù.
-        // ¸ðµç Recorder Áö¿ø ÁöÇ¥¿¡ ÀÚµ¿À¸·Î ¿­À» ¸¸µì´Ï´Ù.
+        // ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½) ï¿½ï¿½ï¿½ï¿½: ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ï³ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô´Ï´ï¿½.
+        // ï¿½ï¿½ï¿½ Recorder ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ç¥ï¿½ï¿½ ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï´ï¿½.
         using (var writer = NewCsv("_all_metrics.csv"))
         {
             writer.Write("frame,elapsed_seconds");
@@ -848,8 +848,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     }
 
 
-    // ±â·ÏÇÑ ¸ðµç ¹°¸® Ä«¿îÅÍ °¡¿îµ¥ ´À¸° ÇÁ·¹ÀÓÀÇ °ª¸¸ º°µµ CSV·Î Á¤¸®ÇÕ´Ï´Ù.
-    // ÀÌ ±â·ÏÀº Editor¿Í Development Build ¾çÂÊ¿¡¼­ µ¿ÀÛÇÕ´Ï´Ù.
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Ä«ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½îµ¥ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ CSVï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
+    // ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ Editorï¿½ï¿½ Development Build ï¿½ï¿½ï¿½Ê¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
     private int FindMetric(string metricName)
     {
         for (int i = 0; i < metrics.Count; i++)
@@ -1217,8 +1217,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             editorSpikeStatus = "completed";
     }
 
-    // EditorApplication.update¿¡¼­ ¿Ï·áµÈ Profiler frameTime¸¸ È®ÀÎÇÕ´Ï´Ù.
-    // ¸ðµç ÇÁ·¹ÀÓÀÇ ÀüÃ¼ »ùÇÃÀ» ¼øÈ¸ÇÏÁö ¾Ê°í, ´À¸° ÇÁ·¹ÀÓ¿¡¼­¸¸ »ó¼¼ ºÐ¼®ÇÕ´Ï´Ù.
+    // EditorApplication.updateï¿½ï¿½ï¿½ï¿½ ï¿½Ï·ï¿½ï¿½ Profiler frameTimeï¿½ï¿½ È®ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
+    // ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ã¼ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¸ï¿½ï¿½ï¿½ï¿½ ï¿½Ê°ï¿½, ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ó¿ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Ð¼ï¿½ï¿½Õ´Ï´ï¿½.
     private void CollectEditorSpikeFrames()
     {
         if (!recording) return;
@@ -1229,7 +1229,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             if (first < 0 || last < first) return;
             if (editorLastInspected > last)
             {
-                // Profiler Ã¢ÀÇ Clear µîÀ¸·Î ÇÁ·¹ÀÓ ÀÎµ¦½º°¡ ÃÊ±âÈ­µÈ °æ¿ì
+                // Profiler Ã¢ï¿½ï¿½ Clear ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Îµï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê±ï¿½È­ï¿½ï¿½ ï¿½ï¿½ï¿½
                 editorLastInspected = first - 1;
                 editorSpikeStatus = "history_was_reset_during_capture";
             }
@@ -1266,7 +1266,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             }
             if (next <= last && last - next > 64)
             {
-                // ÇÁ·¹ÀÓÀÌ ´ë·® ´©ÀûµÆÀ» ¶§ Áø´Ü ÀÚÃ¼°¡ ´Ù½Ã ±ä ½ºÆÄÀÌÅ©¸¦ ¸¸µéÁö ¾Êµµ·Ï Á¦ÇÑ.
+                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ë·® ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½Ù½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å©ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Êµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½.
                 editorMissedFrameCount += last - next - 32;
                 editorLastInspected = last - 33;
             }
@@ -1275,7 +1275,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         {
             editorSpikeStatus = "collection_error_" + ex.GetType().Name;
             StopEditorSpikeObserver();
-            Debug.LogWarning("[AeroProfiler] ´À¸° ÇÁ·¹ÀÓ »ó¼¼ ±â·Ï ½ÇÆÐ: " + ex.Message, this);
+            Debug.LogWarning("[AeroProfiler] ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½: " + ex.Message, this);
         }
     }
 
@@ -1367,7 +1367,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
     private void WriteEditorPhysicsSpikeDiagnostics()
     {
-        // game frame¿Í editor_frameÀº º°µµ ÀÎµ¦½º. ¼­·Î °°Àº ¹øÈ£¶ó°í ¸ÅÄªÇÏ¸é ¾È µË´Ï´Ù.
+        // game frameï¿½ï¿½ editor_frameï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Îµï¿½ï¿½ï¿½. ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È£ï¿½ï¿½ï¿½ ï¿½ï¿½Äªï¿½Ï¸ï¿½ ï¿½ï¿½ ï¿½Ë´Ï´ï¿½.
         using (var frames = NewCsv("_editor_spike_frames.csv"))
         using (var samples = NewCsv("_editor_spike_samples.csv"))
         {
@@ -1389,8 +1389,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                 WriteEscaped(frames, "Unity Editor Profiler frame index; no guaranteed match to game Time.frameCount");
                 frames.WriteLine();
 
-                // ½ÇÁ¦ ±ä °æ·Î + ¹°¸® Æ®¸®ÀÇ Áß¿äÇÑ »ùÇÃ¸¸ Ãâ·ÂÇÕ´Ï´Ù.
-                // CPU inclusive ½Ã°£Àº ºÎ¸ð/ÀÚ½ÄÀÌ °ãÄ¡¹Ç·Î ÇÕ»ê ±ÝÁö.
+                // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ + ï¿½ï¿½ï¿½ï¿½ Æ®ï¿½ï¿½ï¿½ï¿½ ï¿½ß¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ã¸ï¿½ ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
+                // CPU inclusive ï¿½Ã°ï¿½ï¿½ï¿½ ï¿½Î¸ï¿½/ï¿½Ú½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡ï¿½Ç·ï¿½ ï¿½Õ»ï¿½ ï¿½ï¿½ï¿½ï¿½.
                 var selected = new List<int>(192);
                 for (int i = 0; i < frame.Samples.Count; i++)
                 {
@@ -1401,7 +1401,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                 }
                 selected.Sort((a, b) =>
                 {
-                    // ¸ÕÀú ÀÚ±â ÀÚ½ÅÀÇ ½Ã°£ÀÌ Å« ¸¶Ä¿¸¦ º¸¿© Áà¾ß ´ë±â/½ÇÁ¦ °è»êÀ» ±¸ºÐÇÏ±â ÆíÇÕ´Ï´Ù.
+                    // ï¿½ï¿½ï¿½ï¿½ ï¿½Ú±ï¿½ ï¿½Ú½ï¿½ï¿½ï¿½ ï¿½Ã°ï¿½ï¿½ï¿½ Å« ï¿½ï¿½Ä¿ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï±ï¿½ ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
                     int result = frame.Samples[b].ExclusiveMs.CompareTo(frame.Samples[a].ExclusiveMs);
                     return result != 0 ? result : frame.Samples[b].InclusiveMs.CompareTo(frame.Samples[a].InclusiveMs);
                 });
@@ -1424,9 +1424,9 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         }
     }
 
-    // GC.AllocÀº ¸Þ¸ð¸® ÇÒ´ç À§Ä¡¿Í Å©±â¸¦ Æ÷ÇÔÇÕ´Ï´Ù. RawFrameDataView¸¦ ÅëÇØ
-    // ÃÖ±Ù Editor Profiler ÇÁ·¹ÀÓÀÇ È£Ãâ °èÃþ°ú ÇÒ´ç »ùÇÃÀ» CSV·Î ÃßÃâÇÕ´Ï´Ù.
-    // Player ºôµå¿¡´Â ÀÌ ÄÚµå ÀÚÃ¼°¡ Æ÷ÇÔµÇÁö ¾Ê½À´Ï´Ù.
+    // GC.Allocï¿½ï¿½ ï¿½Þ¸ï¿½ ï¿½Ò´ï¿½ ï¿½ï¿½Ä¡ï¿½ï¿½ Å©ï¿½â¸¦ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½. RawFrameDataViewï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+    // ï¿½Ö±ï¿½ Editor Profiler ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ È£ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ò´ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ CSVï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
+    // Player ï¿½ï¿½ï¿½å¿¡ï¿½ï¿½ ï¿½ï¿½ ï¿½Úµï¿½ ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½ï¿½ï¿½Ôµï¿½ï¿½ï¿½ ï¿½Ê½ï¿½ï¿½Ï´ï¿½.
     private sealed class EditorGcSite
     {
         public string Thread;
@@ -1464,8 +1464,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             return;
         }
 
-        // Editor Profiler´Â À¯ÇÑÇÑ ¼øÈ¯ È÷½ºÅä¸®ÀÌ¹Ç·Î ÀÌÀü 30ÃÊ¸¦ º¸ÀåÇÏÁö ¾Ê½À´Ï´Ù.
-        // Á¤»ó ÃøÁ¤¿¡ ¿µÇâÀ» ÁÖÁö ¾Êµµ·Ï Á¾·á ÈÄ ÃÖ±Ù ÃÖ´ë 180ÇÁ·¹ÀÓ¸¸ ÇØ¼®ÇÕ´Ï´Ù.
+        // Editor Profilerï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¯ ï¿½ï¿½ï¿½ï¿½ï¿½ä¸®ï¿½Ì¹Ç·ï¿½ ï¿½ï¿½ï¿½ï¿½ 30ï¿½Ê¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê½ï¿½ï¿½Ï´ï¿½.
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Êµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Ö±ï¿½ ï¿½Ö´ï¿½ 180ï¿½ï¿½ï¿½ï¿½ï¿½Ó¸ï¿½ ï¿½Ø¼ï¿½ï¿½Õ´Ï´ï¿½.
         const int MaxEditorFrames = 180;
         int start = Math.Max(Math.Max(first, editorStartFrame), last - MaxEditorFrames + 1);
         if (start > last)
@@ -1659,409 +1659,3 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 #endif
 
 }
-
-#if UNITY_EDITOR
-// °°Àº C# ÆÄÀÏÀÇ Editor Àü¿ë ±â´ÉÀÔ´Ï´Ù. º°µµÀÇ Editor ½ºÅ©¸³Æ®°¡ ÇÊ¿äÇÏÁö ¾Ê½À´Ï´Ù.
-// ÀÌ ¸Þ´º´Â Unity EditorÀÇ Profiler¿¡ ¿¬°áµÈ ´ë»óÀ» ÀÐ½À´Ï´Ù. ¹Ýµå½Ã WindowsPlayer¸¦ ¼±ÅÃÇÏ¼¼¿ä.
-// Development Build ¾È¿¡¼­ ½ÇÇàµÇ´Â À§ MonoBehaviour¿Í ´Þ¸®, ¿©±â¼­´Â ProfilerÀÇ ½ÇÁ¦
-// CPU »ùÇÃ È£Ãâ °èÃþ ¹× GC.Alloc »ùÇÃÀ» ¾òÀ» ¼ö ÀÖ½À´Ï´Ù.
-internal static class AeroConnectedPlayerCsvTrace
-{
-    private sealed class TraceNode
-    {
-        public string Name;
-        public int Parent;
-        public int EndExclusive;
-        public double InclusiveMs;
-        public double ExclusiveMs;
-        public double StartMs;
-        public long GcBytes;
-    }
-
-    private struct TraceScope
-    {
-        public int NodeIndex;
-        public int EndExclusive;
-    }
-
-    private sealed class Hotspot
-    {
-        public string Thread;
-        public string Marker;
-        public int Calls;
-        public double TotalInclusiveMs;
-        public double TotalExclusiveMs;
-        public double MaxInclusiveMs;
-        public double MaxExclusiveMs;
-        public long GcBytes;
-    }
-
-    private static readonly CultureInfo C = CultureInfo.InvariantCulture;
-    private static readonly UTF8Encoding CsvUtf8 = new UTF8Encoding(true);
-    private const int CaptureSeconds = 30;
-    private const int MaxFramesPerEditorTick = 12;
-    private const int MaxThreadsPerFrame = 96;
-    private const int MaxDetailedFrames = 150;
-    private const int EveryNthBaselineFrame = 90;
-    private const int MaxDetailedRows = 2000000;
-    private const double SpikeThresholdMs = 20.0;
-    private const double MeaningfulExclusiveMs = 0.15;
-
-    private static bool capturing;
-    private static bool dumpEverySample;
-    private static double startTime;
-    private static int selectedConnection;
-    private static int nextFrame;
-    private static int capturedFrames;
-    private static int analyzedSamples;
-    private static int lostFrames;
-    private static int errorFrames;
-    private static int detailedFrames;
-    private static int detailedRows;
-    private static int detailedTruncated;
-    private static int maxQueueBacklog;
-    private static double firstProfilerFrameStartMs = double.NaN;
-    private static string exportFolder;
-    private static string prefix;
-    private static StreamWriter frameCsv;
-    private static StreamWriter sampleCsv;
-    private static readonly Dictionary<string, Hotspot> hotspots = new Dictionary<string, Hotspot>(2048);
-    private static readonly List<TraceNode> nodes = new List<TraceNode>(4096);
-    private static readonly List<TraceScope> stack = new List<TraceScope>(64);
-    private static string endingReason;
-
-    [MenuItem("Tools/AeroShift/Profiler/01 Start CONNECTED PLAYER CSV (30sec)")]
-    private static void StartUsefulCapture() { StartCapture(false); }
-
-    [MenuItem("Tools/AeroShift/Profiler/02 Start FULL sample CSV (30sec - VERY HEAVY)")]
-    private static void StartFullCapture() { StartCapture(true); }
-
-    [MenuItem("Tools/AeroShift/Profiler/03 Stop connected capture and save")]
-    private static void StopFromMenu() { StopCapture("manually_stopped"); }
-
-    [MenuItem("Tools/AeroShift/Profiler/03 Stop connected capture and save", true)]
-    private static bool CanStop() { return capturing; }
-
-    private static void StartCapture(bool full)
-    {
-        if (capturing)
-        {
-            UnityEngine.Debug.LogWarning("[AeroProfiler] ¿¬°áµÈ Player ÃßÀûÀ» ÀÌ¹Ì ½ÇÇà ÁßÀÔ´Ï´Ù.");
-            return;
-        }
-        try
-        {
-            // ¿¬°á ´ë»óÀº Window > Analysis > Profiler > Attach to Player¿¡¼­ ¼±ÅÃÇÕ´Ï´Ù.
-            // connectedProfiler ¼ýÀÚ´Â ÀåÄ¡º°·Î ´Þ¶óÁö¹Ç·Î Editor/Player ¿©ºÎ¸¦ ¼ýÀÚ·Î ÃßÃøÇÏÁö ¾Ê½À´Ï´Ù.
-            selectedConnection = ProfilerDriver.connectedProfiler;
-            ProfilerDriver.enabled = true;
-            startTime = EditorApplication.timeSinceStartup;
-            nextFrame = ProfilerDriver.lastFrameIndex + 1;
-            capturedFrames = analyzedSamples = lostFrames = errorFrames = 0;
-            detailedFrames = detailedRows = detailedTruncated = 0;
-            maxQueueBacklog = 0;
-            firstProfilerFrameStartMs = double.NaN;
-            endingReason = "running";
-            dumpEverySample = full;
-            hotspots.Clear();
-            string product = Application.productName;
-            exportFolder = Path.Combine(Application.persistentDataPath, "AeroBenchmarks", "Experiments", "ConnectedPlayer");
-            Directory.CreateDirectory(exportFolder);
-            prefix = (string.IsNullOrEmpty(product) ? "Game" : product) + "_ConnectedPlayer_" +
-                     DateTime.Now.ToString("yyyyMMdd_HHmmss_fff", C);
-            string framesPath = Path.Combine(exportFolder, prefix + "_connected_frames.csv");
-            string samplesPath = Path.Combine(exportFolder, prefix + "_connected_samples.csv");
-            frameCsv = new StreamWriter(framesPath, false, CsvUtf8, 65536);
-            sampleCsv = new StreamWriter(samplesPath, false, CsvUtf8, 65536);
-            frameCsv.WriteLine("profiler_frame,profiler_elapsed_seconds,frame_ms,threads,sample_count,player_loop_ms,editor_loop_ms,physics_simulate_inclusive_ms,physics_simulate_calls,gfx_wait_for_render_thread_ms,present_wait_markers_ms,wait_for_target_fps_ms,gc_alloc_bytes_sampled,detailed_saved,note");
-            sampleCsv.WriteLine("profiler_frame,thread,marker_path,marker,inclusive_ms,approx_exclusive_ms,start_ms,gc_alloc_bytes,sample_kind,note");
-            capturing = true;
-            EditorApplication.update -= Tick;
-            EditorApplication.update += Tick;
-            AssemblyReloadEvents.beforeAssemblyReload -= BeforeReload;
-            AssemblyReloadEvents.beforeAssemblyReload += BeforeReload;
-            UnityEngine.Debug.Log("[AeroProfiler] Connected Player CSV ½ÃÀÛ. ¹Ýµå½Ã Profiler Attach targetÀÌ WindowsPlayerÀÎÁö È®ÀÎ: " +
-                                  "connection=" + selectedConnection + ", FULL=" + full + ", folder=" + exportFolder);
-        }
-        catch (Exception e)
-        {
-            UnityEngine.Debug.LogError("[AeroProfiler] ¿¬°á CSV ½ÃÀÛ ½ÇÆÐ: " + e);
-            StopCapture("start_error");
-        }
-    }
-
-    private static void BeforeReload() { StopCapture("editor_domain_reload"); }
-
-    private static void Tick()
-    {
-        if (!capturing) return;
-        if (EditorApplication.timeSinceStartup - startTime >= CaptureSeconds)
-        {
-            StopCapture("duration_reached");
-            return;
-        }
-        try
-        {
-            if (ProfilerDriver.connectedProfiler != selectedConnection)
-            {
-                StopCapture("profiler_connection_changed");
-                return;
-            }
-            int first = ProfilerDriver.firstFrameIndex;
-            int last = ProfilerDriver.lastFrameIndex;
-            if (first < 0 || last < first) return;
-            if (nextFrame < first)
-            {
-                lostFrames += first - nextFrame;
-                nextFrame = first;
-            }
-            if (nextFrame > last + 1)
-            {
-                StopCapture("profiler_history_reset");
-                return;
-            }
-            if (last - nextFrame + 1 > maxQueueBacklog) maxQueueBacklog = last - nextFrame + 1;
-            int n = 0;
-            while (nextFrame <= last && n < MaxFramesPerEditorTick)
-            {
-                ReadOneFrame(nextFrame);
-                nextFrame++;
-                n++;
-            }
-        }
-        catch (Exception e)
-        {
-            errorFrames++;
-            UnityEngine.Debug.LogWarning("[AeroProfiler] Connected Profiler frame reading error: " + e.Message);
-            // ¿µ±¸ÀûÀÎ ¼öÁý ½ÇÆÐ¿¡¼­ ¹«ÇÑ ¿¹¿Ü ¹Ýº¹ ¹æÁö.
-            if (errorFrames >= 5) StopCapture("too_many_errors");
-        }
-    }
-
-    private static void ReadOneFrame(int frameIndex)
-    {
-        double frameMs = 0;
-        double frameStartMs = 0;
-        double playerLoopMs = 0, editorLoopMs = 0, physicsMs = 0;
-        double gfxWaitMs = 0, presentWaitMs = 0, targetWaitMs = 0;
-        int physicsCalls = 0;
-        int threads = 0;
-        int sampleCount = 0;
-        long gcBytes = 0;
-        bool captureDetail = dumpEverySample || detailedFrames < MaxDetailedFrames &&
-            (capturedFrames % EveryNthBaselineFrame == 0);
-        bool determineSpike = false;
-        for (int threadIndex = 0; threadIndex < MaxThreadsPerFrame; threadIndex++)
-        {
-            using (RawFrameDataView view = ProfilerDriver.GetRawFrameDataView(frameIndex, threadIndex))
-            {
-                if (!view.valid) break;
-                if (threadIndex == 0)
-                {
-                    frameStartMs = view.frameStartTimeMs;
-                    if (double.IsNaN(firstProfilerFrameStartMs)) firstProfilerFrameStartMs = frameStartMs;
-                    frameMs = view.frameTimeMs;
-                    determineSpike = frameMs >= SpikeThresholdMs;
-                    if (determineSpike && detailedFrames < MaxDetailedFrames) captureDetail = true;
-                }
-                threads++;
-                string threadName = view.threadGroupName + "/" + view.threadName;
-                int gcMarkerId = view.GetMarkerId("GC.Alloc");
-                nodes.Clear();
-                stack.Clear();
-                int num = view.sampleCount;
-                sampleCount += num;
-                // ½Ç½Ã°£ °ÔÀÓÀÌ ¾Æ´Ñ Editor¿¡¼­ ¼öÁýÇÏµÇ ¸ðµç ÇÁ·¹ÀÓÀ» ½ºÄµÇÕ´Ï´Ù.
-                for (int i = 0; i < num; i++)
-                {
-                    while (stack.Count > 0 && i >= stack[stack.Count - 1].EndExclusive)
-                        stack.RemoveAt(stack.Count - 1);
-                    int parent = stack.Count > 0 ? stack[stack.Count - 1].NodeIndex : -1;
-                    string name = view.GetSampleName(i) ?? "";
-                    double timeMs = view.GetSampleTimeMs(i);
-                    if (double.IsNaN(timeMs) || timeMs < 0) timeMs = 0;
-                    int children = view.GetSampleChildrenCountRecursive(i);
-                    long bytes = 0;
-                    if (gcMarkerId != FrameDataView.invalidMarkerId &&
-                        view.GetSampleMarkerId(i) == gcMarkerId && view.GetSampleMetadataCount(i) > 0)
-                    {
-                        bytes = Math.Max(0, view.GetSampleMetadataAsLong(i, 0));
-                        gcBytes += bytes;
-                    }
-                    var node = new TraceNode
-                    {
-                        Name = name,
-                        Parent = parent,
-                        EndExclusive = i + children + 1,
-                        InclusiveMs = timeMs,
-                        ExclusiveMs = timeMs,
-                        StartMs = view.GetSampleStartTimeMs(i),
-                        GcBytes = bytes
-                    };
-                    if (parent >= 0) nodes[parent].ExclusiveMs -= timeMs;
-                    int ni = nodes.Count;
-                    nodes.Add(node);
-                    if (children > 0)
-                        stack.Add(new TraceScope { NodeIndex = ni, EndExclusive = i + children + 1 });
-                    if (threadIndex == 0)
-                    {
-                        if (name == "PlayerLoop") playerLoopMs += timeMs;
-                        else if (name == "EditorLoop") editorLoopMs += timeMs;
-                        else if (name == "Physics.Simulate") { physicsMs += timeMs; physicsCalls++; }
-                        else if (name == "Gfx.WaitForRenderThread") gfxWaitMs += timeMs;
-                        else if (name == "WaitForTargetFPS") targetWaitMs += timeMs;
-                        else if (name == "WaitForLastPresentation" || name == "Gfx.WaitForPresentOnGfxThread") presentWaitMs += timeMs;
-                    }
-                }
-                analyzedSamples += num;
-                // ÀÚ±â½Ã°£Àº ÇÏÀ§ »ùÇÃÀ» Á¦¿ÜÇÑ ÃßÁ¤Ä¡. °ãÄ§/½º·¹µå º´·Ä ½ÇÇàÀ» ÇÕ»êÇØ¼­ ÃÑ ÇÁ·¹ÀÓÀ¸·Î ¿ÀÇØÇÏÁö ¾Êµµ·Ï ±â·Ï.
-                for (int i = 0; i < nodes.Count; i++)
-                {
-                    TraceNode node = nodes[i];
-                    string key = threadName + "\u001f" + node.Name;
-                    if (!hotspots.TryGetValue(key, out Hotspot hot))
-                    {
-                        hot = new Hotspot { Thread = threadName, Marker = node.Name };
-                        hotspots.Add(key, hot);
-                    }
-                    hot.Calls++;
-                    hot.TotalInclusiveMs += node.InclusiveMs;
-                    hot.TotalExclusiveMs += Math.Max(0, node.ExclusiveMs);
-                    if (node.InclusiveMs > hot.MaxInclusiveMs) hot.MaxInclusiveMs = node.InclusiveMs;
-                    if (node.ExclusiveMs > hot.MaxExclusiveMs) hot.MaxExclusiveMs = node.ExclusiveMs;
-                    hot.GcBytes += node.GcBytes;
-
-                    if (!captureDetail || detailedRows >= MaxDetailedRows) continue;
-                    bool important = node.Name.IndexOf("Physics", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                     node.Name.IndexOf("Cloud", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                     node.Name.IndexOf("Map", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                     node.Name.IndexOf("GC.Alloc", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                     node.Name.IndexOf("Wait", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                     node.Name.IndexOf("Render", StringComparison.OrdinalIgnoreCase) >= 0;
-                    if (!dumpEverySample && !determineSpike && !important &&
-                        node.ExclusiveMs < MeaningfulExclusiveMs) continue;
-                    sampleCsv.Write(frameIndex.ToString(C)); sampleCsv.Write(',');
-                    WriteQuoted(sampleCsv, threadName); sampleCsv.Write(',');
-                    WriteQuoted(sampleCsv, BuildPath(nodes, i)); sampleCsv.Write(',');
-                    WriteQuoted(sampleCsv, node.Name); sampleCsv.Write(',');
-                    sampleCsv.Write(node.InclusiveMs.ToString("R", C)); sampleCsv.Write(',');
-                    sampleCsv.Write(Math.Max(0, node.ExclusiveMs).ToString("R", C)); sampleCsv.Write(',');
-                    sampleCsv.Write(node.StartMs.ToString("R", C)); sampleCsv.Write(',');
-                    sampleCsv.Write(node.GcBytes.ToString(C)); sampleCsv.Write(',');
-                    WriteQuoted(sampleCsv, determineSpike ? "spike" : (dumpEverySample ? "full" : "baseline")); sampleCsv.Write(',');
-                    WriteQuoted(sampleCsv, "inclusive overlaps children; estimated exclusive subtracts direct child samples");
-                    sampleCsv.WriteLine();
-                    detailedRows++;
-                }
-            }
-        }
-        if (threads == 0) { lostFrames++; return; }
-        capturedFrames++;
-        if (captureDetail) detailedFrames++;
-        if (detailedRows >= MaxDetailedRows) detailedTruncated++;
-        frameCsv.Write(frameIndex.ToString(C)); frameCsv.Write(',');
-        frameCsv.Write(((double.IsNaN(firstProfilerFrameStartMs)) ? 0.0 :
-            (frameStartMs - firstProfilerFrameStartMs) / 1000.0).ToString("R", C)); frameCsv.Write(',');
-        frameCsv.Write(frameMs.ToString("R", C)); frameCsv.Write(',');
-        frameCsv.Write(threads.ToString(C)); frameCsv.Write(',');
-        frameCsv.Write(sampleCount.ToString(C)); frameCsv.Write(',');
-        frameCsv.Write(playerLoopMs.ToString("R", C)); frameCsv.Write(',');
-        frameCsv.Write(editorLoopMs.ToString("R", C)); frameCsv.Write(',');
-        frameCsv.Write(physicsMs.ToString("R", C)); frameCsv.Write(',');
-        frameCsv.Write(physicsCalls.ToString(C)); frameCsv.Write(',');
-        frameCsv.Write(gfxWaitMs.ToString("R", C)); frameCsv.Write(',');
-        frameCsv.Write(presentWaitMs.ToString("R", C)); frameCsv.Write(',');
-        frameCsv.Write(targetWaitMs.ToString("R", C)); frameCsv.Write(',');
-        frameCsv.Write(gcBytes.ToString(C)); frameCsv.Write(',');
-        frameCsv.Write(captureDetail ? "true" : "false"); frameCsv.Write(',');
-        WriteQuoted(frameCsv, "ProfilerDriver connected target; same profiler_frame for all thread samples");
-        frameCsv.WriteLine();
-    }
-
-    private static string BuildPath(List<TraceNode> values, int index)
-    {
-        var chain = new List<string>(16);
-        int cur = index;
-        while (cur >= 0 && chain.Count < 32)
-        {
-            chain.Add(values[cur].Name);
-            cur = values[cur].Parent;
-        }
-        chain.Reverse();
-        return string.Join(" > ", chain.ToArray());
-    }
-
-    private static void WriteQuoted(StreamWriter w, string value)
-    {
-        if (value == null) value = "";
-        if (value.IndexOfAny(new char[] { ',', '"', '\n', '\r' }) < 0) { w.Write(value); return; }
-        w.Write('"'); w.Write(value.Replace("\"", "\"\"")); w.Write('"');
-    }
-
-    private static void StopCapture(string reason)
-    {
-        if (!capturing && frameCsv == null && sampleCsv == null) return;
-        capturing = false;
-        endingReason = reason;
-        EditorApplication.update -= Tick;
-        AssemblyReloadEvents.beforeAssemblyReload -= BeforeReload;
-        try { if (frameCsv != null) { frameCsv.Flush(); frameCsv.Dispose(); frameCsv = null; } }
-        catch (Exception e) { UnityEngine.Debug.LogWarning("[AeroProfiler] frame CSV close: " + e.Message); }
-        try { if (sampleCsv != null) { sampleCsv.Flush(); sampleCsv.Dispose(); sampleCsv = null; } }
-        catch (Exception e) { UnityEngine.Debug.LogWarning("[AeroProfiler] sample CSV close: " + e.Message); }
-        if (exportFolder == null || prefix == null) return;
-        try
-        {
-            var sorted = new List<Hotspot>(hotspots.Values);
-            sorted.Sort((a, b) => b.TotalExclusiveMs.CompareTo(a.TotalExclusiveMs));
-            using (var w = new StreamWriter(Path.Combine(exportFolder, prefix + "_connected_hotspots.csv"), false, CsvUtf8))
-            {
-                w.WriteLine("thread,marker,calls,total_inclusive_ms,total_approx_exclusive_ms,average_inclusive_ms,max_inclusive_ms,max_approx_exclusive_ms,gc_alloc_bytes,note");
-                foreach (Hotspot x in sorted)
-                {
-                    WriteQuoted(w, x.Thread); w.Write(','); WriteQuoted(w, x.Marker); w.Write(',');
-                    w.Write(x.Calls.ToString(C)); w.Write(',');
-                    w.Write(x.TotalInclusiveMs.ToString("R", C)); w.Write(',');
-                    w.Write(x.TotalExclusiveMs.ToString("R", C)); w.Write(',');
-                    w.Write((x.Calls > 0 ? x.TotalInclusiveMs / x.Calls : 0).ToString("R", C)); w.Write(',');
-                    w.Write(x.MaxInclusiveMs.ToString("R", C)); w.Write(',');
-                    w.Write(x.MaxExclusiveMs.ToString("R", C)); w.Write(',');
-                    w.Write(x.GcBytes.ToString(C)); w.Write(',');
-                    WriteQuoted(w, "inclusive sample totals overlap; exclusive is approximate and thread sums are not frame time");
-                    w.WriteLine();
-                }
-            }
-            using (var w = new StreamWriter(Path.Combine(exportFolder, prefix + "_connected_status.csv"), false, CsvUtf8))
-            {
-                w.WriteLine("key,value,meaning");
-                WriteStatus(w, "selected_profiler_connection_id", selectedConnection.ToString(C), "Compare with Profiler > Attach to Player: WindowsPlayer must be selected");
-                WriteStatus(w, "ending_reason", endingReason, "duration_reached is normal");
-                WriteStatus(w, "full_samples_mode", dumpEverySample.ToString(), "true exports all available raw samples until row cap");
-                WriteStatus(w, "captured_profiler_frames", capturedFrames.ToString(C), "all analyzed frames from ProfilerDriver");
-                WriteStatus(w, "total_samples_aggregated", analyzedSamples.ToString(C), "includes all processed threads");
-                WriteStatus(w, "lost_profiler_frames", lostFrames.ToString(C), "frames evicted by profiler or unavailable");
-                WriteStatus(w, "error_frames", errorFrames.ToString(C), "extraction failures");
-                WriteStatus(w, "max_queue_backlog", maxQueueBacklog.ToString(C), "backlog can cause missed frames");
-                WriteStatus(w, "detailed_frames", detailedFrames.ToString(C), "selected spikes and periodic representative frames");
-                WriteStatus(w, "detailed_rows", detailedRows.ToString(C), "sample rows produced");
-                WriteStatus(w, "detail_truncation_events", detailedTruncated.ToString(C), "if >0 the detailed sample CSV hit a safety cap");
-                WriteStatus(w, "deep_profiling_required_for_unmarked_methods", "true", "enable in build profile only for short separate experiments; causes high overhead");
-                WriteStatus(w, "samples_available_only_when_connected", "true", "do not confuse standalone Recorder missing marker with a zero execution time");
-                WriteStatus(w, "sample_frame_alignment", "ProfilerDriver.frameIndex", "unrelated to game Time.frameCount; file prefix/times may differ");
-            }
-            UnityEngine.Debug.Log("[AeroProfiler] Connected Player CSV ÀúÀå: " + exportFolder + " | frames=" + capturedFrames +
-                                  ", lost=" + lostFrames + ", details=" + detailedRows);
-        }
-        catch (Exception e)
-        {
-            UnityEngine.Debug.LogError("[AeroProfiler] Connected Player CSV ÀúÀå ½ÇÆÐ: " + e);
-        }
-    }
-
-    private static void WriteStatus(StreamWriter w, string key, string value, string meaning)
-    {
-        WriteQuoted(w, key); w.Write(','); WriteQuoted(w, value); w.Write(',');
-        WriteQuoted(w, meaning); w.WriteLine();
-    }
-}
-#endif

@@ -4,8 +4,7 @@ using UnityEngine;
 
 public class MissileSpawner : MonoBehaviour
 {
-    [SerializeField] MissilePool missilePool;
-    [SerializeField] MissileWarningPool warningPool;
+    [SerializeField] private PoolManager poolManager;
     [SerializeField] float minSpawnInterval = 2f;
     [SerializeField] float maxSpawnInterval = 4f;
     [SerializeField] int minMissileCount = 1;
@@ -18,12 +17,27 @@ public class MissileSpawner : MonoBehaviour
     private float spawnTimer;
     private float nextSpawnTime;
 
-    private List<Vector3> transitionSpawnPositions = new List<Vector3>();
-    private List<Vector3> transitionDirections = new List<Vector3>();
+    private readonly List<Vector3> transitionSpawnPositions = new List<Vector3>(20);
+    private readonly List<Vector3> transitionDirections = new List<Vector3>(20);
+    private WaitForSeconds warningWait;
+    private Camera gameCamera;
+    private bool poolsReady;
 
     private void Awake()
     {
         enabled = false;
+        if (poolManager == null)
+            poolManager = FindFirstObjectByType<PoolManager>();
+
+        poolsReady = poolManager != null &&
+            poolManager.GetVariantCount(PoolId.Missile) > 0 &&
+            poolManager.GetVariantCount(PoolId.MissileWarning) > 0;
+
+        if (!poolsReady)
+            Debug.LogError("MissileSpawner: PoolManager의 Missile 및 MissileWarning 그룹을 확인하세요.", this);
+
+        warningWait = new WaitForSeconds(warningDuration);
+        gameCamera = Camera.main;
     }
 
     private void Update()
@@ -43,11 +57,11 @@ public class MissileSpawner : MonoBehaviour
         if (!value)
         {
             StopAllCoroutines();
-            warningPool.ReturnAllWarnings();
-            missilePool.ReturnAllMissiles();
+            ReturnAllProjectiles();
         }
-        enabled = value;
-        if (value)
+
+        enabled = value && poolsReady;
+        if (enabled)
             ResetSpawner();
     }
 
@@ -55,8 +69,16 @@ public class MissileSpawner : MonoBehaviour
     {
         StopAllCoroutines();
         enabled = false;
-        warningPool.ReturnAllWarnings();
-        missilePool.ReturnAllMissiles();
+        ReturnAllProjectiles();
+    }
+
+    private void ReturnAllProjectiles()
+    {
+        if (poolManager == null)
+            return;
+
+        poolManager.ReturnAll(PoolId.MissileWarning);
+        poolManager.ReturnAll(PoolId.Missile);
     }
 
     private void SetNextSpawnTime()
@@ -67,7 +89,7 @@ public class MissileSpawner : MonoBehaviour
     private void SpawnMissiles()
     {
         int missileCount = Random.Range(minMissileCount, maxMissileCount + 1);
-        for(int i = 0; i < missileCount; i++)
+        for (int i = 0; i < missileCount; i++)
         {
             StartCoroutine(SpawnMissile());
         }
@@ -78,37 +100,50 @@ public class MissileSpawner : MonoBehaviour
         Vector3 direction = GetRandomDirection();
         Vector3 spawnPosition = GetSpawnPosition(direction);
 
-        GameObject warningObject = warningPool.GetWarning();
+        if (!ShowWarning(spawnPosition, direction))
+            yield break;
 
+        yield return warningWait;
+        SpawnMissileAt(spawnPosition, direction);
+    }
+
+    private bool ShowWarning(Vector3 spawnPosition, Vector3 direction)
+    {
+        GameObject warningObject = poolManager.RentInactive(
+            PoolId.MissileWarning, Vector3.zero, Quaternion.identity, null);
         if (warningObject == null)
-            yield break;
+            return false;
 
-        MissileWarning warning = warningObject.GetComponent<MissileWarning>();
-
-        if (warning == null)
+        if (!warningObject.TryGetComponent(out MissileWarning warning))
         {
-            warningPool.ReturnWarning(warningObject);
-            yield break;
+            poolManager.Return(warningObject);
+            return false;
         }
 
-        warning.Initialize(warningPool);
+        warning.Initialize(poolManager);
+        warning.Show(GetWarningScreenPosition(spawnPosition, direction), direction);
+        warningObject.SetActive(true);
+        return true;
+    }
 
-        Vector2 screenPosition = GetWarningScreenPosition(spawnPosition,direction);
-        warning.Show(screenPosition,direction);
+    private void SpawnMissileAt(Vector3 spawnPosition, Vector3 direction)
+    {
+        GameObject missileObject = poolManager.RentInactive(
+            PoolId.Missile,
+            spawnPosition,
+            Quaternion.FromToRotation(Vector3.up, direction),
+            null);
+        if (missileObject == null)
+            return;
 
-        yield return new WaitForSeconds(warningDuration);
-
-        GameObject missileObject = missilePool.GetMissile();
-
-        if (missileObject != null)
+        if (!missileObject.TryGetComponent(out Missile missile))
         {
-            float travelDistance = GetTravelDistance(direction);
-
-            missileObject.transform.SetPositionAndRotation(spawnPosition, Quaternion.FromToRotation(Vector3.up, direction));
-
-            Missile missile = missileObject.GetComponent<Missile>();
-            missile.Initialize(missilePool, direction, travelDistance);
+            poolManager.Return(missileObject);
+            return;
         }
+
+        missile.Initialize(poolManager, direction, GetTravelDistance(direction));
+        missileObject.SetActive(true);
     }
 
     private Vector3 GetRandomDirection()
@@ -132,7 +167,7 @@ public class MissileSpawner : MonoBehaviour
     {
         Vector3 center = transform.position;
 
-        if(direction == Vector3.back)
+        if (direction == Vector3.back)
         {
             float x = Random.Range(-spawnWidth * 0.5f, spawnWidth * 0.5f);
             return center + new Vector3(x, 0f, spawnHeight * 0.5f + spawnDistance);
@@ -171,6 +206,8 @@ public class MissileSpawner : MonoBehaviour
     public IEnumerator SpawnTransitionPattern()
     {
         enabled = false;
+        if (!poolsReady)
+            yield break;
 
         transitionSpawnPositions.Clear();
         transitionDirections.Clear();
@@ -192,7 +229,7 @@ public class MissileSpawner : MonoBehaviour
             SpawnTransitionWarnings(direction);
         }
 
-        yield return new WaitForSeconds(warningDuration);
+        yield return warningWait;
 
         SpawnTransitionMissiles();
     }
@@ -204,30 +241,13 @@ public class MissileSpawner : MonoBehaviour
 
             transitionSpawnPositions.Add(spawnPosition);
             transitionDirections.Add(direction);
-
-            GameObject warningObject = warningPool.GetWarning();
-
-            if (warningObject == null)
-                continue;
-
-            MissileWarning warning = warningObject.GetComponent<MissileWarning>();
-
-            if (warning == null)
-            {
-                warningPool.ReturnWarning(warningObject);
-                continue;
-            }
-
-            warning.Initialize(warningPool);
-
-            Vector2 screenPosition = GetWarningScreenPosition(spawnPosition, direction);
-            warning.Show(screenPosition, direction);
+            ShowWarning(spawnPosition, direction);
         }
     }
 
     private IEnumerator WaitForAllMissilesReturned()
     {
-        while (missilePool.HasActiveMissiles())
+        while (poolManager.GetActiveCount(PoolId.Missile) > 0)
         {
             yield return null;
         }
@@ -236,25 +256,7 @@ public class MissileSpawner : MonoBehaviour
     private void SpawnTransitionMissiles()
     {
         for (int i = 0; i < transitionSpawnPositions.Count; i++)
-        {
-            GameObject missileObject = missilePool.GetMissile();
-
-            if (missileObject == null)
-                continue;
-
-            Vector3 spawnPosition = transitionSpawnPositions[i];
-            Vector3 direction = transitionDirections[i];
-            float travelDistance = GetTravelDistance(direction);
-
-            missileObject.transform.SetPositionAndRotation(
-                spawnPosition,
-                Quaternion.FromToRotation(Vector3.up, direction));
-
-            Missile missile = missileObject.GetComponent<Missile>();
-
-            if (missile != null)
-                missile.Initialize(missilePool, direction, travelDistance);
-        }
+            SpawnMissileAt(transitionSpawnPositions[i], transitionDirections[i]);
     }
 
     private float GetTransitionPatternDuration()
@@ -279,7 +281,12 @@ public class MissileSpawner : MonoBehaviour
         else
             edgePosition.x = center.x - spawnWidth * 0.5f;
 
-        Vector3 screenPosition = Camera.main.WorldToScreenPoint(edgePosition);
+        if (gameCamera == null)
+            gameCamera = Camera.main;
+        if (gameCamera == null)
+            return new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+
+        Vector3 screenPosition = gameCamera.WorldToScreenPoint(edgePosition);
 
         float margin = 50f;
 

@@ -938,6 +938,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 593564960}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &231036605
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 231036606}
+  m_Layer: 0
+  m_Name: Missile
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &231036606
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 231036605}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1692194059}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &311790789
 GameObject:
   m_ObjectHideFlags: 0
@@ -1157,6 +1188,16 @@ MonoBehaviour:
     enableAutoShrink: 0
     idleSecondsBeforeShrink: 60
     shrinkCheckIntervalSeconds: 10
+  - id: 4
+    parent: {fileID: 231036606}
+    prefabSource: 1
+    resourcesFolder: 
+    resourceInitialCount: 20
+    resourceExpandWhenEmpty: 1
+    variants: []
+    enableAutoShrink: 1
+    idleSecondsBeforeShrink: 30
+    shrinkCheckIntervalSeconds: 1
 --- !u!4 &318424435
 Transform:
   m_ObjectHideFlags: 0
@@ -1615,37 +1656,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 391086085}
   m_CullTransparentMesh: 1
---- !u!1 &408448738
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 408448740}
-  m_Layer: 0
-  m_Name: NearMissDetector
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &408448740
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 408448738}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 593564960}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -1912,8 +1922,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ba3fdcaf0e2448429a05c2a48a192bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MissileSpawner
-  missilePool: {fileID: 153399453}
-  warningPool: {fileID: 1611086819}
+  poolManager: {fileID: 0}
   minSpawnInterval: 0.5
   maxSpawnInterval: 1
   minMissileCount: 2
@@ -2199,7 +2208,6 @@ MonoBehaviour:
   playerController: {fileID: 6349540993517378990}
   cameraController: {fileID: 330585548}
   mapManager: {fileID: 774914389}
-  nearMissDetector: {fileID: 0}
   playerRewind: {fileID: 6349540993517379000}
   gameOverUI: {fileID: 903913161}
   cloudSpawner: {fileID: 1028732951}
@@ -2487,7 +2495,6 @@ Transform:
   - {fileID: 774914390}
   - {fileID: 6349540993517378987}
   - {fileID: 1397169579}
-  - {fileID: 408448740}
   - {fileID: 576024883}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -4980,8 +4987,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
   worldMovement: {fileID: 774914384}
-  playerMode: {fileID: 6349540993517378988}
-  nearMissScore: 5
   distanceScoreMultiplier: 0.05
 --- !u!4 &1397169579
 Transform:
@@ -5781,6 +5786,7 @@ Transform:
   - {fileID: 2136591282}
   - {fileID: 1731601333}
   - {fileID: 692672769}
+  - {fileID: 231036606}
   m_Father: {fileID: 1808679687}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1731601332
@@ -5870,6 +5876,8 @@ MonoBehaviour:
     resourcesFolder: TransitionWall
   - poolId: 2
     resourcesFolder: NormalMap
+  - poolId: 4
+    resourcesFolder: Missile
 --- !u!1 &1872063680
 GameObject:
   m_ObjectHideFlags: 0

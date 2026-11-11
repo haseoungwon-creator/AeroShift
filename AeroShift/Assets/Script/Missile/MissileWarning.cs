@@ -7,14 +7,14 @@ public class MissileWarning : MonoBehaviour
     [SerializeField] float warningDuration = 2f;
     [SerializeField] float blinkInterval = 0.2f;
 
-    private MissileWarningPool warningPool;
+    private PoolManager poolManager;
     private float elapsedTime;
     private float blinkTime;
     private bool isVisible;
 
-    public void Initialize(MissileWarningPool pool)
+    public void Initialize(PoolManager pool)
     {
-        warningPool = pool;
+        poolManager = pool;
     }
 
     public void Show(Vector2 screenPosition, Vector3 direction)
@@ -48,7 +48,7 @@ public class MissileWarning : MonoBehaviour
         elapsedTime += Time.deltaTime;
         blinkTime += Time.deltaTime;
 
-        if(blinkTime >= blinkInterval)
+        if (blinkTime >= blinkInterval)
         {
             blinkTime = 0f;
             warningImage.enabled = !warningImage.enabled;
@@ -62,7 +62,7 @@ public class MissileWarning : MonoBehaviour
     {
         isVisible = false;
         warningImage.enabled = false;
-        if (warningPool != null)
-            warningPool.ReturnWarning(gameObject);
+        if (poolManager != null)
+            poolManager.Return(gameObject);
     }
 }

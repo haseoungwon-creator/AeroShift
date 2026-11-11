@@ -21,7 +21,6 @@ public class GameManager : MonoBehaviour
     [SerializeField] PlayerController playerController;
     [SerializeField] CameraController cameraController;
     [SerializeField] MapManager mapManager;
-    [SerializeField] NearMissDetector nearMissDetector;
     [SerializeField] PlayerRewind playerRewind;
     [SerializeField] GameOverUI gameOverUI;
     [SerializeField] CloudSpawner cloudSpawner;
@@ -108,9 +107,6 @@ public class GameManager : MonoBehaviour
     {
         if (playerRewind != null)
             playerRewind.ResetRewind();
-
-        if (nearMissDetector != null)
-            nearMissDetector.ResetDetector();
 
         if (cloudSpawner != null)
             cloudSpawner.Set3DMode();
