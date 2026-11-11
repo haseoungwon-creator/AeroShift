@@ -846,52 +846,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 146749743}
   m_CullTransparentMesh: 1
---- !u!1 &153399452
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 153399454}
-  - component: {fileID: 153399453}
-  m_Layer: 0
-  m_Name: MissilePool
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &153399453
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 153399452}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b7d18b01e3c41a3479a351794b0ee7fc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MissilePool
-  missilePrefab: {fileID: 5974235028647690955, guid: 93e9a50b0e69ae34e91c3a91953a50bf, type: 3}
-  initialPoolSize: 20
---- !u!4 &153399454
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 153399452}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 593564960}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &204601064
 GameObject:
   m_ObjectHideFlags: 0
@@ -1196,6 +1150,16 @@ MonoBehaviour:
     resourceExpandWhenEmpty: 1
     variants: []
     enableAutoShrink: 1
+    idleSecondsBeforeShrink: 30
+    shrinkCheckIntervalSeconds: 1
+  - id: 5
+    parent: {fileID: 1611086823}
+    prefabSource: 1
+    resourcesFolder: 
+    resourceInitialCount: 30
+    resourceExpandWhenEmpty: 1
+    variants: []
+    enableAutoShrink: 0
     idleSecondsBeforeShrink: 30
     shrinkCheckIntervalSeconds: 1
 --- !u!4 &318424435
@@ -2488,7 +2452,6 @@ Transform:
   - {fileID: 1468870616}
   - {fileID: 1282509425}
   - {fileID: 138575779}
-  - {fileID: 153399454}
   - {fileID: 1611086823}
   - {fileID: 514009907}
   - {fileID: 1187783837}
@@ -5454,6 +5417,37 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1579526790}
   m_CullTransparentMesh: 1
+--- !u!1 &1587104287
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1587104288}
+  m_Layer: 0
+  m_Name: MissileWarning
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1587104288
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1587104287}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1692194059}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1588218509
 GameObject:
   m_ObjectHideFlags: 0
@@ -5787,6 +5781,7 @@ Transform:
   - {fileID: 1731601333}
   - {fileID: 692672769}
   - {fileID: 231036606}
+  - {fileID: 1587104288}
   m_Father: {fileID: 1808679687}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1731601332
@@ -5878,6 +5873,8 @@ MonoBehaviour:
     resourcesFolder: NormalMap
   - poolId: 4
     resourcesFolder: Missile
+  - poolId: 5
+    resourcesFolder: MissileWarning
 --- !u!1 &1872063680
 GameObject:
   m_ObjectHideFlags: 0
