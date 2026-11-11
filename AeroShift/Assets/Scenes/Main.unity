@@ -1106,7 +1106,7 @@ MonoBehaviour:
     parent: {fileID: 435030245}
     prefabSource: 1
     resourcesFolder: 
-    resourceInitialCount: 200
+    resourceInitialCount: 192
     resourceExpandWhenEmpty: 1
     variants: []
     enableAutoShrink: 1
@@ -1126,7 +1126,7 @@ MonoBehaviour:
     parent: {fileID: 2136591282}
     prefabSource: 1
     resourcesFolder: 
-    resourceInitialCount: 35
+    resourceInitialCount: 14
     resourceExpandWhenEmpty: 1
     variants: []
     enableAutoShrink: 1
@@ -1162,6 +1162,10 @@ MonoBehaviour:
     enableAutoShrink: 0
     idleSecondsBeforeShrink: 30
     shrinkCheckIntervalSeconds: 1
+  shrinkDuringGameplay: 0
+  prewarmObstacleLayers:
+    serializedVersion: 2
+    m_Bits: 1
 --- !u!4 &318424435
 Transform:
   m_ObjectHideFlags: 0
@@ -1170,8 +1174,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 318424433}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 8.03331, y: 9.03977, z: 32.12783}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1886,7 +1890,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ba3fdcaf0e2448429a05c2a48a192bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MissileSpawner
-  poolManager: {fileID: 0}
+  poolManager: {fileID: 318424434}
   minSpawnInterval: 0.5
   maxSpawnInterval: 1
   minMissileCount: 2
@@ -6130,13 +6134,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AeroOptimizationExperiment
   saveSubfolder: ProfilerCaptures
   startAutomatically: 1
-  warmupSeconds: 5
+  warmupSeconds: 10
   captureSeconds: 30
   slowFrameThresholdMs: 40
-  recordEveryAvailableMetric: 1
-  maxRecorders: 512
-  maxMetricBufferMiB: 192
-  frameTimingSampleEveryNFrames: 8
+  recordEveryAvailableMetric: 0
+  maxRecorders: 128
+  maxMetricBufferMiB: 64
+  enableEditorDiagnostics: 0
+  capacityFramesPerSecond: 1000
+  settleAfterAllocationSeconds: 1
+  frameTimingSampleEveryNFrames: 10
 --- !u!1 &2104790828
 GameObject:
   m_ObjectHideFlags: 0

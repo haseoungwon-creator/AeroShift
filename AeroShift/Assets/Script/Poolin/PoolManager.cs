@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 
 [DefaultExecutionOrder(-500)]
@@ -8,6 +9,7 @@ public sealed class PoolManager : MonoBehaviour
 {
     private const int RuntimeCreationsPerFrame = 2;
     private const int DestroysPerCheck = 2;
+    private static readonly ProfilerMarker CreateMarker = new ProfilerMarker("AeroShift.Pool.Create");
 
     public enum PoolPrefabSource
     {
@@ -99,6 +101,10 @@ public sealed class PoolManager : MonoBehaviour
 
     [SerializeField] private ResourceManager resourceManager;
     [SerializeField] private PoolGroupConfig[] groups;
+    [Tooltip("Keep prepared objects during play. Shrink idle pools on the menu/game-over screen.")]
+    [SerializeField] private bool shrinkDuringGameplay;
+    [Tooltip("Must match MapManager obstacleCollisionLayers. Cached again automatically if the mask changes.")]
+    [SerializeField] private LayerMask prewarmObstacleLayers = 1;
 
     private readonly Dictionary<PoolId, PoolGroup> pools =
         new Dictionary<PoolId, PoolGroup>();
@@ -119,6 +125,10 @@ public sealed class PoolManager : MonoBehaviour
     private void Update()
     {
         if (!initialized || !AutoShrinkingEnabled)
+            return;
+
+        if (!shrinkDuringGameplay && GameManager.Instance != null &&
+            GameManager.Instance.CurrentState == GameStates.Playing)
             return;
 
         float now = Time.unscaledTime;
@@ -272,6 +282,7 @@ public sealed class PoolManager : MonoBehaviour
         PoolGroup group,
         PoolBucket bucket)
     {
+        using var markerScope = CreateMarker.Auto();
         GameObject instance = Instantiate(
             bucket.Prefab,
             GetInactiveInstantiationRoot(),
@@ -292,7 +303,10 @@ public sealed class PoolManager : MonoBehaviour
         if (id == PoolId.NormalMap || id == PoolId.SafeMap)
         {
             if (!instance.TryGetComponent(out MapChunk chunk))
-                instance.AddComponent<MapChunk>();
+                chunk = instance.AddComponent<MapChunk>();
+
+            if (id == PoolId.NormalMap)
+                chunk.GetCollisionGroup(prewarmObstacleLayers);
         }
 
         instance.transform.SetParent(bucket.Parent, false);
@@ -353,6 +367,12 @@ public sealed class PoolManager : MonoBehaviour
         int variantIndex = -1)
     {
         return RentInternal(id, variantIndex, true, position, true, rotation, false, parent);
+    }
+
+    // Preserve the prefab rotation and activate only after parenting/initialization.
+    public GameObject RentInactive(PoolId id, Vector3 position, Transform parent, int variantIndex = -1)
+    {
+        return RentInternal(id, variantIndex, true, position, false, default, false, parent);
     }
 
     public GameObject Rent(

@@ -262,7 +262,7 @@ public sealed class CloudSpawner : MonoBehaviour
             );
 
             GameObject cloud =
-                poolManager.Rent(PoolId.Cloud, position);
+                poolManager.RentInactive(PoolId.Cloud, position, activeCloudRoot);
 
             if (cloud == null)
             {
@@ -329,7 +329,7 @@ public sealed class CloudSpawner : MonoBehaviour
                 );
 
                 GameObject cloud =
-                    poolManager.Rent(PoolId.Cloud, position);
+                    poolManager.RentInactive(PoolId.Cloud, position, activeCloudRoot);
 
                 if (cloud != null)
                 {
@@ -351,10 +351,9 @@ public sealed class CloudSpawner : MonoBehaviour
         GameObject cloud,
         float worldZ)
     {
-        cloud.transform.SetParent(
-            activeCloudRoot,
-            true
-        );
+        // RentInactive already placed the cloud under its moving root. Only now
+        // register its renderer, avoiding an enabled renderer reparent operation.
+        cloud.SetActive(true);
 
         double recycleDistance =
             worldZ +
