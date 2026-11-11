@@ -1624,7 +1624,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 408448740}
-  - component: {fileID: 408448739}
   m_Layer: 0
   m_Name: NearMissDetector
   m_TagString: Untagged
@@ -1632,25 +1631,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &408448739
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 408448738}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dd745afa38c12004a9b8afd27c13247a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NearMissDetector
-  scoreManager: {fileID: 1397169578}
-  obstacleLayer:
-    serializedVersion: 2
-    m_Bits: 1
-  detectDistance: 20
-  dangerDistance: 3
-  requiredDangerDirections: 2
 --- !u!4 &408448740
 Transform:
   m_ObjectHideFlags: 0
@@ -2219,7 +2199,7 @@ MonoBehaviour:
   playerController: {fileID: 6349540993517378990}
   cameraController: {fileID: 330585548}
   mapManager: {fileID: 774914389}
-  nearMissDetector: {fileID: 408448739}
+  nearMissDetector: {fileID: 0}
   playerRewind: {fileID: 6349540993517379000}
   gameOverUI: {fileID: 903913161}
   cloudSpawner: {fileID: 1028732951}
@@ -6564,7 +6544,7 @@ PrefabInstance:
     - target: {fileID: 4178489688046926945, guid: cd49643a87086464889789802f5ee833, type: 3}
       propertyPath: nearMissDetector
       value: 
-      objectReference: {fileID: 408448739}
+      objectReference: {fileID: 0}
     - target: {fileID: 4178489688046926945, guid: cd49643a87086464889789802f5ee833, type: 3}
       propertyPath: playerController
       value: 
