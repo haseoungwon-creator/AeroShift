@@ -1,11 +1,13 @@
 using UnityEngine;
 
-public sealed class MenuAircraftSpawner : MonoBehaviour
+// 스킨 선택 정보와 독립적으로, 메뉴에 보여줄 외형 모델 한 대만 관리한다.
+public sealed class MenuAircraftSpawner: MonoBehaviour
 {
     [SerializeField] private SkinManager skinManager;
     [SerializeField] private Transform spawnPoint;
 
     private GameObject spawnedAircraft;
+    private GameObject lastPrefab;
 
     public GameObject SpawnedAircraft => spawnedAircraft;
 
@@ -14,80 +16,64 @@ public sealed class MenuAircraftSpawner : MonoBehaviour
         ShowCurrentAircraft();
     }
 
-    // 마지막으로 확정한 비행기를 표시한다.
     public void ShowCurrentAircraft()
     {
-        if (skinManager == null)
-        {
-            Debug.LogWarning("[MenuAircraftSpawner] SkinManager가 연결되지 않았습니다.", this);
-            return;
-        }
-
-        SpawnVisual(skinManager.CurrentSkin);
+        if (skinManager != null)
+            SpawnVisual(skinManager.CurrentAircraftPrefab);
     }
 
-    // 아직 확정하지 않은 선택 후보를 미리 보여준다.
     public void ShowSelectedAircraft()
     {
-        if (skinManager == null)
-            return;
-
-        SpawnVisual(skinManager.SelectedSkin);
+        if (skinManager != null)
+            SpawnVisual(skinManager.SelectedAircraftPrefab);
     }
 
-    // 나중에 비행기 선택 UI의 좌우 버튼에서 호출한다.
     public void NextAircraft()
     {
-        if (skinManager == null)
-            return;
-
+        if (skinManager == null) return;
         skinManager.SelectNext();
         ShowSelectedAircraft();
     }
 
     public void PreviousAircraft()
     {
-        if (skinManager == null)
-            return;
-
+        if (skinManager == null) return;
         skinManager.SelectPrevious();
         ShowSelectedAircraft();
     }
 
     public void ConfirmAircraft()
     {
-        if (skinManager == null)
-            return;
-
-        skinManager.ConfirmSkin();
-        ShowCurrentAircraft();
+        if (skinManager == null) return;
+        if (skinManager.TryConfirmSkin())
+            ShowCurrentAircraft();
     }
 
     public void CancelAircraft()
     {
-        if (skinManager == null)
-            return;
-
+        if (skinManager == null) return;
         skinManager.ResetSelection();
         ShowCurrentAircraft();
     }
 
-    private void SpawnVisual(SkinData data)
+    private void SpawnVisual(GameObject prefab)
     {
-        if (data == null || data.AircraftPrefab == null)
+        if (prefab == null)
         {
-            Debug.LogWarning("[MenuAircraftSpawner] 선택한 SkinData에 Aircraft Prefab이 없습니다.", this);
+            Debug.LogWarning("[MenuAircraftSpawner] 스킨에 연결한 비행기 프리팹이 없습니다.", this);
             return;
         }
+        if (spawnedAircraft != null && prefab == lastPrefab)
+            return;
 
         if (spawnedAircraft != null)
+        {
+            spawnedAircraft.SetActive(false);
             Destroy(spawnedAircraft);
+        }
 
         Transform anchor = spawnPoint != null ? spawnPoint : transform;
-        spawnedAircraft = Instantiate(
-            data.AircraftPrefab,
-            anchor.position,
-            anchor.rotation,
-            anchor);
+        spawnedAircraft = Instantiate(prefab, anchor.position, anchor.rotation, anchor);
+        lastPrefab = prefab;
     }
 }
