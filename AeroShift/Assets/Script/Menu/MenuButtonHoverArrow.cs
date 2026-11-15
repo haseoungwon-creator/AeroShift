@@ -25,7 +25,7 @@ public sealed class MenuTextHoverManager : MonoBehaviour
         public UnityAction<BaseEventData> ExitCallback;
     }
 
-    private readonly List<HoverBinding> bindings = new List<HoverBinding>(3);
+    private readonly List<HoverBinding> bindings = new List<HoverBinding>();
     private bool initialized;
 
     private void Awake()

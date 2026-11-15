@@ -1,0 +1,75 @@
+{
+  "version": 2,
+  "aircraft": [
+    {
+      "id": "aircraft-a",
+      "displayName": "기본 비행기",
+      "description": "별도의 보너스가 없는 표준 비행기입니다.",
+      "unlockedByDefault": true,
+      "unlockAchievementId": "",
+      "passive": {
+        "id": "none",
+        "displayName": "기본형",
+        "description": "추가 패시브 효과가 없습니다.",
+        "multiplier": 1.0,
+        "bonusRerolls": 0
+      }
+    },
+    {
+      "id": "aircraft-b",
+      "displayName": "점수 특화기",
+      "description": "같은 비행 거리에서 더 많은 점수를 획득하는 비행기입니다.",
+      "unlockedByDefault": true,
+      "unlockAchievementId": "",
+      "passive": {
+        "id": "score_multiplier",
+        "displayName": "점수 증가",
+        "description": "획득 점수가 20% 증가합니다.",
+        "multiplier": 1.2,
+        "bonusRerolls": 0
+      }
+    },
+    {
+      "id": "aircraft-c",
+      "displayName": "고속 비행기",
+      "description": "월드 진행 속도가 빨라지는 고속 비행기입니다.",
+      "unlockedByDefault": true,
+      "unlockAchievementId": "",
+      "passive": {
+        "id": "world_speed_multiplier",
+        "displayName": "속도 증가",
+        "description": "월드 진행 속도가 10% 증가합니다.",
+        "multiplier": 1.1,
+        "bonusRerolls": 0
+      }
+    },
+    {
+      "id": "aircraft-d",
+      "displayName": "저속 비행기",
+      "description": "월드 진행 속도를 낮춰 장애물을 여유롭게 피하는 비행기입니다.",
+      "unlockedByDefault": true,
+      "unlockAchievementId": "",
+      "passive": {
+        "id": "world_speed_multiplier",
+        "displayName": "속도 감소",
+        "description": "월드 진행 속도가 10% 감소합니다.",
+        "multiplier": 0.9,
+        "bonusRerolls": 0
+      }
+    },
+    {
+      "id": "aircraft-e",
+      "displayName": "전술 지원기",
+      "description": "출격 전에 스킬을 선택할 때 재추첨 기회를 추가로 받습니다.",
+      "unlockedByDefault": true,
+      "unlockAchievementId": "",
+      "passive": {
+        "id": "skill_reroll_bonus",
+        "displayName": "스킬 리롤 증가",
+        "description": "스킬 카드마다 새로고침 횟수가 1회 추가됩니다. (기본 1회 → 2회)",
+        "multiplier": 1.0,
+        "bonusRerolls": 1
+      }
+    }
+  ]
+}
