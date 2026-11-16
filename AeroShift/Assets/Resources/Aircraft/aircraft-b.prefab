@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 1981645765269332191}
   - component: {fileID: 4351830854542677013}
   m_Layer: 0
-  m_Name: aircraft-c_001
+  m_Name: aircraft-b
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

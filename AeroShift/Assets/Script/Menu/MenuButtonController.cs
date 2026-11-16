@@ -1,17 +1,17 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class MenuButtonController : MonoBehaviour
 {
     [SerializeField] private Animator menuAnimator;
-
     [SerializeField] private GameObject mainMenuUI;
     [SerializeField] private GameObject skinUI;
-
     [SerializeField] private string gameSceneName = "Main";
 
     private bool isStarting;
     private bool isAnimating;
+    private bool isLoading;
 
     private void Start()
     {
@@ -80,8 +80,27 @@ public class MenuButtonController : MonoBehaviour
         isAnimating = false;
     }
 
+    // Play 애니메이션의 마지막 Animation Event에서 호출
     public void LoadGameScene()
     {
-        SceneManager.LoadScene(gameSceneName);
+        if (isLoading)
+            return;
+
+        StartCoroutine(LoadSceneAsync());
+    }
+
+    private IEnumerator LoadSceneAsync()
+    {
+        isLoading = true;
+
+        AsyncOperation operation = SceneManager.LoadSceneAsync(gameSceneName);
+
+        if (operation == null)
+        {
+            isLoading = false;
+            yield break;
+        }
+
+        yield return operation;
     }
 }

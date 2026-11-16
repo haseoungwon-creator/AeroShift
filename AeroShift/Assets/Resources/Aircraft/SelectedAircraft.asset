@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 354a5e649f05caa458645680c58aa8e0, type: 3}
+  m_Name: SelectedAircraft
+  m_EditorClassIdentifier: Assembly-CSharp::SelectedAircraftSO
+  aircraftId: aircraft-c
+  aircraftName: "\uACE0\uC18D \uBE44\uD589\uAE30"
+  description: "\uC6D4\uB4DC \uC9C4\uD589 \uC18D\uB3C4\uAC00 \uBE68\uB77C\uC9C0\uB294
+    \uACE0\uC18D \uBE44\uD589\uAE30\uC785\uB2C8\uB2E4."
+  passiveId: world_speed_multiplier
+  passiveName: "\uC18D\uB3C4 \uC99D\uAC00"
+  passiveDescription: "\uC6D4\uB4DC \uC9C4\uD589 \uC18D\uB3C4\uAC00 10% \uC99D\uAC00\uD569\uB2C8\uB2E4."
+  passiveMultiplier: 1.1
+  bonusRerolls: 0
