@@ -1283,6 +1283,8 @@ MonoBehaviour:
   - {fileID: 8722414443941658825}
   - {fileID: 436142498}
   - {fileID: 1970898465}
+  selectedSkillSO: {fileID: 11400000, guid: 4a832b1a8368b8e4a9e6e69ca999fe69, type: 2}
+  skillSelectPanel: {fileID: 216452657194051645}
 --- !u!4 &421675235
 Transform:
   m_ObjectHideFlags: 0

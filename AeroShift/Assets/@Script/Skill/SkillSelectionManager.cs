@@ -3,15 +3,20 @@ using UnityEngine;
 public class SkillSelectionManager : MonoBehaviour
 {
     [SerializeField] private SkillSelectionUI[] skillSelections;
+    [SerializeField] private SelectedSkillSO selectedSkillSO;
+    [SerializeField] private GameObject skillSelectPanel;
 
-    private SkillJsonData skillData;
+    private SkillDataManager skillDataManager;
+    private int[] remainingRerolls;
+    private int bonusRerolls;
 
     public SkillInfo SelectedSkill { get; private set; }
     public string SelectedSkillId { get; private set; }
 
     private void Awake()
     {
-        LoadSkills();
+        skillDataManager = new SkillDataManager();
+        skillDataManager.LoadSkills();
     }
 
     private void OnEnable()
@@ -19,54 +24,137 @@ public class SkillSelectionManager : MonoBehaviour
         ShowRandomSkills();
     }
 
-    private void LoadSkills()
-    {
-        TextAsset json = Resources.Load<TextAsset>("Config/Skills");
-
-        if (json == null)
-            return;
-
-        skillData = JsonUtility.FromJson<SkillJsonData>(json.text);
-    }
-
     public void ShowRandomSkills()
     {
-        if (skillData == null || skillData.skills == null)
+        if (skillDataManager == null || skillSelections == null || skillSelections.Length != 3)
             return;
 
-        if (skillSelections == null || skillSelections.Length != 3)
+        SkillInfo[] skills = skillDataManager.GetRandomSkills(3);
+
+        if (skills == null)
             return;
 
-        if (skillData.skills.Length < 3)
-            return;
-
-        int[] indexes = new int[skillData.skills.Length];
-
-        for (int i = 0; i < indexes.Length; i++)
-            indexes[i] = i;
+        remainingRerolls = new int[skillSelections.Length];
 
         for (int i = 0; i < skillSelections.Length; i++)
         {
-            int randomIndex = Random.Range(i, indexes.Length);
+            remainingRerolls[i] = 1 + bonusRerolls;
 
-            int temp = indexes[i];
-            indexes[i] = indexes[randomIndex];
-            indexes[randomIndex] = temp;
+            if (skillSelections[i] == null)
+                continue;
 
-            if (skillSelections[i] != null)
-                skillSelections[i].SetSkill(skillData.skills[indexes[i]], this);
+            skillSelections[i].SetSkill(skills[i], this);
+            UpdateRerollButton(i);
         }
 
         SelectedSkill = null;
         SelectedSkillId = "";
     }
 
+    public void RerollSkill(SkillSelectionUI selection)
+    {
+        if (selection == null || remainingRerolls == null)
+            return;
+
+        int index = -1;
+
+        for (int i = 0; i < skillSelections.Length; i++)
+        {
+            if (skillSelections[i] == selection)
+            {
+                index = i;
+                break;
+            }
+        }
+
+        if (index < 0 || remainingRerolls[index] <= 0)
+            return;
+
+        SkillInfo currentSkill = selection.CurrentSkill;
+
+        if (currentSkill == null || !currentSkill.canReroll)
+            return;
+
+        string firstId = currentSkill.id;
+        string secondId = "";
+        string thirdId = "";
+
+        for (int i = 0; i < skillSelections.Length; i++)
+        {
+            if (i == index || skillSelections[i] == null)
+                continue;
+
+            SkillInfo otherSkill = skillSelections[i].CurrentSkill;
+
+            if (otherSkill == null)
+                continue;
+
+            if (secondId == "")
+                secondId = otherSkill.id;
+            else
+                thirdId = otherSkill.id;
+        }
+
+        SkillInfo newSkill = skillDataManager.GetRandomSkillExcept(firstId, secondId, thirdId);
+
+        if (newSkill == null)
+            return;
+
+        if (SelectedSkill == currentSkill)
+        {
+            SelectedSkill = null;
+            SelectedSkillId = "";
+        }
+
+        remainingRerolls[index]--;
+        selection.SetSkill(newSkill, this);
+        UpdateRerollButton(index);
+    }
+
     public void SelectSkill(SkillInfo info)
     {
-        if (info == null)
+        if (info == null || selectedSkillSO == null)
             return;
+
+        selectedSkillSO.SetSkill(info);
 
         SelectedSkill = info;
         SelectedSkillId = info.id;
+
+        if (skillSelectPanel != null)
+            skillSelectPanel.SetActive(false);
+    }
+
+    public void SetBonusRerolls(int count)
+    {
+        if (count < 0)
+            count = 0;
+
+        int difference = count - bonusRerolls;
+        bonusRerolls = count;
+
+        if (remainingRerolls == null)
+            return;
+
+        for (int i = 0; i < remainingRerolls.Length; i++)
+        {
+            remainingRerolls[i] += difference;
+
+            if (remainingRerolls[i] < 0)
+                remainingRerolls[i] = 0;
+
+            UpdateRerollButton(i);
+        }
+    }
+
+    private void UpdateRerollButton(int index)
+    {
+        if (skillSelections[index] == null)
+            return;
+
+        SkillInfo info = skillSelections[index].CurrentSkill;
+        bool available = info != null && info.canReroll && remainingRerolls[index] > 0;
+
+        skillSelections[index].SetRerollAvailable(available);
     }
 }
