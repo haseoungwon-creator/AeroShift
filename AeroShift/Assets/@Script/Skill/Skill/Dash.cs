@@ -4,6 +4,7 @@ public class PhaseDash : MonoBehaviour
 {
     [SerializeField] WorldMovement worldMovement;
     [SerializeField] float dashDuration = 0.2f;
+    [SerializeField, Min(0f)] float postDashInvincibilityDuration = 1f;
 
     private bool hasUsed;
     private bool isDashing;
@@ -73,7 +74,7 @@ public class PhaseDash : MonoBehaviour
             worldMovement.SetDashSpeedBonus(0f);
 
         if (completed)
-            protectionEndTime = Time.time + 0.2f;
+            protectionEndTime = Time.time + postDashInvincibilityDuration;
     }
 
     public void ResetSkill()

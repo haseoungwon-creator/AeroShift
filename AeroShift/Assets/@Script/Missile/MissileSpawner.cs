@@ -12,6 +12,7 @@ public class MissileSpawner : MonoBehaviour
     [SerializeField] float spawnHeight = 45f;
     [SerializeField] float spawnDistance = 20f;
     [SerializeField] float warningDuration = 2f;
+    [SerializeField, Min(1)] int transitionMissileCount = 3;
 
     private float spawnTimer;
     private float nextSpawnTime;
@@ -199,6 +200,47 @@ public class MissileSpawner : MonoBehaviour
             return spawnWidth + spawnDistance * 2f;
 
         return spawnHeight + spawnDistance * 2f;
+    }
+
+    public IEnumerator SpawnTransitionPattern()
+    {
+        // Stop the ordinary 2D waves before the final transition sequence.
+        StopSpawning();
+
+        if (!poolsReady || poolManager == null)
+            yield break;
+
+        for (int i = 0; i < transitionMissileCount; i++)
+        {
+            if (GameManager.Instance == null ||
+                GameManager.Instance.CurrentState != GameStates.Playing)
+                yield break;
+
+            Vector3 direction = GetRandomDirection();
+            Vector3 spawnPosition = GetSpawnPosition(direction);
+
+            if (!ShowWarning(spawnPosition, direction))
+                yield break;
+
+            yield return warningWait;
+
+            if (GameManager.Instance == null ||
+                GameManager.Instance.CurrentState != GameStates.Playing)
+                yield break;
+
+            SpawnMissileAt(spawnPosition, direction);
+        }
+
+        // Finish the missiles and warnings before diving back into 3D.
+        while (poolManager.GetActiveCount(PoolId.Missile) > 0 ||
+               poolManager.GetActiveCount(PoolId.MissileWarning) > 0)
+        {
+            if (GameManager.Instance == null ||
+                GameManager.Instance.CurrentState != GameStates.Playing)
+                yield break;
+
+            yield return null;
+        }
     }
 
     public void ResetSpawner()

@@ -39,7 +39,7 @@ public class PlayerCollision : MonoBehaviour
         if ((obstacleLayers.value & (1 << collisionLayer)) == 0)
             return;
 
-        if (phaseDash != null && phaseDash.IsDashing)
+        if (phaseDash != null && phaseDash.IsProtected)
             return;
 
         if (shield != null && shield.TryBlockHit())

@@ -42,7 +42,7 @@ public class Missile : MonoBehaviour
 
         PhaseDash phaseDash = other.GetComponentInParent<PhaseDash>();
 
-        if (phaseDash != null && phaseDash.IsDashing)
+        if (phaseDash != null && phaseDash.IsProtected)
         {
             ReturnToPool();
             return;
