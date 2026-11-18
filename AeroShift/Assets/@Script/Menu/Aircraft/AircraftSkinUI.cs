@@ -45,7 +45,7 @@ public class AircraftSkinUI : MonoBehaviour
 
     private void OnDisable()
     {
-        // Exit 애니메이션이 UI를 끄는 경우에도 미확정 변경을 취소
+
         CancelPreview();
     }
 
@@ -88,7 +88,6 @@ public class AircraftSkinUI : MonoBehaviour
         if (info == null || aircraftSpawner.SelectedAircraft == null)
             return;
 
-        // SELECT에서만 SO와 PlayerPrefs 변경
         aircraftSpawner.SelectedAircraft.SetAircraft(info);
         aircraftSpawner.SelectedAircraft.Save();
         aircraftSpawner.ApplySelected();

@@ -12,7 +12,7 @@ public class SkillSelectController : MonoBehaviour
         if (skillManager == null)
             return;
 
-        skillManager.SelectSkill(SkillType.Rewind);
+        skillManager.SelectSkill(SkillType.time_rewind);
         UpdateSelection();
     }
 
@@ -21,7 +21,7 @@ public class SkillSelectController : MonoBehaviour
         if (skillManager == null)
             return;
 
-        skillManager.SelectSkill(SkillType.TimeSlow);
+        skillManager.SelectSkill(SkillType.slow_motion);
         UpdateSelection();
     }
 
@@ -32,11 +32,11 @@ public class SkillSelectController : MonoBehaviour
 
         SetButtonAlpha(
             rewindButton,
-            skillManager.IsSelected(SkillType.Rewind));
+            skillManager.IsSelected(SkillType.time_rewind));
 
         SetButtonAlpha(
             timeSlowButton,
-            skillManager.IsSelected(SkillType.TimeSlow));
+            skillManager.IsSelected(SkillType.slow_motion));
     }
 
     private void SetButtonAlpha(

@@ -1,12 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// 메인 메뉴 구름 전용 Object Pool.
-/// 메뉴 이외의 PoolManager와는 독립적으로 동작합니다.
-/// 구름이 화면 뒤로 지나가면 Destroy 대신 비활성화하여 보관하고 다시 사용합니다.
-/// </summary>
-[DisallowMultipleComponent]
 public sealed class MenuCloudPool : MonoBehaviour
 {
     private GameObject[] prefabs;
@@ -49,7 +43,7 @@ public sealed class MenuCloudPool : MonoBehaviour
         }
         else
         {
-            // 처음 필요할 때만 생성합니다. 이후에는 반환된 구름을 재사용합니다.
+
             GameObject instance = Instantiate(
                 prefabs[prefabIndex],
                 cloudParent.TransformPoint(localPosition),

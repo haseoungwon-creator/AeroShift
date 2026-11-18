@@ -1,23 +1,38 @@
+using UnityEditor;
 using UnityEngine;
 
 public enum SkillType
 {
     None,
-    Rewind,
-    TimeSlow
+    time_rewind,
+    slow_motion,
+    missile_suppression,//
+    missile_slow,//
+    phase_dash,//
+    shockwave,//
+    phase_shield/**/
 }
 
 public class SkillManager : MonoBehaviour
 {
     [SerializeField] PlayerRewind playerRewind;
     [SerializeField] TimeSlow timeSlow;
-
+    [SerializeField] Shield shield;
     private SkillInfo selectedSkillInfo;
 
     public SkillType SelectedSkill { get; private set; } = SkillType.None;
 
     public void SetSelectedSkill(SkillInfo info)
     {
+        if (info != null && selectedSkillInfo != null)
+        {
+            if (info.id == selectedSkillInfo.id)
+                return;
+        }
+
+        if (shield != null)
+            shield.ResetSkill();
+
         selectedSkillInfo = info;
         SelectedSkill = SkillType.None;
 
@@ -26,14 +41,21 @@ public class SkillManager : MonoBehaviour
 
         if (info.id == "time_rewind")
         {
-            SelectedSkill = SkillType.Rewind;
+            SelectedSkill = SkillType.time_rewind;
 
             if (playerRewind != null)
                 playerRewind.SetRewindDuration(info.skillValue);
         }
         else if (info.id == "slow_motion")
         {
-            SelectedSkill = SkillType.TimeSlow;
+            SelectedSkill = SkillType.slow_motion;
+        }
+        else if (info.id == "phase_shield")
+        {
+            SelectedSkill = SkillType.phase_shield;
+
+            if (shield != null)
+                shield.Activate();
         }
     }
 
@@ -59,13 +81,27 @@ public class SkillManager : MonoBehaviour
 
         switch (SelectedSkill)
         {
-            case SkillType.Rewind:
+            case SkillType.time_rewind:
                 UseRewind();
                 break;
 
-            case SkillType.TimeSlow:
+            case SkillType.slow_motion:
                 UseTimeSlow();
                 break;
+
+            case SkillType.missile_suppression:
+                break;
+
+            case SkillType.missile_slow:
+                break;
+
+            case SkillType.phase_dash:
+                break;
+
+            case SkillType.shockwave:
+                break;
+
+
         }
     }
 
@@ -88,6 +124,13 @@ public class SkillManager : MonoBehaviour
             timeSlow.Activate();
     }
 
+    private void UseShield()
+    {
+        if (shield == null) return;
+
+        shield.Activate();
+    }
+
     public bool IsSkillSelected()
     {
         return SelectedSkill != SkillType.None;
@@ -108,5 +151,8 @@ public class SkillManager : MonoBehaviour
 
         if (timeSlow != null)
             timeSlow.ResetSkill();
+
+        if (shield != null)
+            shield.ResetSkill();
     }
 }

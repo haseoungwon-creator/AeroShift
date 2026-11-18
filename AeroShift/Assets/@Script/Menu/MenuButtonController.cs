@@ -80,7 +80,6 @@ public class MenuButtonController : MonoBehaviour
         isAnimating = false;
     }
 
-    // Play 애니메이션의 마지막 Animation Event에서 호출
     public void LoadGameScene()
     {
         if (isLoading)

@@ -1,6 +1,5 @@
 using UnityEngine;
 
-[DisallowMultipleComponent]
 public sealed class ProximityCollisionGroup : MonoBehaviour
 {
     private Collider[] colliders;
@@ -26,7 +25,7 @@ public sealed class ProximityCollisionGroup : MonoBehaviour
             SetCollisionsEnabled(true);
         else
         {
-            // The current map prefabs have fixed child geometry. Cache once per instance.
+
             colliders = GetComponentsInChildren<Collider>(true);
             originalEnabledStates = new bool[colliders.Length];
             tracked = new bool[colliders.Length];
@@ -102,8 +101,6 @@ public sealed class ProximityCollisionGroup : MonoBehaviour
         return true;
     }
 
-    // Collider.bounds is empty while inactive. Use cached geometry instead.
-    // Unknown shapes fail open: MapManager keeps their collisions enabled.
     internal static bool TryGetLocalBounds(Transform root, Collider collider, out Bounds bounds)
     {
         Bounds shape;

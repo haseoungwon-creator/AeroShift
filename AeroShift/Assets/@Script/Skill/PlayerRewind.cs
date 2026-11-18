@@ -52,7 +52,7 @@ public class PlayerRewind : MonoBehaviour
 
     private bool IsRewindSelected
     {
-        get { return skillManager != null && skillManager.IsSelected(SkillType.Rewind); }
+        get { return skillManager != null && skillManager.IsSelected(SkillType.time_rewind); }
     }
 
     public bool TryGetOldestLogicalZ(out float logicalZ)

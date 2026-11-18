@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DefaultExecutionOrder(-600)]
-[DisallowMultipleComponent]
 public sealed class ResourceManager : MonoBehaviour
 {
     [Serializable]
@@ -14,7 +13,6 @@ public sealed class ResourceManager : MonoBehaviour
         public string resourcesFolder;
     }
 
-    [Header("Resource Groups")]
     [SerializeField]
     private ResourceGroupConfig[] groups =
     {
@@ -82,13 +80,11 @@ public sealed class ResourceManager : MonoBehaviour
 
             if (string.IsNullOrEmpty(path))
             {
-                Debug.LogError($"{group.poolId}의 Resources 폴더 경로가 비어 있습니다.", this);
                 continue;
             }
 
             if (groupPaths.ContainsKey(group.poolId))
             {
-                Debug.LogError($"중복 PoolId 설정: {group.poolId}", this);
                 continue;
             }
 
@@ -106,7 +102,6 @@ public sealed class ResourceManager : MonoBehaviour
     {
         if (!TryGetGroupPath(id, out string folder))
         {
-            Debug.LogError($"등록되지 않은 리소스 그룹: {id}", this);
             return Array.Empty<GameObject>();
         }
 
@@ -119,7 +114,6 @@ public sealed class ResourceManager : MonoBehaviour
 
         if (string.IsNullOrEmpty(path))
         {
-            Debug.LogError("Resources 폴더 경로가 비어 있습니다.", this);
             return Array.Empty<GameObject>();
         }
 
@@ -131,9 +125,6 @@ public sealed class ResourceManager : MonoBehaviour
         Array.Sort(prefabs, (a, b) =>
             StringComparer.Ordinal.Compare(a.name, b.name));
 
-        if (prefabs.Length == 0)
-            Debug.LogWarning($"Resources/{path}에 프리팹이 없습니다.", this);
-
         groupCache.Add(path, prefabs);
         return prefabs;
     }
@@ -142,7 +133,6 @@ public sealed class ResourceManager : MonoBehaviour
     {
         if (!TryGetGroupPath(id, out string folder))
         {
-            Debug.LogError($"등록되지 않은 리소스 그룹: {id}", this);
             return null;
         }
 
@@ -155,7 +145,6 @@ public sealed class ResourceManager : MonoBehaviour
 
         if (string.IsNullOrEmpty(path))
         {
-            Debug.LogError("프리팹 경로가 비어 있습니다.", this);
             return null;
         }
 
@@ -166,7 +155,6 @@ public sealed class ResourceManager : MonoBehaviour
 
         if (prefab == null)
         {
-            Debug.LogError($"Resources/{path} 프리팹을 찾지 못했습니다.", this);
             return null;
         }
 
@@ -178,7 +166,6 @@ public sealed class ResourceManager : MonoBehaviour
     {
         if (!TryGetGroupPath(id, out string folder))
         {
-            Debug.LogError($"등록되지 않은 리소스 그룹: {id}", this);
             InvokeSafely(onCompleted, null);
             return;
         }
@@ -198,7 +185,6 @@ public sealed class ResourceManager : MonoBehaviour
 
         if (string.IsNullOrEmpty(path))
         {
-            Debug.LogError("비동기 로딩 경로가 비어 있습니다.", this);
             InvokeSafely(onCompleted, null);
             return;
         }
@@ -219,7 +205,6 @@ public sealed class ResourceManager : MonoBehaviour
 
         if (!isActiveAndEnabled)
         {
-            Debug.LogWarning("비활성 ResourceManager에서는 비동기 로딩을 시작할 수 없습니다.", this);
             InvokeSafely(onCompleted, null);
             return;
         }
@@ -242,8 +227,6 @@ public sealed class ResourceManager : MonoBehaviour
 
         if (prefab != null)
             prefabCache[path] = prefab;
-        else
-            Debug.LogError($"Resources/{path} 비동기 로딩에 실패했습니다.", this);
 
         if (!pendingLoads.TryGetValue(path, out List<Action<GameObject>> callbacks))
             yield break;
@@ -258,18 +241,6 @@ public sealed class ResourceManager : MonoBehaviour
     {
         groupCache.Clear();
         prefabCache.Clear();
-    }
-
-    [ContextMenu("Validate Configured Resource Groups")]
-    private void ValidateConfiguredGroups()
-    {
-        InitializeGroupPaths();
-
-        foreach (KeyValuePair<PoolId, string> pair in groupPaths)
-        {
-            GameObject[] prefabs = LoadPrefabGroup(pair.Value);
-            Debug.Log($"{pair.Key} → Resources/{pair.Value}: {prefabs.Length}개 프리팹", this);
-        }
     }
 
     private void OnDestroy()
@@ -295,9 +266,8 @@ public sealed class ResourceManager : MonoBehaviour
         {
             callback(prefab);
         }
-        catch (Exception exception)
+        catch (Exception)
         {
-            Debug.LogException(exception, this);
         }
     }
 

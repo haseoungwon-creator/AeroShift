@@ -23,11 +23,9 @@ public sealed class CloudSpawner : MonoBehaviour
         }
     }
 
-    [Header("References")]
     [SerializeField] private PoolManager poolManager;
     [SerializeField] private WorldMovement worldMovement;
 
-    [Header("Cloud Placement")]
     [SerializeField] private float spawnWidth = 200f;
     [SerializeField] private float spawnDistance = 1400f;
     [SerializeField] private float despawnDistance = 100f;
@@ -36,14 +34,12 @@ public sealed class CloudSpawner : MonoBehaviour
     [SerializeField] private float height3D = 80f;
     [SerializeField] private float height2D = -20f;
 
-    [Header("Distance Culling")]
     [SerializeField] private bool enableDistanceCulling = true;
     [SerializeField] private string cloudLayerName = "Cloud";
     [SerializeField] private float cloudCullDistance = 900f;
     [SerializeField] private float cullPreloadMargin = 100f;
     [SerializeField] private Camera[] cullingCameras;
 
-    [Header("Group Movement")]
     [SerializeField] private float rootRebaseDistance = 5000f;
 
     private readonly List<CloudEntry> cloudHeap =
@@ -75,7 +71,6 @@ public sealed class CloudSpawner : MonoBehaviour
 
     private int cloudLayer = -1;
 
-    // 구름 최적화는 CloudSpawner의 Distance Culling 옵션에서 직접 설정합니다.
     public bool DistanceCullingEnabled => enableDistanceCulling;
 
     public int InitialTargetCount => initialTargetCount;
@@ -351,8 +346,7 @@ public sealed class CloudSpawner : MonoBehaviour
         GameObject cloud,
         float worldZ)
     {
-        // RentInactive already placed the cloud under its moving root. Only now
-        // register its renderer, avoiding an enabled renderer reparent operation.
+
         cloud.SetActive(true);
 
         double recycleDistance =

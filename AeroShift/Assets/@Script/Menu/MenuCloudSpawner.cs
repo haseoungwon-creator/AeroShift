@@ -1,22 +1,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// 메인 메뉴 구름 생성·초기 배치·일괄 이동 담당.
-/// 초기 구름과 이후 생성 구름의 Z 간격은 유지하면서, X 위치의 반복 패턴을 없앱니다.
-/// 개별 구름에는 Update가 필요하지 않으며, 반환은 MenuCloudPool이 담당합니다.
-/// </summary>
-[DisallowMultipleComponent]
-[RequireComponent(typeof(MenuCloudPool))]
 public sealed class MenuCloudSpawner : MonoBehaviour
 {
-    [Header("Cloud Prefabs")]
     [SerializeField] private GameObject[] cloudPrefabs;
 
-    [Header("Initial Clouds")]
     [SerializeField] private int initialCloudCount = 890;
 
-    [Header("Spawn")]
     [SerializeField] private int cloudsPerWave = 9;
     [SerializeField] private float spawnInterval = 0.05f;
     [SerializeField] private Vector2 horizontalRange = new Vector2(-500f, 500f);
@@ -24,7 +14,6 @@ public sealed class MenuCloudSpawner : MonoBehaviour
     [SerializeField] private float spawnZ = 1144.6f;
     [SerializeField] private float despawnZ = -190.9f;
 
-    [Header("Movement & Look")]
     [SerializeField] private float cloudSpeed = 182.34f;
     [SerializeField] private Vector2 scaleRange = new Vector2(0.8f, 1.5f);
     [SerializeField] private bool randomizeYRotation = true;
@@ -58,7 +47,6 @@ public sealed class MenuCloudSpawner : MonoBehaviour
         if (validPrefabIndices.Count == 0 || initialCloudCount < 0 || cloudsPerWave < 0 ||
             spawnInterval <= 0f || cloudSpeed < 0f || spawnZ <= despawnZ)
         {
-            Debug.LogWarning("[MenuCloudSpawner] 구름 Prefab 또는 생성/이동 설정을 확인하세요.", this);
             enabled = false;
             return;
         }
@@ -80,8 +68,6 @@ public sealed class MenuCloudSpawner : MonoBehaviour
         if (initialCloudCount == 0)
             return;
 
-        // 실행 중 구름이 유입되는 간격에 맞춰 Z 방향의 띠를 나눕니다.
-        // 이전 방식은 띠가 너무 적어 초기 구름 사이에 큰 빈 공간이 생길 수 있었습니다.
         float depth = spawnZ - despawnZ;
         float travelPerWave = cloudSpeed * spawnInterval;
         int bands = travelPerWave > 0.001f
@@ -106,8 +92,7 @@ public sealed class MenuCloudSpawner : MonoBehaviour
 
     private void Update()
     {
-        // 메뉴 연출이므로 멈칫한 프레임 이후에도 구름이 한꺼번에 멀리 이동해
-        // 큰 빈 구간이 생기지 않도록 한 프레임의 시뮬레이션 시간을 제한합니다.
+
         float deltaTime = Mathf.Min(Time.unscaledDeltaTime, 0.1f);
         float moveDistance = cloudSpeed * deltaTime;
 
@@ -133,8 +118,6 @@ public sealed class MenuCloudSpawner : MonoBehaviour
             }
         }
 
-        // 프레임이 조금 늦어져도 생성 파동을 생략하지 않습니다.
-        // 누락된 파동의 위치를 Z축으로 보정해 일정 간격으로 이어 붙입니다.
         spawnTimer += deltaTime;
         int waveCount = Mathf.FloorToInt(spawnTimer / spawnInterval);
         if (waveCount <= 0)
@@ -157,10 +140,6 @@ public sealed class MenuCloudSpawner : MonoBehaviour
 
         GetVisibleHorizontalRange(localZ, out float minX, out float maxX);
 
-        // 기존의 'X축을 count개의 칸으로 나눠 각 칸에 1개씩 배치'하는
-        // 방식은 Z 방향으로 비슷한 X 위치가 반복되어 줄무늬처럼 보였습니다.
-        // 이제 각 구름의 X 위치를 독립적으로 무작위 추첨합니다.
-        // Z도 한 생성 파동의 간격 안에서 살짝 분산해 일직선 배열을 피합니다.
         float zSpread = Mathf.Max(0f, waveDepth) * 0.45f;
         for (int i = 0; i < count; i++)
         {
@@ -176,8 +155,6 @@ public sealed class MenuCloudSpawner : MonoBehaviour
         minX = Mathf.Min(horizontalRange.x, horizontalRange.y);
         maxX = Mathf.Max(horizontalRange.x, horizontalRange.y);
 
-        // 카메라가 지정되지 않았거나 해당 Z 평면이 카메라 뒤쪽이면
-        // 기존 Inspector의 전체 Horizontal Range를 그대로 사용합니다.
         if (menuCamera == null)
             return;
 

@@ -17,7 +17,6 @@ public class DimensionTransition : MonoBehaviour
     [SerializeField] private CloudSpawner cloudSpawner;
     [SerializeField] private WorldMovement worldMovement;
 
-    [Header("Transition Timing")]
     [SerializeField, Min(0f)] private float riseDelay = 2f;
     [SerializeField, Min(0.01f)] private float baseWorldSpeed = 30f;
     [SerializeField, Min(1f)] private float safeMapWaitTimeout = 45f;
@@ -64,8 +63,6 @@ public class DimensionTransition : MonoBehaviour
         LastSafeMapWaitSeconds = 0f;
         mapManager.SpawnTransitionSafeMaps();
 
-        // 2D pools are not needed in 3D. Prepare them across transition frames,
-        // while the safe map approaches, before enabling 2D missile spawning.
         bool missilePoolsPrepared = false;
         while (!mapManager.IsTransitionMapArrived(0f) || !missilePoolsPrepared)
         {
@@ -194,7 +191,6 @@ public class DimensionTransition : MonoBehaviour
             missileSpawner != null && cloudSpawner != null && worldMovement != null)
             return true;
 
-        Debug.LogError("DimensionTransition의 Inspector 참조가 누락됐습니다.", this);
         return false;
     }
 
@@ -217,7 +213,6 @@ public class DimensionTransition : MonoBehaviour
         using (CancelMarker.Auto())
         {
             TransitionCancelCount++;
-            Debug.LogWarning($"DimensionTransition: {reason}", this);
 
             if (transitioningTo2D && mapManager != null)
                 mapManager.EndTransitionMap();

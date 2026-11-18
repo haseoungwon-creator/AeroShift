@@ -28,6 +28,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] PlayerRewind playerRewind;
     [SerializeField] GameOverUI gameOverUI;
     [SerializeField] CloudSpawner cloudSpawner;
+    [SerializeField] SkillSelectionManager skillSelectionManager;
 
 
     public GameStates CurrentState { get; private set; }
@@ -86,7 +87,7 @@ public class GameManager : MonoBehaviour
                     mapManager.ResetMaps();
                 cameraController.ResetCamera();
                 playerController.SetControlEnabled(false);
-                gameUI.ShowStartPanel();
+                skillSelectionManager.ShowRandomSkills();
                 break;
 
             case GameStates.Playing:
@@ -119,8 +120,9 @@ public class GameManager : MonoBehaviour
         if (cloudSpawner != null)
             cloudSpawner.Set3DMode();
 
+        gameUI.HideAll();
+
         SetGameState(GameStates.Ready);
-        StartGame();
     }
 
     public void BackGame()

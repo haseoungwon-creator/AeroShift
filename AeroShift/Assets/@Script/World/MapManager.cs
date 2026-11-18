@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Unity.Profiling;
 using UnityEngine;
 
-[DisallowMultipleComponent]
 public sealed class MapManager : MonoBehaviour
 {
     private static readonly ProfilerMarker UpdateMarker = new ProfilerMarker("AeroShift.MapStreaming.Update");
@@ -12,14 +11,12 @@ public sealed class MapManager : MonoBehaviour
     private static readonly ProfilerMarker RecycleMarker = new ProfilerMarker("AeroShift.MapStreaming.Recycle");
     private static readonly ProfilerMarker CollisionCullingMarker = new ProfilerMarker("AeroShift.Physics.ChunkCollisionCulling");
 
-    [Header("References")]
     [SerializeField] private Transform player;
     [SerializeField] private PoolManager poolManager;
     [SerializeField] private ResourceManager resourceManager;
     [SerializeField] private WorldMovement worldMovement;
     [SerializeField] private PlayerRewind playerRewind;
 
-    [Header("Chunk Layout")]
     [SerializeField, Min(1f)] private float chunkLength = 80f;
     [SerializeField] private Vector2 mapOriginXY = Vector2.zero;
     [SerializeField, Min(1)] private int forwardChunkCount = 6;
@@ -27,24 +24,20 @@ public sealed class MapManager : MonoBehaviour
     [SerializeField, Min(0f)] private float keepBehindDistance = 160f;
     [SerializeField, Min(1)] private int maxSpawnsPerFrame = 2;
 
-    [Header("Selective Preparation")]
     [SerializeField, Min(0)] private int prepareLookaheadChunks = 4;
     [SerializeField] private bool enableCachedPreparation = true;
     [SerializeField, Min(0.02f)] private float prepareRetryInterval = 0.25f;
 
-    [Header("Dimension Transition")]
     [SerializeField, Min(1)] private int transitionSafeChunkCount = 3;
     [SerializeField] private bool spawnTransitionWall = true;
     [SerializeField, Min(0f)] private float transitionWallOffset = 30f;
 
-    [Header("Obstacle Collision Culling")]
     [SerializeField] private bool enableProximityCollisionCulling;
     [SerializeField] private LayerMask obstacleCollisionLayers = 1;
     [SerializeField, Min(0f)] private float collisionEnableAhead = 160f;
     [SerializeField, Min(0f)] private float collisionKeepBehind = 80f;
     [SerializeField, Min(0.02f)] private float collisionCheckInterval = 0.1f;
 
-    [Header("Deterministic Layout")]
     [SerializeField] private int seed = 20261027;
     [SerializeField] private bool allow180DegreeRotation;
 
@@ -79,14 +72,12 @@ public sealed class MapManager : MonoBehaviour
     private int nextChunkIndex;
     private int pendingSafeChunks;
     private bool initialized;
-    private bool poolExhaustionWarned;
     private bool is3DMapActive = true;
     private bool transitionRequested;
     private int transitionFirstChunkIndex = -1;
     private int transitionLastChunkIndex = -1;
     private int transitionSafeChunksPlaced;
     private GameObject transitionWall;
-    private bool transitionWallWarned;
     private float collisionCheckTimer;
     private bool wasCollisionCullingEnabled;
     private bool lastGameplayCollisionAllowed;
@@ -124,8 +115,7 @@ public sealed class MapManager : MonoBehaviour
     public int TotalPrepareCreations { get; private set; }
     public int TotalFailedSpawnAttempts { get; private set; }
     public float ChunkLength => chunkLength;
-    // 논리 인덱스가 충분해도 맵이 숨겨졌거나 모두 반환된 상태라면
-    // 실제 3D 스트림의 커버리지가 충족된 것으로 기록하지 않습니다.
+
     public bool HasRequiredCoverage => initialized && is3DMapActive &&
         player != null && activeChunks.Count > 0 &&
         ((double)nextChunkIndex - 0.5d) * chunkLength >=
@@ -144,7 +134,6 @@ public sealed class MapManager : MonoBehaviour
 
         if (player == null || poolManager == null || resourceManager == null)
         {
-            Debug.LogError("MapManager에 Player, PoolManager, ResourceManager가 필요합니다.", this);
             enabled = false;
             return;
         }
@@ -162,7 +151,6 @@ public sealed class MapManager : MonoBehaviour
     {
         if (!TryReadGroup(PoolId.NormalMap, out normalPrefabNames, out normalVariantIndices))
         {
-            Debug.LogError("NormalMap 그룹에 유효한 맵 프리팹이 필요합니다.", this);
             return false;
         }
 
@@ -173,7 +161,6 @@ public sealed class MapManager : MonoBehaviour
         {
             if (!TryReadGroup(PoolId.SafeMap, out safePrefabNames, out safeVariantIndices))
             {
-                Debug.LogError("SafeMap 프리팹 목록이 PoolManager 설정과 일치하지 않습니다.", this);
                 return false;
             }
 
@@ -182,7 +169,6 @@ public sealed class MapManager : MonoBehaviour
 
         if (startingSafeChunkCount > 0 && safePrefabNames.Length == 0)
         {
-            Debug.LogError("초기 안전 맵이 설정됐지만 SafeMap 프리팹이 없습니다.", this);
             return false;
         }
 
@@ -213,7 +199,6 @@ public sealed class MapManager : MonoBehaviour
             if (prefab == null || !usedNames.Add(prefab.name) ||
                 !poolManager.TryGetVariantIndex(id, prefab.name, out int variantIndex))
             {
-                Debug.LogError($"{id} 그룹의 프리팹 이름이 중복되었거나 PoolManager에 등록되지 않았습니다.", this);
                 return false;
             }
 
@@ -332,7 +317,7 @@ public sealed class MapManager : MonoBehaviour
 
         ProximityCollisionGroup.GetWorldZRange(player, playerLocalCollisionBounds, out minZ, out maxZ);
         float speed = worldMovement != null ? Mathf.Abs(worldMovement.CurrentSpeed) : 0f;
-        // Include movement until the next check, one long render frame and a physics step.
+
         float travelPadding = speed * (collisionCheckInterval + Time.maximumDeltaTime + Time.fixedDeltaTime);
         minZ -= collisionKeepBehind + travelPadding + Physics.defaultContactOffset;
         maxZ += collisionEnableAhead + travelPadding + Physics.defaultContactOffset;
@@ -356,12 +341,11 @@ public sealed class MapManager : MonoBehaviour
 
     private void InitializeAtPlayerPosition()
     {
-        // Map prefab floors are centered on the chunk root (-length/2 to +length/2).
-        // Select the chunk containing the player, including after 2D -> 3D ResetMaps.
+
         initialChunkIndex = Mathf.FloorToInt(LogicalPlayerZ / chunkLength + 0.5f);
         nextChunkIndex = initialChunkIndex;
         pendingSafeChunks = 0;
-        poolExhaustionWarned = false;
+
         is3DMapActive = true;
         initialized = true;
         collisionCheckTimer = collisionCheckInterval;
@@ -377,7 +361,6 @@ public sealed class MapManager : MonoBehaviour
         {
             float releaseBeforeZ = LogicalPlayerZ - keepBehindDistance;
 
-            // A rewind must not reach a chunk that has already been returned.
             if (playerRewind != null && playerRewind.TryGetOldestLogicalZ(out float rewindZ))
                 releaseBeforeZ = Mathf.Min(releaseBeforeZ, rewindZ - chunkLength);
 
@@ -403,7 +386,6 @@ public sealed class MapManager : MonoBehaviour
         double desiredEndZ = (double)LogicalPlayerZ + forwardChunkCount * chunkLength;
         int spawnedThisCall = 0;
 
-        // nextChunkIndex is the CENTER, not the leading edge of the next prefab.
         while (((double)nextChunkIndex - 0.5d) * chunkLength < desiredEndZ &&
                spawnedThisCall < maxCount)
         {
@@ -414,16 +396,9 @@ public sealed class MapManager : MonoBehaviour
             {
                 TotalFailedSpawnAttempts++;
 
-                if (!poolExhaustionWarned)
-                {
-                    Debug.LogWarning("MapManager: 필요한 맵이 아직 풀에 없거나 생성 한도에 도달했습니다. 다음 프레임에 재시도합니다.", this);
-                    poolExhaustionWarned = true;
-                }
-
                 break;
             }
 
-            poolExhaustionWarned = false;
             spawnedThisCall++;
         }
     }
@@ -443,8 +418,7 @@ public sealed class MapManager : MonoBehaviour
 
             bool rotated = !safe && allow180DegreeRotation &&
                 ChunkSeedUtility.ShouldRotate180(seed, nextChunkIndex);
-            // All current road/safe-road prefab roots are at the FLOOR CENTER.
-            // Rotating around that center must NOT translate a map by one chunk.
+
             float centerZ = nextChunkIndex * chunkLength;
             float startZ = centerZ - chunkLength * 0.5f;
             float endZ = centerZ + chunkLength * 0.5f;
@@ -474,7 +448,6 @@ public sealed class MapManager : MonoBehaviour
                 if (collisionGroup.SetCollisionsEnabled(enableCollisions))
                     CollisionCullingStateChanges++;
 
-                // OFF must restore these groups even before the first FixedUpdate.
                 wasCollisionCullingEnabled = true;
             }
 
@@ -681,7 +654,6 @@ public sealed class MapManager : MonoBehaviour
 
         if (safePrefabNames.Length == 0)
         {
-            Debug.LogError("차원 전환용 SafeMap 프리팹이 등록되지 않았습니다.", this);
             return;
         }
 
@@ -689,7 +661,6 @@ public sealed class MapManager : MonoBehaviour
 
         if (nextChunkIndex > int.MaxValue - safeCount)
         {
-            Debug.LogError("차원 전환 맵 인덱스 범위를 초과했습니다.", this);
             return;
         }
 
@@ -702,7 +673,7 @@ public sealed class MapManager : MonoBehaviour
         transitionFirstChunkIndex = firstIndex;
         transitionLastChunkIndex = firstIndex + safeCount - 1;
         transitionSafeChunksPlaced = 0;
-        transitionWallWarned = false;
+
     }
 
     public bool IsTransitionMapArrived(float _)
@@ -748,7 +719,6 @@ public sealed class MapManager : MonoBehaviour
         if (transitionSafeChunksPlaced < requiredCount)
             return;
 
-        // Offset is measured from the actual forward edge of the last centered safe map.
         float wallZ = ((float)transitionLastChunkIndex + 0.5f) * chunkLength + transitionWallOffset;
         Vector3 wallPosition = WorldOrigin + new Vector3(mapOriginXY.x, mapOriginXY.y, wallZ);
         transitionWall = poolManager.RentInactive(PoolId.TransitionWall, wallPosition, Quaternion.identity,
@@ -756,12 +726,6 @@ public sealed class MapManager : MonoBehaviour
 
         if (transitionWall != null)
             transitionWall.SetActive(true);
-
-        if (transitionWall == null && !transitionWallWarned)
-        {
-            Debug.LogWarning("TransitionWall 풀에서 벽을 가져오지 못했습니다. 벽 없이 차원 전환을 진행합니다.", this);
-            transitionWallWarned = true;
-        }
     }
 
     private void ReturnTransitionWall()
@@ -782,7 +746,7 @@ public sealed class MapManager : MonoBehaviour
         transitionFirstChunkIndex = -1;
         transitionLastChunkIndex = -1;
         transitionSafeChunksPlaced = 0;
-        transitionWallWarned = false;
+
         pendingSafeChunks = 0;
     }
 
@@ -797,14 +761,6 @@ public sealed class MapManager : MonoBehaviour
 
             poolManager.Return(chunk.Instance);
         }
-    }
-
-    [ContextMenu("Log Streaming Stats")]
-    private void LogStreamingStats()
-    {
-        int activeNormal = poolManager != null ? poolManager.GetActiveCount(PoolId.NormalMap) : 0;
-        int activeSafe = poolManager != null ? poolManager.GetActiveCount(PoolId.SafeMap) : 0;
-        Debug.Log($"MapStreaming | Seed={seed}, Next={nextChunkIndex}, Active={activeChunks.Count}, CoverageReady={HasRequiredCoverage}, Spawned={TotalChunksSpawned}, Recycled={TotalChunksRecycled}, PrepareCreated={TotalPrepareCreations}, PrepareRebuilds={PrepareDemandRebuildCount}, PreparePasses={PreparePassCount}, FailedAttempts={TotalFailedSpawnAttempts}, NormalActive={activeNormal}, SafeActive={activeSafe}, CollisionStateChanges={CollisionCullingStateChanges}", this);
     }
 
     private void OnDisable()

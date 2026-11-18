@@ -6,6 +6,7 @@ public class SkillSelectionManager : MonoBehaviour
     [SerializeField] private SelectedSkillSO selectedSkillSO;
     [SerializeField] private GameObject skillSelectPanel;
     [SerializeField] private PlayerStats playerStats;
+    [SerializeField] private GameManager gameManager;
 
     private SkillDataManager skillDataManager;
     private int[] remainingRerolls;
@@ -27,6 +28,9 @@ public class SkillSelectionManager : MonoBehaviour
 
     public void ShowRandomSkills()
     {
+        if(skillSelectPanel != null)
+            skillSelectPanel.SetActive(true);
+
         if (selectedSkillSO != null)
             selectedSkillSO.ClearSkill();
 
@@ -133,6 +137,9 @@ public class SkillSelectionManager : MonoBehaviour
 
         if (skillSelectPanel != null)
             skillSelectPanel.SetActive(false);
+
+        if (gameManager != null)
+            gameManager.StartGame();
     }
 
     public void SetBonusRerolls(int count)

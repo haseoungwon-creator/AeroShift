@@ -1,6 +1,5 @@
 using UnityEngine;
 
-[DisallowMultipleComponent]
 public sealed class MapChunk : MonoBehaviour
 {
     public int ChunkIndex { get; private set; }
