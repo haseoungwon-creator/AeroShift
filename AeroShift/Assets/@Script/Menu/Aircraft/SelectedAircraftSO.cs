@@ -63,7 +63,6 @@ public class SelectedAircraftSO : ScriptableObject
 
         if (json == null)
         {
-            Debug.LogWarning("AircraftSkins.json을 찾을 수 없습니다.");
             return;
         }
 

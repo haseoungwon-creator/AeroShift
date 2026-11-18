@@ -12,7 +12,30 @@ public class SkillManager : MonoBehaviour
     [SerializeField] PlayerRewind playerRewind;
     [SerializeField] TimeSlow timeSlow;
 
+    private SkillInfo selectedSkillInfo;
+
     public SkillType SelectedSkill { get; private set; } = SkillType.None;
+
+    public void SetSelectedSkill(SkillInfo info)
+    {
+        selectedSkillInfo = info;
+        SelectedSkill = SkillType.None;
+
+        if (info == null)
+            return;
+
+        if (info.id == "time_rewind")
+        {
+            SelectedSkill = SkillType.Rewind;
+
+            if (playerRewind != null)
+                playerRewind.SetRewindDuration(info.skillValue);
+        }
+        else if (info.id == "slow_motion")
+        {
+            SelectedSkill = SkillType.TimeSlow;
+        }
+    }
 
     public void SelectSkill(SkillType skillType)
     {
@@ -22,6 +45,7 @@ public class SkillManager : MonoBehaviour
         if (GameManager.Instance.CurrentState != GameStates.Ready)
             return;
 
+        selectedSkillInfo = null;
         SelectedSkill = skillType;
     }
 
@@ -58,7 +82,10 @@ public class SkillManager : MonoBehaviour
         if (timeSlow == null)
             return;
 
-        timeSlow.Activate();
+        if (selectedSkillInfo != null)
+            timeSlow.Activate(selectedSkillInfo.skillValue);
+        else
+            timeSlow.Activate();
     }
 
     public bool IsSkillSelected()
@@ -73,6 +100,7 @@ public class SkillManager : MonoBehaviour
 
     public void ResetSkill()
     {
+        selectedSkillInfo = null;
         SelectedSkill = SkillType.None;
 
         if (playerRewind != null)

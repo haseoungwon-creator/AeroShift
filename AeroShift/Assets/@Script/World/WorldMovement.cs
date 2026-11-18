@@ -8,11 +8,17 @@ public class WorldMovement : MonoBehaviour
     [SerializeField] float speedIncreaseInterval = 10f;
     [SerializeField] bool canMove;
 
-    public float CurrentSpeed => currentSpeed;
+    public float CurrentSpeed
+    {
+        get { return currentSpeed * statSpeedMultiplier * temporarySpeedMultiplier; }
+    }
+
     public bool IsRewinding { get; private set; }
 
     private float currentSpeed;
     private float speedTimer;
+    private float statSpeedMultiplier = 1f;
+    private float temporarySpeedMultiplier = 1f;
 
     private void Awake()
     {
@@ -24,18 +30,25 @@ public class WorldMovement : MonoBehaviour
         if (!canMove || IsRewinding)
             return;
 
-        transform.position += Vector3.back * currentSpeed * Time.deltaTime;
+        transform.position += Vector3.back * CurrentSpeed * Time.deltaTime;
 
         speedTimer += Time.deltaTime;
 
         if (speedTimer >= speedIncreaseInterval)
         {
             speedTimer = 0f;
-
-            currentSpeed = Mathf.Min(
-                currentSpeed + speedIncrease,
-                maxWorldSpeed);
+            currentSpeed = Mathf.Min(currentSpeed + speedIncrease, maxWorldSpeed);
         }
+    }
+
+    public void SetStatSpeedMultiplier(float value)
+    {
+        statSpeedMultiplier = value;
+    }
+
+    public void SetTemporarySpeedMultiplier(float value)
+    {
+        temporarySpeedMultiplier = value;
     }
 
     public void SetMovement(bool value)
@@ -58,6 +71,7 @@ public class WorldMovement : MonoBehaviour
         transform.position = Vector3.zero;
         currentSpeed = worldSpeed;
         speedTimer = 0f;
+        temporarySpeedMultiplier = 1f;
         IsRewinding = false;
     }
 }

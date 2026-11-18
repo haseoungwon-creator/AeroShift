@@ -1285,6 +1285,7 @@ MonoBehaviour:
   - {fileID: 1970898465}
   selectedSkillSO: {fileID: 11400000, guid: 4a832b1a8368b8e4a9e6e69ca999fe69, type: 2}
   skillSelectPanel: {fileID: 216452657194051645}
+  playerStats: {fileID: 930761019}
 --- !u!4 &421675235
 Transform:
   m_ObjectHideFlags: 0
@@ -2240,6 +2241,57 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!1 &930761018
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 930761020}
+  - component: {fileID: 930761019}
+  m_Layer: 0
+  m_Name: PlayerStats
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &930761019
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 930761018}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 932e70a410efdee43a5f06d38d5064d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStats
+  selectedAircraft: {fileID: 11400000, guid: 6051bcbe383fb2d4486feb1fc577a316, type: 2}
+  selectedSkill: {fileID: 11400000, guid: 4a832b1a8368b8e4a9e6e69ca999fe69, type: 2}
+  scoreManager: {fileID: 1397169578}
+  worldMovement: {fileID: 774914384}
+  playerMovement3D: {fileID: 533985342766976491}
+  skillSelectionManager: {fileID: 421675234}
+  skillManager: {fileID: 1383944816}
+--- !u!4 &930761020
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 930761018}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.51534, y: -0, z: 3.51534}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1024604966
 GameObject:
   m_ObjectHideFlags: 0
@@ -2513,6 +2565,52 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 593564960}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1383944815
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1383944817}
+  - component: {fileID: 1383944816}
+  m_Layer: 0
+  m_Name: SkillManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1383944816
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1383944815}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2e39a4485260e64ebb172908fa6887a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SkillManager
+  playerRewind: {fileID: 7097046176455347069}
+  timeSlow: {fileID: 6349540993517379001}
+--- !u!4 &1383944817
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1383944815}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.51534, y: -0, z: 3.51534}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1397169577
 GameObject:
@@ -4266,7 +4364,7 @@ MonoBehaviour:
   playerMovement3D: {fileID: 533985342766976491}
   playerMovement2D: {fileID: 1079328800885653063}
   rb: {fileID: 6674750577082907034}
-  skillManager: {fileID: 0}
+  skillManager: {fileID: 1383944816}
 --- !u!114 &4691331044640109763
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4462,7 +4560,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TimeSlow
   worldMovement: {fileID: 774914384}
-  slowSpeed: 20
   duration: 5
 --- !u!114 &6349540993517379011
 MonoBehaviour:
@@ -4476,7 +4573,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42604eaa5e49e6043bd3ee99d2c0221a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillSelectController
-  skillManager: {fileID: 0}
+  skillManager: {fileID: 1383944816}
   rewindButton: {fileID: 0}
   timeSlowButton: {fileID: 0}
 --- !u!64 &6349540993517379019
@@ -4547,7 +4644,7 @@ MonoBehaviour:
   playerController: {fileID: 4333979056744540029}
   worldMovement: {fileID: 774914384}
   playerCollider: {fileID: 6349540993517379019}
-  skillManager: {fileID: 0}
+  skillManager: {fileID: 1383944816}
 --- !u!222 &7327807284008635463
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4853,3 +4950,5 @@ SceneRoots:
   - {fileID: 138575779}
   - {fileID: 1991887548}
   - {fileID: 421675235}
+  - {fileID: 930761020}
+  - {fileID: 1383944817}

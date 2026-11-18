@@ -10,6 +10,11 @@ public class SelectedSkillSO : ScriptableObject
         get { return selectedSkill; }
     }
 
+    public void ClearSkill()
+    {
+        selectedSkill = null;
+    }
+
     public void SetSkill(SkillInfo info)
     {
         if (info == null)

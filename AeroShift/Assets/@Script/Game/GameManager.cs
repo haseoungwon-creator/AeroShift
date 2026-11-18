@@ -28,7 +28,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] PlayerRewind playerRewind;
     [SerializeField] GameOverUI gameOverUI;
     [SerializeField] CloudSpawner cloudSpawner;
-    
+
 
     public GameStates CurrentState { get; private set; }
 
@@ -67,7 +67,6 @@ public class GameManager : MonoBehaviour
     public void GameOver()
     {
         SetGameState(GameStates.GameOver);
-        Debug.Log("Gameover");
     }
 
     private void SetGameState(GameStates state)

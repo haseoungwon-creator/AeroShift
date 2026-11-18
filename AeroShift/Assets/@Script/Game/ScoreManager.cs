@@ -15,6 +15,7 @@ public class ScoreManager : MonoBehaviour
     private const string HighScoreKey = "HighScore";
 
     private float accumulatedDistance;
+    private float scoreMultiplier = 1f;
     private bool scoringEnabled;
     private bool isRewinding;
 
@@ -31,17 +32,14 @@ public class ScoreManager : MonoBehaviour
         if (!scoringEnabled || worldMovement == null)
             return;
 
-        AddDistanceScore(
-            worldMovement.CurrentSpeed * Time.deltaTime);
+        AddDistanceScore(worldMovement.CurrentSpeed * Time.deltaTime);
     }
 
     private void AddDistanceScore(float distance)
     {
-        accumulatedDistance +=
-            distance * distanceScoreMultiplier;
+        accumulatedDistance += distance * distanceScoreMultiplier * scoreMultiplier;
 
-        int score =
-            Mathf.FloorToInt(accumulatedDistance);
+        int score = Mathf.FloorToInt(accumulatedDistance);
 
         if (score <= 0)
             return;
@@ -50,8 +48,12 @@ public class ScoreManager : MonoBehaviour
         CurrentScore += score;
 
         OnScoreChanged?.Invoke(CurrentScore);
-
         UpdateHighScore();
+    }
+
+    public void SetScoreMultiplier(float value)
+    {
+        scoreMultiplier = value;
     }
 
     public void SetRewinding(bool value)
@@ -73,25 +75,18 @@ public class ScoreManager : MonoBehaviour
     {
         CurrentScore = 0;
         accumulatedDistance = 0f;
-
         OnScoreChanged?.Invoke(CurrentScore);
     }
 
     public void SaveHighScore()
     {
-        PlayerPrefs.SetInt(
-            HighScoreKey,
-            HighScore);
-
+        PlayerPrefs.SetInt(HighScoreKey, HighScore);
         PlayerPrefs.Save();
     }
 
     private void LoadHighScore()
     {
-        HighScore =
-            PlayerPrefs.GetInt(
-                HighScoreKey,
-                0);
+        HighScore = PlayerPrefs.GetInt(HighScoreKey, 0);
     }
 
     private void UpdateHighScore()
@@ -100,7 +95,6 @@ public class ScoreManager : MonoBehaviour
             return;
 
         HighScore = CurrentScore;
-
         OnHighScoreChanged?.Invoke(HighScore);
     }
-} 
+}

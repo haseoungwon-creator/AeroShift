@@ -28,6 +28,7 @@ public class PlayerMovement3D : MonoBehaviour
     private float rawMouseX;
     private bool clickHeld;
     private bool canControl = true;
+    private float sensitivityMultiplier = 1f;
 
     private void Awake()
     {
@@ -63,7 +64,7 @@ public class PlayerMovement3D : MonoBehaviour
             (mousePosition.x - center.x) / center.x,
             (mousePosition.y - center.y) / center.y);
 
-        targetInput *= inputSensitivity;
+        targetInput *= inputSensitivity * sensitivityMultiplier;
 
         targetInput.x = Mathf.Clamp(
             targetInput.x,
@@ -158,6 +159,11 @@ public class PlayerMovement3D : MonoBehaviour
             _t.rotation,
             targetRotation,
             rotationSmooth * Time.deltaTime);
+    }
+
+    public void SetSensitivityMultiplier(float value)
+    {
+        sensitivityMultiplier = value;
     }
 
     public void SetControlEnabled(bool value)

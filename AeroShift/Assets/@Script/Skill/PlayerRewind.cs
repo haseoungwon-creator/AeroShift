@@ -4,9 +4,9 @@ using UnityEngine;
 
 public class PlayerRewind : MonoBehaviour
 {
-    [SerializeField, Min(0.01f)] private float rewindDuration = 5f;
-    [SerializeField, Min(0.001f)] private float recordInterval = 0.02f;
-    [SerializeField, Min(0.01f)] private float rewindPlayDuration = 2f;
+    [SerializeField] private float rewindDuration = 5f;
+    [SerializeField] private float recordInterval = 0.02f;
+    [SerializeField] private float rewindPlayDuration = 2f;
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private PlayerController playerController;
     [SerializeField] private WorldMovement worldMovement;
@@ -40,13 +40,21 @@ public class PlayerRewind : MonoBehaviour
     private bool collidersSuspended;
     private bool controlWasEnabled;
 
-    public bool IsRewinding => isRewinding;
-    public bool CanRewind => !hasUsed && !isRewinding;
-    // ���õ��� ���� ��ų�� ���/�� ���� ����� �߻���Ű�� �ʽ��ϴ�.
-    private bool IsRewindSelected =>
-        skillManager != null && skillManager.IsSelected(SkillType.Rewind);
+    public bool IsRewinding
+    {
+        get { return isRewinding; }
+    }
 
-    // Streaming retains actual recorded history, including at low frame rates.
+    public bool CanRewind
+    {
+        get { return !hasUsed && !isRewinding; }
+    }
+
+    private bool IsRewindSelected
+    {
+        get { return skillManager != null && skillManager.IsSelected(SkillType.Rewind); }
+    }
+
     public bool TryGetOldestLogicalZ(out float logicalZ)
     {
         logicalZ = 0f;
@@ -71,7 +79,6 @@ public class PlayerRewind : MonoBehaviour
         if (playerController == null)
             playerController = GetComponent<PlayerController>();
 
-        // Main ���� SkillManager�� ���� �� �� ���� Ž���մϴ�.
         if (skillManager == null)
             skillManager = FindFirstObjectByType<SkillManager>();
 
@@ -80,7 +87,7 @@ public class PlayerRewind : MonoBehaviour
 
     private void Update()
     {
-        // TimeSlow/�̼���/�̹� ����� Rewind�� ����� �ʿ䰡 �����ϴ�.
+
         if (!IsGamePlaying() || !IsRewindSelected || !CanRewind)
             return;
 
@@ -119,10 +126,7 @@ public class PlayerRewind : MonoBehaviour
             return;
 
         if (playerController == null)
-        {
-            Debug.LogError("PlayerRewind�� PlayerController�� ������� �ʾҽ��ϴ�.", this);
             return;
-        }
 
         positionBuffer[bufferIndex] = CapturePosition();
         bufferIndex = (bufferIndex + 1) % positionBuffer.Length;
@@ -300,6 +304,20 @@ public class PlayerRewind : MonoBehaviour
     {
         return GameManager.Instance != null &&
             GameManager.Instance.CurrentState == GameStates.Playing;
+    }
+
+    public void SetRewindDuration(float seconds)
+    {
+        if (seconds <= 0f)
+            return;
+
+        rewindDuration = seconds;
+
+        int bufferSize = Mathf.Max(2, Mathf.CeilToInt(rewindDuration / recordInterval) + 1);
+        positionBuffer = new PositionData[bufferSize];
+        bufferIndex = 0;
+        bufferCount = 0;
+        recordTimer = 0f;
     }
 
     public void ResetRewind()
