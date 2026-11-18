@@ -37,9 +37,28 @@ public class Missile : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!other.CompareTag("Player")) return;
+        if (!other.CompareTag("Player") && other.GetComponentInParent<PlayerController>() == null)
+            return;
 
-        GameManager.Instance.GameOver();
+        PhaseDash phaseDash = other.GetComponentInParent<PhaseDash>();
+
+        if (phaseDash != null && phaseDash.IsDashing)
+        {
+            ReturnToPool();
+            return;
+        }
+
+        Shield shield = other.GetComponentInParent<Shield>();
+
+        if (shield != null && shield.TryBlockHit())
+        {
+            ReturnToPool();
+            return;
+        }
+
+        if (GameManager.Instance != null)
+            GameManager.Instance.GameOver();
+
         ReturnToPool();
     }
 }

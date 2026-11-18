@@ -10,7 +10,7 @@ public class WorldMovement : MonoBehaviour
 
     public float CurrentSpeed
     {
-        get { return currentSpeed * statSpeedMultiplier * temporarySpeedMultiplier; }
+        get { return currentSpeed * statSpeedMultiplier * temporarySpeedMultiplier + dashSpeedBonus; }
     }
 
     public bool IsRewinding { get; private set; }
@@ -19,6 +19,7 @@ public class WorldMovement : MonoBehaviour
     private float speedTimer;
     private float statSpeedMultiplier = 1f;
     private float temporarySpeedMultiplier = 1f;
+    private float dashSpeedBonus;
 
     private void Awake()
     {
@@ -51,6 +52,11 @@ public class WorldMovement : MonoBehaviour
         temporarySpeedMultiplier = value;
     }
 
+    public void SetDashSpeedBonus(float value)
+    {
+        dashSpeedBonus = Mathf.Max(0f, value);
+    }
+
     public void SetMovement(bool value)
     {
         canMove = value;
@@ -72,6 +78,7 @@ public class WorldMovement : MonoBehaviour
         currentSpeed = worldSpeed;
         speedTimer = 0f;
         temporarySpeedMultiplier = 1f;
+        dashSpeedBonus = 0f;
         IsRewinding = false;
     }
 }

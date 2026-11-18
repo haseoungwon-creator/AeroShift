@@ -1,4 +1,3 @@
-using UnityEditor;
 using UnityEngine;
 
 public enum SkillType
@@ -6,11 +5,11 @@ public enum SkillType
     None,
     time_rewind,
     slow_motion,
+    phase_shield,
     missile_suppression,//
     missile_slow,//
-    phase_dash,//
-    shockwave,//
-    phase_shield/**/
+    phase_dash,/**/
+    shockwave//
 }
 
 public class SkillManager : MonoBehaviour
@@ -18,20 +17,22 @@ public class SkillManager : MonoBehaviour
     [SerializeField] PlayerRewind playerRewind;
     [SerializeField] TimeSlow timeSlow;
     [SerializeField] Shield shield;
+    [SerializeField] PhaseDash phaseDash;
+
     private SkillInfo selectedSkillInfo;
 
     public SkillType SelectedSkill { get; private set; } = SkillType.None;
 
     public void SetSelectedSkill(SkillInfo info)
     {
-        if (info != null && selectedSkillInfo != null)
-        {
-            if (info.id == selectedSkillInfo.id)
-                return;
-        }
+        if (info != null && selectedSkillInfo != null && info.id == selectedSkillInfo.id)
+            return;
 
         if (shield != null)
             shield.ResetSkill();
+
+        if (phaseDash != null)
+            phaseDash.ResetSkill();
 
         selectedSkillInfo = info;
         SelectedSkill = SkillType.None;
@@ -50,6 +51,10 @@ public class SkillManager : MonoBehaviour
         {
             SelectedSkill = SkillType.slow_motion;
         }
+        else if (info.id == "phase_dash")
+        {
+            SelectedSkill = SkillType.phase_dash;
+        }
         else if (info.id == "phase_shield")
         {
             SelectedSkill = SkillType.phase_shield;
@@ -61,22 +66,25 @@ public class SkillManager : MonoBehaviour
 
     public void SelectSkill(SkillType skillType)
     {
-        if (GameManager.Instance == null)
+        if (GameManager.Instance == null || GameManager.Instance.CurrentState != GameStates.Ready)
             return;
 
-        if (GameManager.Instance.CurrentState != GameStates.Ready)
-            return;
+        if (shield != null)
+            shield.ResetSkill();
+
+        if (phaseDash != null)
+            phaseDash.ResetSkill();
 
         selectedSkillInfo = null;
         SelectedSkill = skillType;
+
+        if (skillType == SkillType.phase_shield && shield != null)
+            shield.Activate();
     }
 
     public void UseSkill()
     {
-        if (GameManager.Instance == null)
-            return;
-
-        if (GameManager.Instance.CurrentState != GameStates.Playing)
+        if (GameManager.Instance == null || GameManager.Instance.CurrentState != GameStates.Playing)
             return;
 
         switch (SelectedSkill)
@@ -89,28 +97,16 @@ public class SkillManager : MonoBehaviour
                 UseTimeSlow();
                 break;
 
-            case SkillType.missile_suppression:
-                break;
-
-            case SkillType.missile_slow:
-                break;
-
             case SkillType.phase_dash:
+                UseDash();
                 break;
-
-            case SkillType.shockwave:
-                break;
-
-
         }
     }
 
     private void UseRewind()
     {
-        if (playerRewind == null)
-            return;
-
-        playerRewind.Rewind();
+        if (playerRewind != null)
+            playerRewind.Rewind();
     }
 
     private void UseTimeSlow()
@@ -124,11 +120,17 @@ public class SkillManager : MonoBehaviour
             timeSlow.Activate();
     }
 
-    private void UseShield()
+    private void UseDash()
     {
-        if (shield == null) return;
+        if (phaseDash == null)
+            return;
 
-        shield.Activate();
+        float distance = 300f;
+
+        if (selectedSkillInfo != null)
+            distance = selectedSkillInfo.skillValue;
+
+        phaseDash.Activate(distance);
     }
 
     public bool IsSkillSelected()
@@ -154,5 +156,8 @@ public class SkillManager : MonoBehaviour
 
         if (shield != null)
             shield.ResetSkill();
+
+        if (phaseDash != null)
+            phaseDash.ResetSkill();
     }
 }

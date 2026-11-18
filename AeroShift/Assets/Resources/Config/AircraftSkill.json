@@ -37,7 +37,7 @@
       "name": "Phase Dash",
       "description": "Dash forward 8 meters and briefly ignore collisions.",
       "iconID": "phase_dash",
-      "skillValue": 8.0,
+      "skillValue": 300.0,
       "canReroll": true
     },
     {
