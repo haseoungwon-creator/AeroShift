@@ -1,6 +1,5 @@
 using UnityEngine;
 
-[DisallowMultipleComponent]
 public sealed class PooledObject : MonoBehaviour
 {
     public PoolId PoolId { get; private set; }

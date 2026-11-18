@@ -12,8 +12,15 @@ public class SkillSelectionManager : MonoBehaviour
     private int[] remainingRerolls;
     private int bonusRerolls;
 
-    public SkillInfo SelectedSkill { get; private set; }
-    public string SelectedSkillId { get; private set; }
+    public SkillInfo SelectedSkill
+    {
+        get { return selectedSkillSO != null ? selectedSkillSO.CurrentSkill : null; }
+    }
+
+    public string SelectedSkillId
+    {
+        get { return SelectedSkill != null ? SelectedSkill.id : ""; }
+    }
 
     private void Awake()
     {
@@ -21,14 +28,9 @@ public class SkillSelectionManager : MonoBehaviour
         skillDataManager.LoadSkills();
     }
 
-    private void OnEnable()
-    {
-        ShowRandomSkills();
-    }
-
     public void ShowRandomSkills()
     {
-        if(skillSelectPanel != null)
+        if (skillSelectPanel != null)
             skillSelectPanel.SetActive(true);
 
         if (selectedSkillSO != null)
@@ -45,7 +47,8 @@ public class SkillSelectionManager : MonoBehaviour
         if (skills == null)
             return;
 
-        remainingRerolls = new int[skillSelections.Length];
+        if (remainingRerolls == null || remainingRerolls.Length != skillSelections.Length)
+            remainingRerolls = new int[skillSelections.Length];
 
         for (int i = 0; i < skillSelections.Length; i++)
         {
@@ -58,8 +61,6 @@ public class SkillSelectionManager : MonoBehaviour
             UpdateRerollButton(i);
         }
 
-        SelectedSkill = null;
-        SelectedSkillId = "";
     }
 
     public void RerollSkill(SkillSelectionUI selection)
@@ -111,12 +112,6 @@ public class SkillSelectionManager : MonoBehaviour
         if (newSkill == null)
             return;
 
-        if (SelectedSkill == currentSkill)
-        {
-            SelectedSkill = null;
-            SelectedSkillId = "";
-        }
-
         remainingRerolls[index]--;
         selection.SetSkill(newSkill, this);
         UpdateRerollButton(index);
@@ -131,9 +126,6 @@ public class SkillSelectionManager : MonoBehaviour
 
         if (playerStats != null)
             playerStats.LoadStats();
-
-        SelectedSkill = info;
-        SelectedSkillId = info.id;
 
         if (skillSelectPanel != null)
             skillSelectPanel.SetActive(false);

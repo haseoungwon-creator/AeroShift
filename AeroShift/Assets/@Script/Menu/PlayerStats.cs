@@ -18,9 +18,6 @@ public class PlayerStats : MonoBehaviour
 
     private void Start()
     {
-        if (selectedSkill != null)
-            selectedSkill.ClearSkill();
-
         LoadStats();
     }
 

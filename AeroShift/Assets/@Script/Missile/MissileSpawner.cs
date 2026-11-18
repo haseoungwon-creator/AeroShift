@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Collections;
 using UnityEngine;
 
@@ -17,8 +16,6 @@ public class MissileSpawner : MonoBehaviour
     private float spawnTimer;
     private float nextSpawnTime;
 
-    private readonly List<Vector3> transitionSpawnPositions = new List<Vector3>(20);
-    private readonly List<Vector3> transitionDirections = new List<Vector3>(20);
     private WaitForSeconds warningWait;
     private Camera gameCamera;
     private bool poolsReady;
@@ -208,69 +205,6 @@ public class MissileSpawner : MonoBehaviour
     {
         spawnTimer = 0f;
         SetNextSpawnTime();
-    }
-
-    public IEnumerator SpawnTransitionPattern()
-    {
-        enabled = false;
-            yield break;
-
-        transitionSpawnPositions.Clear();
-        transitionDirections.Clear();
-
-        yield return WaitForAllMissilesReturned();
-
-        for (int i = 0; i < 4; i++)
-        {
-            Vector3 direction;
-
-            switch (i)
-            {
-                case 0: direction = Vector3.back; break;
-                case 1: direction = Vector3.forward; break;
-                case 2: direction = Vector3.left; break;
-                default: direction = Vector3.right; break;
-            }
-
-            SpawnTransitionWarnings(direction);
-        }
-
-        yield return warningWait;
-
-        SpawnTransitionMissiles();
-    }
-    private void SpawnTransitionWarnings(Vector3 direction)
-    {
-        for (int i = 0; i < 5; i++)
-        {
-            Vector3 spawnPosition = GetSpawnPosition(direction);
-
-            transitionSpawnPositions.Add(spawnPosition);
-            transitionDirections.Add(direction);
-            ShowWarning(spawnPosition, direction);
-        }
-    }
-
-    private IEnumerator WaitForAllMissilesReturned()
-    {
-        while (poolManager.GetActiveCount(PoolId.Missile) > 0)
-        {
-            yield return null;
-        }
-    }
-
-    private void SpawnTransitionMissiles()
-    {
-        for (int i = 0; i < transitionSpawnPositions.Count; i++)
-            SpawnMissileAt(transitionSpawnPositions[i], transitionDirections[i]);
-    }
-
-    private float GetTransitionPatternDuration()
-    {
-        float horizontalTime = (spawnWidth + spawnDistance * 2f) / 20f;
-        float verticalTime = (spawnHeight + spawnDistance * 2f) / 20f;
-
-        return Mathf.Max(horizontalTime, verticalTime);
     }
 
     private Vector2 GetWarningScreenPosition(Vector3 spawnPosition, Vector3 direction)

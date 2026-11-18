@@ -1,31 +1,11 @@
-
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class CloudSpawner : MonoBehaviour
 {
-    private const int SpawnsPerFrame = 4;
-    private const int PlacementsPerFrame = 50;
-    private const int AllowedStalledFrames = 120;
-
-    private struct CloudEntry
-    {
-        public GameObject Cloud;
-        public double RecycleDistance;
-
-        public CloudEntry(
-            GameObject cloud,
-            double recycleDistance)
-        {
-            Cloud = cloud;
-            RecycleDistance = recycleDistance;
-        }
-    }
-
     [SerializeField] private PoolManager poolManager;
     [SerializeField] private WorldMovement worldMovement;
-
     [SerializeField] private float spawnWidth = 200f;
     [SerializeField] private float spawnDistance = 1400f;
     [SerializeField] private float despawnDistance = 100f;
@@ -33,78 +13,67 @@ public sealed class CloudSpawner : MonoBehaviour
     [SerializeField] private float moveSpeed = 20f;
     [SerializeField] private float height3D = 80f;
     [SerializeField] private float height2D = -20f;
-
     [SerializeField] private bool enableDistanceCulling = true;
     [SerializeField] private string cloudLayerName = "Cloud";
     [SerializeField] private float cloudCullDistance = 900f;
     [SerializeField] private float cullPreloadMargin = 100f;
     [SerializeField] private Camera[] cullingCameras;
-
     [SerializeField] private float rootRebaseDistance = 5000f;
 
-    private readonly List<CloudEntry> cloudHeap =
-        new List<CloudEntry>(256);
+    private struct CloudItem
+    {
+        public GameObject Object;
+        public double RecycleAt;
 
-    private readonly Dictionary<Camera, float> originalCullDistances =
-        new Dictionary<Camera, float>();
+        public CloudItem(GameObject instance, double recycleAt)
+        {
+            Object = instance;
+            RecycleAt = recycleAt;
+        }
+    }
 
-    private Transform activeCloudRoot;
-
+    private readonly Queue<CloudItem> initialClouds = new Queue<CloudItem>(256);
+    private readonly Queue<CloudItem> runtimeClouds = new Queue<CloudItem>(256);
+    private readonly Dictionary<Camera, float> originalCullDistances = new Dictionary<Camera, float>();
+    private Transform cloudRoot;
     private double scrollDistance;
     private double nextSpawnDistance;
-
     private float effectiveSpawnDistance;
-    private float initialOriginX;
-    private float initialOriginZ;
-
+    private float originX;
+    private float originZ;
     private int initialTargetCount;
     private int initialPlacedCount;
-    private int nextInitialIndex;
+    private int initialIndex;
     private int stalledFrames;
-
+    private int cloudLayer = -1;
     private bool initialized;
     private bool is2D;
     private bool spawnRangeLimited;
+    private GameStates lastState;
+    private bool hasLastState;
 
-    private GameStates lastGameState;
-    private bool hasLastGameState;
-
-    private int cloudLayer = -1;
-
-    public bool DistanceCullingEnabled => enableDistanceCulling;
-
-    public int InitialTargetCount => initialTargetCount;
-    public int InitialPlacedCount => initialPlacedCount;
-    public int ActiveCloudCount => cloudHeap.Count;
-    public float EffectiveSpawnDistance => effectiveSpawnDistance;
-    public bool SpawnRangeLimited => spawnRangeLimited;
+    public bool DistanceCullingEnabled { get { return enableDistanceCulling; } }
+    public int InitialTargetCount { get { return initialTargetCount; } }
+    public int InitialPlacedCount { get { return initialPlacedCount; } }
+    public int ActiveCloudCount { get { return initialClouds.Count + runtimeClouds.Count; } }
+    public float EffectiveSpawnDistance { get { return effectiveSpawnDistance; } }
+    public bool SpawnRangeLimited { get { return spawnRangeLimited; } }
     public int CloudRentFailures { get; private set; }
     public int RuntimeSpawnCount { get; private set; }
-
-    public bool InitialPlacementComplete =>
-        initialized && nextInitialIndex < 0;
+    public bool InitialPlacementComplete { get { return initialized && initialIndex < 0; } }
 
     private void Start()
     {
-        if (poolManager == null || worldMovement == null)
-        {
-            enabled = false;
-            return;
-        }
-
-        if (poolManager.GetVariantCount(PoolId.Cloud) == 0)
+        if (poolManager == null || worldMovement == null || poolManager.GetVariantCount(PoolId.Cloud) == 0)
         {
             enabled = false;
             return;
         }
 
         GameObject root = new GameObject("CloudActiveRoot");
-
-        activeCloudRoot = root.transform;
-        activeCloudRoot.SetParent(transform, false);
-
+        cloudRoot = root.transform;
+        cloudRoot.SetParent(transform, false);
         initialized = true;
-
         ApplyDistanceCulling();
         ConfigureSpawn();
     }
@@ -122,160 +91,82 @@ public sealed class CloudSpawner : MonoBehaviour
 
     private void Update()
     {
-        if (!initialized)
+        if (!initialized || GameManager.Instance == null)
             return;
 
-        GameManager manager = GameManager.Instance;
-
-        if (manager == null)
-            return;
-
-        GameStates state = manager.CurrentState;
-
-        if (hasLastGameState &&
-            lastGameState != state &&
-            state == GameStates.Ready)
-        {
+        GameStates state = GameManager.Instance.CurrentState;
+        if (hasLastState && state != lastState && state == GameStates.Ready)
             ResetClouds();
-        }
-
-        lastGameState = state;
-        hasLastGameState = true;
+        lastState = state;
+        hasLastState = true;
 
         if (state == GameStates.Ready)
         {
             PlaceInitialClouds();
             return;
         }
-
-        if (state != GameStates.Playing ||
-            worldMovement.IsRewinding)
+        if (state != GameStates.Playing || worldMovement.IsRewinding)
             return;
 
-        float deltaTime = Time.deltaTime;
-
-        if (deltaTime <= 0f)
+        float distance = Mathf.Max(0f, moveSpeed + worldMovement.CurrentSpeed) * Time.deltaTime;
+        if (distance <= 0f)
             return;
 
-        float speed = Mathf.Max(
-            0f,
-            moveSpeed + worldMovement.CurrentSpeed
-        );
-
-        float distance = speed * deltaTime;
-
-        if (distance > 0f)
-        {
-            scrollDistance += distance;
-
-            MoveCloudGroup(distance);
-            RecycleClouds();
-            RebaseRootIfNeeded();
-            SpawnByDistance();
-        }
+        scrollDistance += distance;
+        cloudRoot.position += Vector3.back * distance;
+        Recycle(initialClouds);
+        Recycle(runtimeClouds);
+        RebaseRoot();
 
         if (!InitialPlacementComplete)
             PlaceInitialClouds();
+        if (InitialPlacementComplete)
+            SpawnByDistance();
     }
 
     private void ConfigureSpawn()
     {
-        effectiveSpawnDistance =
-            Mathf.Max(0f, spawnDistance);
-
+        effectiveSpawnDistance = Mathf.Max(0f, spawnDistance);
         spawnRangeLimited = false;
-
-        if (enableDistanceCulling &&
-            cloudLayer >= 0 &&
-            originalCullDistances.Count > 0)
+        if (enableDistanceCulling && cloudLayer >= 0 && originalCullDistances.Count > 0)
         {
-            effectiveSpawnDistance = Mathf.Min(
-                effectiveSpawnDistance,
-                cloudCullDistance + cullPreloadMargin
-            );
-
-            spawnRangeLimited =
-                effectiveSpawnDistance < spawnDistance;
+            effectiveSpawnDistance = Mathf.Min(effectiveSpawnDistance, cloudCullDistance + cullPreloadMargin);
+            spawnRangeLimited = effectiveSpawnDistance < spawnDistance;
         }
 
         spawnSpacing = Mathf.Max(0.1f, spawnSpacing);
-
-        initialOriginX = transform.position.x;
-        initialOriginZ = transform.position.z;
-
-        float range =
-            effectiveSpawnDistance +
-            Mathf.Max(0f, despawnDistance);
-
-        initialTargetCount = Mathf.CeilToInt(
-            range / spawnSpacing
-        );
-
+        originX = transform.position.x;
+        originZ = transform.position.z;
+        initialTargetCount = Mathf.CeilToInt((effectiveSpawnDistance + Mathf.Max(0f, despawnDistance)) / spawnSpacing);
         initialPlacedCount = 0;
-        nextInitialIndex = initialTargetCount - 1;
+        initialIndex = initialTargetCount - 1;
         stalledFrames = 0;
-
-        nextSpawnDistance =
-            scrollDistance + spawnSpacing;
-
-        if (cloudHeap.Capacity < initialTargetCount)
-            cloudHeap.Capacity = initialTargetCount;
+        nextSpawnDistance = scrollDistance + spawnSpacing;
     }
 
     private void PlaceInitialClouds()
     {
-        if (InitialPlacementComplete)
-            return;
-
         int processed = 0;
-
-        float despawnZ =
-            transform.position.z - despawnDistance;
-
-        while (nextInitialIndex >= 0 &&
-               processed < PlacementsPerFrame)
+        while (initialIndex >= 0 && processed < 50)
         {
-            float z =
-                initialOriginZ +
-                effectiveSpawnDistance -
-                spawnSpacing * nextInitialIndex -
-                (float)scrollDistance;
-
-            if (z < despawnZ)
+            float z = originZ + effectiveSpawnDistance - spawnSpacing * initialIndex - (float)scrollDistance;
+            if (z < transform.position.z - despawnDistance)
             {
-                nextInitialIndex--;
+                initialIndex--;
                 processed++;
                 continue;
             }
-
-            float x = GetRandomX();
-
-            Vector3 position = new Vector3(
-                x,
-                GetCloudHeight(),
-                z
-            );
-
-            GameObject cloud =
-                poolManager.RentInactive(PoolId.Cloud, position, activeCloudRoot);
-
-            if (cloud == null)
+            if (!SpawnCloud(z, initialClouds))
             {
                 CloudRentFailures++;
                 stalledFrames++;
-
-                if (stalledFrames >= AllowedStalledFrames)
-                    nextInitialIndex = -1;
-
+                if (stalledFrames >= 120)
+                    initialIndex = -1;
                 return;
             }
-
             stalledFrames = 0;
-
-            RegisterCloud(cloud, z);
-
             initialPlacedCount++;
-            nextInitialIndex--;
+            initialIndex--;
             processed++;
         }
     }
@@ -283,239 +174,149 @@ public sealed class CloudSpawner : MonoBehaviour
     private void SpawnByDistance()
     {
         double spacing = spawnSpacing;
-
-        double backlog =
-            scrollDistance - nextSpawnDistance;
-
-        double allowedBacklog =
-            spacing * SpawnsPerFrame;
-
-        if (backlog > allowedBacklog)
-        {
-            long skipped = (long)Math.Ceiling(
-                (backlog - allowedBacklog) / spacing
-            );
-
-            nextSpawnDistance += skipped * spacing;
-        }
+        double backlog = scrollDistance - nextSpawnDistance;
+        if (backlog > spacing * 4d)
+            nextSpawnDistance += Math.Ceiling((backlog - spacing * 4d) / spacing) * spacing;
 
         int processed = 0;
-
-        while (scrollDistance >= nextSpawnDistance &&
-               processed < SpawnsPerFrame)
+        while (scrollDistance >= nextSpawnDistance && processed < 4)
         {
-            double overshoot =
-                scrollDistance - nextSpawnDistance;
-
-            float z =
-                transform.position.z +
-                effectiveSpawnDistance -
-                (float)overshoot;
-
-            float despawnZ =
-                transform.position.z - despawnDistance;
-
-            if (z >= despawnZ)
+            float z = transform.position.z + effectiveSpawnDistance - (float)(scrollDistance - nextSpawnDistance);
+            if (z >= transform.position.z - despawnDistance)
             {
-                Vector3 position = new Vector3(
-                    GetRandomX(),
-                    GetCloudHeight(),
-                    z
-                );
-
-                GameObject cloud =
-                    poolManager.RentInactive(PoolId.Cloud, position, activeCloudRoot);
-
-                if (cloud != null)
-                {
-                    RegisterCloud(cloud, z);
+                if (SpawnCloud(z, runtimeClouds))
                     RuntimeSpawnCount++;
-                }
                 else
-                {
                     CloudRentFailures++;
-                }
             }
-
             nextSpawnDistance += spacing;
             processed++;
         }
     }
 
-    private void RegisterCloud(
-        GameObject cloud,
-        float worldZ)
+    private bool SpawnCloud(float z, Queue<CloudItem> queue)
     {
+        float x = originX + UnityEngine.Random.Range(-spawnWidth * 0.5f, spawnWidth * 0.5f);
+        float y = is2D ? height2D : height3D;
+        GameObject cloud = poolManager.RentInactive(PoolId.Cloud, new Vector3(x, y, z), cloudRoot);
+        if (cloud == null)
+            return false;
 
+        double recycleAt = z + scrollDistance - (transform.position.z - despawnDistance);
+        queue.Enqueue(new CloudItem(cloud, recycleAt));
         cloud.SetActive(true);
-
-        double recycleDistance =
-            worldZ +
-            scrollDistance -
-            (transform.position.z - despawnDistance);
-
-        PushCloud(
-            new CloudEntry(cloud, recycleDistance)
-        );
+        return true;
     }
 
-    private void MoveCloudGroup(float distance)
+    private void Recycle(Queue<CloudItem> queue)
     {
-        activeCloudRoot.position +=
-            Vector3.back * distance;
-    }
-
-    private void RecycleClouds()
-    {
-        while (cloudHeap.Count > 0 &&
-               cloudHeap[0].RecycleDistance <
-               scrollDistance)
+        while (queue.Count > 0 && queue.Peek().RecycleAt < scrollDistance)
         {
-            CloudEntry expired = PopCloud();
-
-            if (expired.Cloud != null)
-                poolManager.Return(expired.Cloud);
+            CloudItem cloud = queue.Dequeue();
+            if (cloud.Object != null)
+                poolManager.Return(cloud.Object);
         }
     }
 
-    private void RebaseRootIfNeeded()
+    private void RebaseRoot()
     {
-        Vector3 rootPosition = activeCloudRoot.position;
-
-        float offsetZ =
-            rootPosition.z - transform.position.z;
-
-        if (Mathf.Abs(offsetZ) <
-            Mathf.Max(100f, rootRebaseDistance))
+        float offset = cloudRoot.position.z - transform.position.z;
+        if (Mathf.Abs(offset) < Mathf.Max(100f, rootRebaseDistance))
             return;
 
+        Vector3 rootPosition = cloudRoot.position;
         rootPosition.z = transform.position.z;
-        activeCloudRoot.position = rootPosition;
+        cloudRoot.position = rootPosition;
+        RebaseClouds(initialClouds, offset);
+        RebaseClouds(runtimeClouds, offset);
+    }
 
-        for (int i = 0; i < cloudHeap.Count; i++)
+    private void RebaseClouds(Queue<CloudItem> queue, float offset)
+    {
+        foreach (CloudItem item in queue)
         {
-            GameObject cloud = cloudHeap[i].Cloud;
-
-            if (cloud == null)
+            if (item.Object == null)
                 continue;
-
-            Transform target = cloud.transform;
-            Vector3 position = target.position;
-
-            position.z += offsetZ;
-            target.position = position;
+            Vector3 position = item.Object.transform.position;
+            position.z += offset;
+            item.Object.transform.position = position;
         }
     }
 
-    private void PushCloud(CloudEntry entry)
+    public void Set2DMode()
     {
-        int index = cloudHeap.Count;
-
-        cloudHeap.Add(entry);
-
-        while (index > 0)
-        {
-            int parent = (index - 1) / 2;
-
-            CloudEntry parentEntry = cloudHeap[parent];
-
-            if (parentEntry.RecycleDistance <=
-                entry.RecycleDistance)
-                break;
-
-            cloudHeap[index] = parentEntry;
-            index = parent;
-        }
-
-        cloudHeap[index] = entry;
+        if (is2D)
+            return;
+        is2D = true;
+        ChangeCloudHeight(height2D - height3D);
     }
 
-    private CloudEntry PopCloud()
+    public void Set3DMode()
     {
-        CloudEntry result = cloudHeap[0];
+        if (!is2D)
+            return;
+        is2D = false;
+        ChangeCloudHeight(height3D - height2D);
+    }
 
-        int lastIndex = cloudHeap.Count - 1;
-        CloudEntry last = cloudHeap[lastIndex];
+    private void ChangeCloudHeight(float difference)
+    {
+        if (cloudRoot != null)
+            cloudRoot.position += Vector3.up * difference;
+    }
 
-        cloudHeap.RemoveAt(lastIndex);
+    public void ResetClouds()
+    {
+        if (!initialized)
+            return;
+        ReturnClouds(initialClouds);
+        ReturnClouds(runtimeClouds);
+        cloudRoot.localPosition = Vector3.zero;
+        scrollDistance = 0d;
+        is2D = false;
+        CloudRentFailures = 0;
+        RuntimeSpawnCount = 0;
+        ConfigureSpawn();
+    }
 
-        if (lastIndex == 0)
-            return result;
-
-        int index = 0;
-        int count = cloudHeap.Count;
-
-        while (true)
+    private void ReturnClouds(Queue<CloudItem> queue)
+    {
+        while (queue.Count > 0)
         {
-            int left = index * 2 + 1;
-
-            if (left >= count)
-                break;
-
-            int right = left + 1;
-
-            int child =
-                right < count &&
-                cloudHeap[right].RecycleDistance <
-                cloudHeap[left].RecycleDistance
-                    ? right
-                    : left;
-
-            if (last.RecycleDistance <=
-                cloudHeap[child].RecycleDistance)
-                break;
-
-            cloudHeap[index] = cloudHeap[child];
-            index = child;
+            CloudItem cloud = queue.Dequeue();
+            if (cloud.Object != null)
+                poolManager.Return(cloud.Object);
         }
-
-        cloudHeap[index] = last;
-
-        return result;
     }
 
     private void ApplyDistanceCulling()
     {
         if (!enableDistanceCulling)
             return;
-
         int layer = LayerMask.NameToLayer(cloudLayerName);
-
         if (layer < 0)
             return;
-
         cloudLayer = layer;
-
-        if (cullingCameras != null &&
-            cullingCameras.Length > 0)
+        if (cullingCameras != null && cullingCameras.Length > 0)
         {
             for (int i = 0; i < cullingCameras.Length; i++)
-                ConfigureCamera(cullingCameras[i]);
+                SetCameraCullDistance(cullingCameras[i]);
         }
         else
         {
-            ConfigureCamera(Camera.main);
+            SetCameraCullDistance(Camera.main);
         }
     }
 
-    private void ConfigureCamera(Camera camera)
+    private void SetCameraCullDistance(Camera camera)
     {
         if (camera == null)
             return;
-
         float[] distances = camera.layerCullDistances;
-
         if (distances == null || distances.Length != 32)
             return;
-
         if (!originalCullDistances.ContainsKey(camera))
-        {
-            originalCullDistances.Add(
-                camera,
-                distances[cloudLayer]
-            );
-        }
-
+            originalCullDistances.Add(camera, distances[cloudLayer]);
         distances[cloudLayer] = cloudCullDistance;
         camera.layerCullDistances = distances;
     }
@@ -524,102 +325,18 @@ public sealed class CloudSpawner : MonoBehaviour
     {
         if (cloudLayer < 0)
             return;
-
-        foreach (
-            KeyValuePair<Camera, float> pair
-            in originalCullDistances)
+        foreach (KeyValuePair<Camera, float> item in originalCullDistances)
         {
-            Camera camera = pair.Key;
-
+            Camera camera = item.Key;
             if (camera == null)
                 continue;
-
-            float[] distances =
-                camera.layerCullDistances;
-
+            float[] distances = camera.layerCullDistances;
             if (distances == null || distances.Length != 32)
                 continue;
-
-            distances[cloudLayer] = pair.Value;
+            distances[cloudLayer] = item.Value;
             camera.layerCullDistances = distances;
         }
-
         originalCullDistances.Clear();
         cloudLayer = -1;
-    }
-
-    private float GetRandomX()
-    {
-        return initialOriginX +
-            UnityEngine.Random.Range(
-                -spawnWidth * 0.5f,
-                spawnWidth * 0.5f
-            );
-    }
-
-    private float GetCloudHeight()
-    {
-        return is2D ? height2D : height3D;
-    }
-
-    public void Set2DMode()
-    {
-        if (is2D)
-            return;
-
-        float previous = GetCloudHeight();
-        is2D = true;
-
-        ChangeCloudHeight(
-            GetCloudHeight() - previous
-        );
-    }
-
-    public void Set3DMode()
-    {
-        if (!is2D)
-            return;
-
-        float previous = GetCloudHeight();
-        is2D = false;
-
-        ChangeCloudHeight(
-            GetCloudHeight() - previous
-        );
-    }
-
-    private void ChangeCloudHeight(float difference)
-    {
-        if (activeCloudRoot == null)
-            return;
-
-        activeCloudRoot.position +=
-            Vector3.up * difference;
-    }
-
-    public void ResetClouds()
-    {
-        if (!initialized)
-            return;
-
-        for (int i = 0; i < cloudHeap.Count; i++)
-        {
-            GameObject cloud = cloudHeap[i].Cloud;
-
-            if (cloud != null)
-                poolManager.Return(cloud);
-        }
-
-        cloudHeap.Clear();
-
-        activeCloudRoot.localPosition = Vector3.zero;
-
-        scrollDistance = 0d;
-        is2D = false;
-
-        CloudRentFailures = 0;
-        RuntimeSpawnCount = 0;
-
-        ConfigureSpawn();
     }
 }

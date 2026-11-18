@@ -12,16 +12,16 @@ public class PlayerCollision : MonoBehaviour
     private void Awake()
     {
         if (playerRewind == null)
-            playerRewind = FindAnyObjectByType<PlayerRewind>();
+            playerRewind = GetComponentInParent<PlayerRewind>();
 
         if (shield == null)
-            shield = FindAnyObjectByType<Shield>();
+            shield = GetComponentInParent<Shield>();
 
         if (phaseDash == null)
-            phaseDash = FindAnyObjectByType<PhaseDash>();
+            phaseDash = GetComponentInParent<PhaseDash>();
 
         if (objRender == null)
-            objRender = GetComponent<Renderer>();
+            objRender = GetComponentInChildren<Renderer>();
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -39,13 +39,18 @@ public class PlayerCollision : MonoBehaviour
         if ((obstacleLayers.value & (1 << collisionLayer)) == 0)
             return;
 
-        StartCoroutine(BlinkRoutine(2.0f, 0.2f));
-
         if (phaseDash != null && phaseDash.IsDashing)
             return;
 
         if (shield != null && shield.TryBlockHit())
+        {
+            if (objRender != null)
+            {
+                StopAllCoroutines();
+                StartCoroutine(BlinkRoutine(2f, 0.2f));
+            }
             return;
+        }
 
         gameManager.GameOver();
     }

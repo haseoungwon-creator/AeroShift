@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -27,8 +28,10 @@ public sealed class MenuCloudSpawner : MonoBehaviour
     private readonly List<ActiveCloud> activeClouds = new List<ActiveCloud>(1500);
     private readonly List<int> validPrefabIndices = new List<int>(8);
     private MenuCloudPool cloudPool;
+    private Transform movingCloudRoot;
     private Camera menuCamera;
     private float spawnTimer;
+    private bool initialCloudsReady;
 
     private void Awake()
     {
@@ -44,29 +47,33 @@ public sealed class MenuCloudSpawner : MonoBehaviour
             }
         }
 
-        if (validPrefabIndices.Count == 0 || initialCloudCount < 0 || cloudsPerWave < 0 ||
+        if (cloudPool == null || validPrefabIndices.Count == 0 || initialCloudCount < 0 || cloudsPerWave < 0 ||
             spawnInterval <= 0f || cloudSpeed < 0f || spawnZ <= despawnZ)
         {
             enabled = false;
             return;
         }
 
-        cloudPool.Initialize(cloudPrefabs, transform);
+        GameObject cloudRoot = new GameObject("MovingClouds");
+        movingCloudRoot = cloudRoot.transform;
+        movingCloudRoot.SetParent(transform, false);
+        cloudPool.Initialize(cloudPrefabs, movingCloudRoot);
     }
 
-    private void Start()
+    private IEnumerator Start()
     {
         if (!enabled)
-            return;
+            yield break;
 
-        FillInitialClouds();
+        yield return FillInitialClouds();
         spawnTimer = 0f;
+        initialCloudsReady = true;
     }
 
-    private void FillInitialClouds()
+    private IEnumerator FillInitialClouds()
     {
         if (initialCloudCount == 0)
-            return;
+            yield break;
 
         float depth = spawnZ - despawnZ;
         float travelPerWave = cloudSpeed * spawnInterval;
@@ -79,23 +86,43 @@ public sealed class MenuCloudSpawner : MonoBehaviour
         int remainder = initialCloudCount % bands;
         float bandDepth = depth / bands;
 
+        int createdThisFrame = 0;
+
         for (int band = 0; band < bands; band++)
         {
-            int count = baseCount + (band < remainder ? 1 : 0);
+            int remaining = baseCount + (band < remainder ? 1 : 0);
             float centerZ = despawnZ + (band + 0.5f) * bandDepth;
             float z = centerZ + Random.Range(-0.2f, 0.2f) * bandDepth;
             z = Mathf.Clamp(z, despawnZ + 0.001f, spawnZ - 0.001f);
 
-            SpawnWave(count, z, bandDepth);
+            while (remaining > 0)
+            {
+                int batch = Mathf.Min(remaining, 16 - createdThisFrame);
+                SpawnWave(batch, z, bandDepth);
+                remaining -= batch;
+                createdThisFrame += batch;
+
+                if (createdThisFrame >= 16)
+                {
+                    createdThisFrame = 0;
+                    yield return null;
+                }
+            }
         }
     }
 
     private void Update()
     {
+        if (!initialCloudsReady)
+            return;
 
         float deltaTime = Mathf.Min(Time.unscaledDeltaTime, 0.1f);
         float moveDistance = cloudSpeed * deltaTime;
 
+        movingCloudRoot.localPosition += Vector3.back * moveDistance;
+        RebaseCloudRoot();
+
+        float rootZ = movingCloudRoot.localPosition.z;
         for (int i = activeClouds.Count - 1; i >= 0; i--)
         {
             ActiveCloud item = activeClouds[i];
@@ -107,11 +134,7 @@ public sealed class MenuCloudSpawner : MonoBehaviour
                 continue;
             }
 
-            Vector3 position = cloud.localPosition;
-            position.z -= moveDistance;
-            cloud.localPosition = position;
-
-            if (position.z <= despawnZ)
+            if (cloud.localPosition.z + rootZ <= despawnZ)
             {
                 cloudPool.Return(item.PrefabIndex, cloud);
                 RemoveActiveAt(i);
@@ -191,9 +214,30 @@ public sealed class MenuCloudSpawner : MonoBehaviour
             ? Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)
             : Quaternion.identity;
 
-        Transform cloud = cloudPool.Rent(index, new Vector3(localX, y, localZ), rotation, scale);
+        Vector3 position = new Vector3(localX, y, localZ - movingCloudRoot.localPosition.z);
+        Transform cloud = cloudPool.Rent(index, position, rotation, scale);
         if (cloud != null)
             activeClouds.Add(new ActiveCloud { Transform = cloud, PrefabIndex = index });
+    }
+
+    private void RebaseCloudRoot()
+    {
+        float offset = movingCloudRoot.localPosition.z;
+        if (offset > -10000f)
+            return;
+
+        for (int i = 0; i < activeClouds.Count; i++)
+        {
+            Transform cloud = activeClouds[i].Transform;
+            if (cloud == null)
+                continue;
+
+            Vector3 position = cloud.localPosition;
+            position.z += offset;
+            cloud.localPosition = position;
+        }
+
+        movingCloudRoot.localPosition = Vector3.zero;
     }
 
     private void RemoveActiveAt(int index)

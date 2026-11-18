@@ -1,13 +1,12 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 [DefaultExecutionOrder(-600)]
-public sealed class ResourceManager : MonoBehaviour
+public class ResourceManager : MonoBehaviour
 {
     [Serializable]
-    public sealed class ResourceGroupConfig
+    public class ResourceGroupConfig
     {
         public PoolId poolId;
         public string resourcesFolder;
@@ -25,46 +24,21 @@ public sealed class ResourceManager : MonoBehaviour
         new ResourceGroupConfig { poolId = PoolId.Effect, resourcesFolder = "Effect" }
     };
 
-    private readonly Dictionary<PoolId, string> groupPaths =
-        new Dictionary<PoolId, string>();
-
-    private readonly Dictionary<string, GameObject[]> groupCache =
-        new Dictionary<string, GameObject[]>(StringComparer.Ordinal);
-
-    private readonly Dictionary<string, GameObject> prefabCache =
-        new Dictionary<string, GameObject>(StringComparer.Ordinal);
-
-    private readonly Dictionary<string, List<Action<GameObject>>> pendingLoads =
-        new Dictionary<string, List<Action<GameObject>>>(StringComparer.Ordinal);
-
-    private bool groupPathsInitialized;
-    private bool isShuttingDown;
-
-    public int RegisteredGroupCount
-    {
-        get
-        {
-            InitializeGroupPaths();
-            return groupPaths.Count;
-        }
-    }
-
-    public int CachedGroupCount => groupCache.Count;
-    public int CachedPrefabCount => prefabCache.Count;
-    public int PendingLoadCount => pendingLoads.Count;
+    private readonly Dictionary<PoolId, string> groupPaths = new Dictionary<PoolId, string>();
+    private readonly Dictionary<string, GameObject[]> prefabGroups = new Dictionary<string, GameObject[]>();
+    private bool initialized;
 
     private void Awake()
     {
-        InitializeGroupPaths();
+        Initialize();
     }
 
-    private void InitializeGroupPaths()
+    private void Initialize()
     {
-        if (groupPathsInitialized)
+        if (initialized)
             return;
 
-        groupPathsInitialized = true;
-        groupPaths.Clear();
+        initialized = true;
 
         if (groups == null)
             return;
@@ -72,233 +46,62 @@ public sealed class ResourceManager : MonoBehaviour
         for (int i = 0; i < groups.Length; i++)
         {
             ResourceGroupConfig group = groups[i];
-
             if (group == null)
                 continue;
 
             string path = NormalizePath(group.resourcesFolder);
-
-            if (string.IsNullOrEmpty(path))
-            {
+            if (path.Length == 0 || groupPaths.ContainsKey(group.poolId))
                 continue;
-            }
-
-            if (groupPaths.ContainsKey(group.poolId))
-            {
-                continue;
-            }
 
             groupPaths.Add(group.poolId, path);
         }
     }
 
-    public bool TryGetGroupPath(PoolId id, out string resourceFolder)
+    public bool TryGetGroupPath(PoolId id, out string path)
     {
-        InitializeGroupPaths();
-        return groupPaths.TryGetValue(id, out resourceFolder);
+        Initialize();
+        return groupPaths.TryGetValue(id, out path);
     }
 
     public GameObject[] LoadPrefabGroup(PoolId id)
     {
-        if (!TryGetGroupPath(id, out string folder))
-        {
+        if (!TryGetGroupPath(id, out string path))
             return Array.Empty<GameObject>();
-        }
 
-        return LoadPrefabGroup(folder);
+        return LoadPrefabGroup(path);
     }
 
-    public GameObject[] LoadPrefabGroup(string resourceFolder)
+    public GameObject[] LoadPrefabGroup(string folder)
     {
-        string path = NormalizePath(resourceFolder);
-
-        if (string.IsNullOrEmpty(path))
-        {
+        string path = NormalizePath(folder);
+        if (path.Length == 0)
             return Array.Empty<GameObject>();
-        }
 
-        if (groupCache.TryGetValue(path, out GameObject[] cached))
+        if (prefabGroups.TryGetValue(path, out GameObject[] cached))
             return cached;
 
         GameObject[] prefabs = Resources.LoadAll<GameObject>(path);
-
-        Array.Sort(prefabs, (a, b) =>
-            StringComparer.Ordinal.Compare(a.name, b.name));
-
-        groupCache.Add(path, prefabs);
+        Array.Sort(prefabs, ComparePrefabNames);
+        prefabGroups.Add(path, prefabs);
         return prefabs;
     }
 
-    public GameObject LoadPrefab(PoolId id, string prefabName)
+    private static int ComparePrefabNames(GameObject first, GameObject second)
     {
-        if (!TryGetGroupPath(id, out string folder))
-        {
-            return null;
-        }
-
-        return LoadPrefab(CombinePath(folder, prefabName));
-    }
-
-    public GameObject LoadPrefab(string resourcePath)
-    {
-        string path = NormalizePath(resourcePath);
-
-        if (string.IsNullOrEmpty(path))
-        {
-            return null;
-        }
-
-        if (prefabCache.TryGetValue(path, out GameObject cached) && cached != null)
-            return cached;
-
-        GameObject prefab = Resources.Load<GameObject>(path);
-
-        if (prefab == null)
-        {
-            return null;
-        }
-
-        prefabCache[path] = prefab;
-        return prefab;
-    }
-
-    public void LoadPrefabAsync(PoolId id, string prefabName, Action<GameObject> onCompleted)
-    {
-        if (!TryGetGroupPath(id, out string folder))
-        {
-            InvokeSafely(onCompleted, null);
-            return;
-        }
-
-        LoadPrefabAsync(CombinePath(folder, prefabName), onCompleted);
-    }
-
-    public void LoadPrefabAsync(string resourcePath, Action<GameObject> onCompleted)
-    {
-        if (isShuttingDown)
-        {
-            InvokeSafely(onCompleted, null);
-            return;
-        }
-
-        string path = NormalizePath(resourcePath);
-
-        if (string.IsNullOrEmpty(path))
-        {
-            InvokeSafely(onCompleted, null);
-            return;
-        }
-
-        if (prefabCache.TryGetValue(path, out GameObject cached) && cached != null)
-        {
-            InvokeSafely(onCompleted, cached);
-            return;
-        }
-
-        if (pendingLoads.TryGetValue(path, out List<Action<GameObject>> waiting))
-        {
-            if (onCompleted != null)
-                waiting.Add(onCompleted);
-
-            return;
-        }
-
-        if (!isActiveAndEnabled)
-        {
-            InvokeSafely(onCompleted, null);
-            return;
-        }
-
-        waiting = new List<Action<GameObject>>();
-
-        if (onCompleted != null)
-            waiting.Add(onCompleted);
-
-        pendingLoads.Add(path, waiting);
-        StartCoroutine(LoadPrefabRoutine(path));
-    }
-
-    private IEnumerator LoadPrefabRoutine(string path)
-    {
-        ResourceRequest request = Resources.LoadAsync<GameObject>(path);
-        yield return request;
-
-        GameObject prefab = request.asset as GameObject;
-
-        if (prefab != null)
-            prefabCache[path] = prefab;
-
-        if (!pendingLoads.TryGetValue(path, out List<Action<GameObject>> callbacks))
-            yield break;
-
-        pendingLoads.Remove(path);
-
-        for (int i = 0; i < callbacks.Count; i++)
-            InvokeSafely(callbacks[i], prefab);
-    }
-
-    public void ClearCachedReferences()
-    {
-        groupCache.Clear();
-        prefabCache.Clear();
-    }
-
-    private void OnDestroy()
-    {
-        isShuttingDown = true;
-        List<Action<GameObject>> callbacks = new List<Action<GameObject>>();
-
-        foreach (List<Action<GameObject>> waiting in pendingLoads.Values)
-            callbacks.AddRange(waiting);
-
-        pendingLoads.Clear();
-
-        for (int i = 0; i < callbacks.Count; i++)
-            InvokeSafely(callbacks[i], null);
-    }
-
-    private void InvokeSafely(Action<GameObject> callback, GameObject prefab)
-    {
-        if (callback == null)
-            return;
-
-        try
-        {
-            callback(prefab);
-        }
-        catch (Exception)
-        {
-        }
-    }
-
-    private static string CombinePath(string folder, string prefabName)
-    {
-        string name = NormalizePath(prefabName);
-
-        if (string.IsNullOrEmpty(name))
-            return string.Empty;
-
-        return NormalizePath(folder) + "/" + name;
+        return StringComparer.Ordinal.Compare(first.name, second.name);
     }
 
     private static string NormalizePath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
-            return string.Empty;
+            return "";
 
         string result = path.Trim().Replace('\\', '/').Trim('/');
+        if (result.StartsWith("Assets/Resources/", StringComparison.OrdinalIgnoreCase))
+            result = result.Substring("Assets/Resources/".Length);
+        else if (result.StartsWith("Resources/", StringComparison.OrdinalIgnoreCase))
+            result = result.Substring("Resources/".Length);
 
-        const string assetsPrefix = "Assets/Resources/";
-        const string resourcesPrefix = "Resources/";
-
-        if (result.StartsWith(assetsPrefix, StringComparison.OrdinalIgnoreCase))
-            result = result.Substring(assetsPrefix.Length);
-        else if (result.StartsWith(resourcesPrefix, StringComparison.OrdinalIgnoreCase))
-            result = result.Substring(resourcesPrefix.Length);
-
-        if (result.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase))
-            result = result.Substring(0, result.Length - ".prefab".Length);
-
-        return result.Trim('/');
+        return result;
     }
 }
