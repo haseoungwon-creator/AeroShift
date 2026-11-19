@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class MissileSpawner : MonoBehaviour
 {
@@ -13,6 +15,8 @@ public class MissileSpawner : MonoBehaviour
     [SerializeField] float spawnDistance = 20f;
     [SerializeField] float warningDuration = 2f;
     [SerializeField, Min(1)] int transitionMissileCount = 3;
+
+    public event Action<Missile> MissileSpawned;
 
     private float spawnTimer;
     private float nextSpawnTime;
@@ -148,6 +152,7 @@ public class MissileSpawner : MonoBehaviour
         }
 
         missile.Initialize(poolManager, direction, GetTravelDistance(direction));
+        MissileSpawned?.Invoke(missile);
         missileObject.SetActive(true);
     }
 

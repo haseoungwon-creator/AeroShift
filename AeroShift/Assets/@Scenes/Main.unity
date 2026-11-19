@@ -568,66 +568,48 @@ MonoBehaviour:
   groups:
   - id: 0
     parent: {fileID: 435030245}
-    prefabSource: 1
-    resourcesFolder: 
     resourceInitialCount: 192
     resourceExpandWhenEmpty: 1
-    variants: []
     initializeOnFirstUse: 0
     enableAutoShrink: 1
     idleSecondsBeforeShrink: 6
     shrinkCheckIntervalSeconds: 2
   - id: 1
     parent: {fileID: 1731601333}
-    prefabSource: 1
-    resourcesFolder: 
     resourceInitialCount: 3
     resourceExpandWhenEmpty: 1
-    variants: []
     initializeOnFirstUse: 0
     enableAutoShrink: 0
     idleSecondsBeforeShrink: 60
     shrinkCheckIntervalSeconds: 10
   - id: 2
     parent: {fileID: 2136591282}
-    prefabSource: 1
-    resourcesFolder: 
     resourceInitialCount: 14
     resourceExpandWhenEmpty: 1
-    variants: []
     initializeOnFirstUse: 0
     enableAutoShrink: 1
     idleSecondsBeforeShrink: 10
     shrinkCheckIntervalSeconds: 5
   - id: 3
     parent: {fileID: 692672769}
-    prefabSource: 1
-    resourcesFolder: 
     resourceInitialCount: 1
     resourceExpandWhenEmpty: 1
-    variants: []
     initializeOnFirstUse: 0
     enableAutoShrink: 0
     idleSecondsBeforeShrink: 60
     shrinkCheckIntervalSeconds: 10
   - id: 4
     parent: {fileID: 231036606}
-    prefabSource: 1
-    resourcesFolder: 
     resourceInitialCount: 20
     resourceExpandWhenEmpty: 1
-    variants: []
     initializeOnFirstUse: 1
     enableAutoShrink: 0
     idleSecondsBeforeShrink: 30
     shrinkCheckIntervalSeconds: 1
   - id: 5
     parent: {fileID: 1611086823}
-    prefabSource: 1
-    resourcesFolder: 
     resourceInitialCount: 30
     resourceExpandWhenEmpty: 1
-    variants: []
     initializeOnFirstUse: 1
     enableAutoShrink: 0
     idleSecondsBeforeShrink: 30
@@ -1466,6 +1448,7 @@ MonoBehaviour:
   spawnHeight: 90
   spawnDistance: 50
   warningDuration: 2
+  transitionMissileCount: 3
 --- !u!4 &514009907
 Transform:
   m_ObjectHideFlags: 0
@@ -2060,8 +2043,6 @@ MonoBehaviour:
   keepBehindDistance: 160
   maxSpawnsPerFrame: 2
   prepareLookaheadChunks: 4
-  enableCachedPreparation: 1
-  prepareRetryInterval: 0.25
   transitionSafeChunkCount: 3
   spawnTransitionWall: 1
   transitionWallOffset: 30
@@ -2072,7 +2053,6 @@ MonoBehaviour:
   collisionEnableAhead: 160
   collisionKeepBehind: 80
   collisionCheckInterval: 0.1
-  seed: 0
   allow180DegreeRotation: 1
 --- !u!4 &774914390
 Transform:
@@ -2727,6 +2707,7 @@ MonoBehaviour:
   timeSlow: {fileID: 620287807}
   shield: {fileID: 597236136}
   phaseDash: {fileID: 1903047163}
+  missileSlow: {fileID: 0}
 --- !u!4 &1383944817
 Transform:
   m_ObjectHideFlags: 0
@@ -3837,6 +3818,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PhaseDash
   worldMovement: {fileID: 774914384}
   dashDuration: 0.3
+  postDashInvincibilityDuration: 1
 --- !u!1 &1942181596
 GameObject:
   m_ObjectHideFlags: 0

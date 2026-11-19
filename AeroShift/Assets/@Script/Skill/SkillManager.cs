@@ -7,8 +7,8 @@ public enum SkillType
     slow_motion,
     phase_shield,
     missile_suppression,//
-    missile_slow,//
-    phase_dash,/**/
+    missile_slow,/**/
+    phase_dash,
     shockwave//
 }
 
@@ -18,6 +18,7 @@ public class SkillManager : MonoBehaviour
     [SerializeField] TimeSlow timeSlow;
     [SerializeField] Shield shield;
     [SerializeField] PhaseDash phaseDash;
+    [SerializeField] Missile_slow missileSlow;
 
     private SkillInfo selectedSkillInfo;
 
@@ -33,6 +34,9 @@ public class SkillManager : MonoBehaviour
 
         if (phaseDash != null)
             phaseDash.ResetSkill();
+
+        if(missileSlow != null)
+            missileSlow.ResetSkill();
 
         selectedSkillInfo = info;
         SelectedSkill = SkillType.None;
@@ -62,6 +66,10 @@ public class SkillManager : MonoBehaviour
             if (shield != null)
                 shield.Activate();
         }
+        else if (info.id == "missile_slow")
+        {
+            SelectedSkill = SkillType.missile_slow;
+        }
     }
 
     public void SelectSkill(SkillType skillType)
@@ -74,6 +82,9 @@ public class SkillManager : MonoBehaviour
 
         if (phaseDash != null)
             phaseDash.ResetSkill();
+
+        if(missileSlow != null)
+            missileSlow.ResetSkill();
 
         selectedSkillInfo = null;
         SelectedSkill = skillType;
@@ -100,6 +111,11 @@ public class SkillManager : MonoBehaviour
             case SkillType.phase_dash:
                 UseDash();
                 break;
+
+            case SkillType.missile_slow:
+                UseMissileSlow();
+                break;
+                
         }
     }
 
@@ -131,6 +147,16 @@ public class SkillManager : MonoBehaviour
             distance = selectedSkillInfo.skillValue;
 
         phaseDash.Activate(distance);
+    }
+
+    private void UseMissileSlow()
+    {
+        if (missileSlow == null)
+            return;
+
+        float multiplier = selectedSkillInfo != null ? selectedSkillInfo.skillValue : 0.6f;
+
+        missileSlow.Activate(multiplier);
     }
 
     public bool IsSkillSelected()

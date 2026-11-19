@@ -1,13 +1,29 @@
+using System.Collections;
 using UnityEngine;
 
 public class Missile : MonoBehaviour
 {
     [SerializeField] float speed = 100f;
 
+    
     private PoolManager poolManager;
     private Vector3 direction;
     private float travelDistance;
     private float movedDistance;
+    private float currentSpeed;
+
+    private void Awake()
+    {
+        ResetSpeed();
+    }
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        currentSpeed = speed * Mathf.Clamp(multiplier, 0.01f, 1f);
+    }
+    public void ResetSpeed()
+    {
+        currentSpeed = speed;
+    }
 
     public void Initialize(PoolManager pool, Vector3 direction, float travelDistance)
     {
@@ -15,11 +31,12 @@ public class Missile : MonoBehaviour
         this.direction = direction.normalized;
         this.travelDistance = travelDistance;
         movedDistance = 0f;
+        ResetSpeed();
     }
 
     private void Update()
     {
-        float moveDistance = speed * Time.deltaTime;
+        float moveDistance = currentSpeed * Time.deltaTime;
         transform.position += direction * moveDistance;
         movedDistance += moveDistance;
 
@@ -60,5 +77,18 @@ public class Missile : MonoBehaviour
             GameManager.Instance.GameOver();
 
         ReturnToPool();
+    }
+
+    public void SlowMissile()
+    {
+        StartCoroutine(MissileSpeed(60,5));
+    }
+
+    private IEnumerator MissileSpeed(float msspeed, float duration)
+    {
+        float orspeed = speed;
+        speed = msspeed;
+        yield return new WaitForSeconds(duration);
+        speed = orspeed;
     }
 }
