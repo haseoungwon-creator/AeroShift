@@ -13,7 +13,7 @@
       "name": "Missile Slow",
       "description": "Reduce missile speed to 60% for 5 seconds.",
       "iconID": "missile_slow",
-      "skillValue": 0.6,
+      "skillValue": 0.1,
       "canReroll": true
     },
     {

@@ -31,9 +31,10 @@ public class Missile_slow : MonoBehaviour
     }
     public void Activate(float multiplier)
     {
+        Debug.Log("w");
         if (isActive || hasUsed || !playerMode.IsMode2D() || GameManager.Instance.CurrentState != GameStates.Playing)
             return;
-        
+        Debug.Log("f");
         hasUsed = true;
         isActive = true;
         currentMultiplier = multiplier;

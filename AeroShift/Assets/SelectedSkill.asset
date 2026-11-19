@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: SelectedSkill
   m_EditorClassIdentifier: Assembly-CSharp::SelectedSkillSO
   selectedSkill:
-    id: 
-    name: 
-    description: 
-    iconID: 
-    skillValue: 0
-    canReroll: 0
+    id: missile_slow
+    name: Missile Slow
+    description: Reduce missile speed to 60% for 5 seconds.
+    iconID: missile_slow
+    skillValue: 0.1
+    canReroll: 1

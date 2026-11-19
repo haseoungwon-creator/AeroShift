@@ -151,9 +151,10 @@ public class SkillManager : MonoBehaviour
 
     private void UseMissileSlow()
     {
+        Debug.Log("G");
         if (missileSlow == null)
             return;
-
+        Debug.Log("G");
         float multiplier = selectedSkillInfo != null ? selectedSkillInfo.skillValue : 0.6f;
 
         missileSlow.Activate(multiplier);
