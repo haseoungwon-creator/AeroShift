@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -15,8 +14,6 @@ public class MissileSpawner : MonoBehaviour
     [SerializeField] float spawnDistance = 20f;
     [SerializeField] float warningDuration = 2f;
     [SerializeField, Min(1)] int transitionMissileCount = 3;
-
-    public event Action<Missile> MissileSpawned;
 
     private float spawnTimer;
     private float nextSpawnTime;
@@ -145,14 +142,15 @@ public class MissileSpawner : MonoBehaviour
         if (missileObject == null)
             return;
 
-        if (!missileObject.TryGetComponent(out Missile missile))
+        // 풀링 루트 아래의 자식에 Missile이 있어도 찾는다.
+        Missile missile = missileObject.GetComponentInChildren<Missile>(true);
+        if (missile == null)
         {
             poolManager.Return(missileObject);
             return;
         }
 
-        missile.Initialize(poolManager, direction, GetTravelDistance(direction));
-        MissileSpawned?.Invoke(missile);
+        missile.Initialize(poolManager, missileObject, direction, GetTravelDistance(direction));
         missileObject.SetActive(true);
     }
 

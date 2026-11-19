@@ -1,22 +1,6 @@
 {
   "skills": [
     {
-      "id": "missile_suppression",
-      "name": "Missile Suppression",
-      "description": "Reduce missile spawns to 45% for 6 seconds.",
-      "iconID": "missile_suppression",
-      "skillValue": 0.45,
-      "canReroll": true
-    },
-    {
-      "id": "missile_slow",
-      "name": "Missile Slow",
-      "description": "Reduce missile speed to 60% for 5 seconds.",
-      "iconID": "missile_slow",
-      "skillValue": 0.1,
-      "canReroll": true
-    },
-    {
       "id": "time_rewind",
       "name": "Time Rewind",
       "description": "Rewind the player and world by 3 seconds.",

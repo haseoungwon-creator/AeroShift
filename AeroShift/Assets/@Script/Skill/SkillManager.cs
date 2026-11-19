@@ -2,14 +2,11 @@ using UnityEngine;
 
 public enum SkillType
 {
-    None,
-    time_rewind,
-    slow_motion,
-    phase_shield,
-    missile_suppression,//
-    missile_slow,/**/
-    phase_dash,
-    shockwave//
+    None = 0,
+    time_rewind = 1,
+    slow_motion = 2,
+    phase_shield = 3,
+    phase_dash = 6
 }
 
 public class SkillManager : MonoBehaviour
@@ -18,7 +15,6 @@ public class SkillManager : MonoBehaviour
     [SerializeField] TimeSlow timeSlow;
     [SerializeField] Shield shield;
     [SerializeField] PhaseDash phaseDash;
-    [SerializeField] Missile_slow missileSlow;
 
     private SkillInfo selectedSkillInfo;
 
@@ -26,7 +22,10 @@ public class SkillManager : MonoBehaviour
 
     public void SetSelectedSkill(SkillInfo info)
     {
-        if (info != null && selectedSkillInfo != null && info.id == selectedSkillInfo.id)
+        // 재시작 후 같은 스킬을 다시 고른 경우에도 사용 횟수를 초기화해야 한다.
+        // 플레이 도중 중복 갱신으로 사용 횟수가 초기화되는 것은 방지한다.
+        if (info != null && selectedSkillInfo != null && info.id == selectedSkillInfo.id &&
+            GameManager.Instance != null && GameManager.Instance.CurrentState == GameStates.Playing)
             return;
 
         if (shield != null)
@@ -34,9 +33,6 @@ public class SkillManager : MonoBehaviour
 
         if (phaseDash != null)
             phaseDash.ResetSkill();
-
-        if(missileSlow != null)
-            missileSlow.ResetSkill();
 
         selectedSkillInfo = info;
         SelectedSkill = SkillType.None;
@@ -66,10 +62,6 @@ public class SkillManager : MonoBehaviour
             if (shield != null)
                 shield.Activate();
         }
-        else if (info.id == "missile_slow")
-        {
-            SelectedSkill = SkillType.missile_slow;
-        }
     }
 
     public void SelectSkill(SkillType skillType)
@@ -82,9 +74,6 @@ public class SkillManager : MonoBehaviour
 
         if (phaseDash != null)
             phaseDash.ResetSkill();
-
-        if(missileSlow != null)
-            missileSlow.ResetSkill();
 
         selectedSkillInfo = null;
         SelectedSkill = skillType;
@@ -112,10 +101,6 @@ public class SkillManager : MonoBehaviour
                 UseDash();
                 break;
 
-            case SkillType.missile_slow:
-                UseMissileSlow();
-                break;
-                
         }
     }
 
@@ -149,17 +134,6 @@ public class SkillManager : MonoBehaviour
         phaseDash.Activate(distance);
     }
 
-    private void UseMissileSlow()
-    {
-        Debug.Log("G");
-        if (missileSlow == null)
-            return;
-        Debug.Log("G");
-        float multiplier = selectedSkillInfo != null ? selectedSkillInfo.skillValue : 0.6f;
-
-        missileSlow.Activate(multiplier);
-    }
-
     public bool IsSkillSelected()
     {
         return SelectedSkill != SkillType.None;
@@ -186,8 +160,5 @@ public class SkillManager : MonoBehaviour
 
         if (phaseDash != null)
             phaseDash.ResetSkill();
-
-        if(missileSlow != null)
-            missileSlow.ResetSkill();
     }
 }

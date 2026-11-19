@@ -20,7 +20,7 @@ public class Shield : MonoBehaviour
             return;
 
         shieldeffect = Instantiate(shieldEffect, player.transform);
-        shieldeffect.transform.localScale = new Vector3(10f, 10f, 10f);
+        shieldeffect.transform.localScale = new Vector3(2f,2f,2f);
 
         hasUsed = true;
         remainingHits = 1;

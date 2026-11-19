@@ -1,15 +1,22 @@
-using UnityEngine;
 using System.Collections;
+using UnityEngine;
 
+[RequireComponent(typeof(Camera))]
 public class CameraController : MonoBehaviour
 {
-    [SerializeField] Transform player;
-    [SerializeField] Vector3 cameraOffset3D = new Vector3(0, 8, -12);
-    [SerializeField] Vector3 cameraRotation3D = new Vector3(20, 0, 0);
-    [SerializeField] Vector3 cameraOffset2D = new Vector3(0, 90, 0);
-    [SerializeField] Vector3 cameraRotation2D = new Vector3(90, 0, 0);
-    [SerializeField] float startMoveDuration = 2f;
+    [SerializeField] private Transform player;
+    [SerializeField] private Vector3 cameraOffset3D = new Vector3(0f, 8f, -12f);
+    [SerializeField] private Vector3 cameraRotation3D = new Vector3(20f, 0f, 0f);
+    [SerializeField] private Vector3 cameraOffset2D = new Vector3(0f, 90f, 0f);
+    [SerializeField] private Vector3 cameraRotation2D = new Vector3(90f, 0f, 0f);
+    [SerializeField, Min(1f)] private float orthographicSize2D = 48f;
+    [SerializeField] private float startMoveDuration = 2f;
 
+    // The missile field in Main is 160 x 90 (16:9). On narrow screens,
+    // increase the vertical size to keep the same horizontal play area visible.
+    private const float ReferenceAspect2D = 16f / 9f;
+
+    private Camera gameCamera;
     private bool is2D;
     private bool isCameraLocked;
     private bool isStartPosition = true;
@@ -17,6 +24,7 @@ public class CameraController : MonoBehaviour
 
     private void Awake()
     {
+        gameCamera = GetComponent<Camera>();
         ResetCamera();
     }
 
@@ -27,18 +35,19 @@ public class CameraController : MonoBehaviour
 
         if (isCameraLocked)
         {
-            FollowPlayer();
+            transform.LookAt(player);
             return;
         }
 
         if (is2D)
-            Update2DCamera();
+            Apply2DView();
         else
-            Update3DCamera();
+            Apply3DView();
     }
 
     public void ResetCamera()
     {
+        gameCamera.orthographic = false;
         transform.SetPositionAndRotation(
             new Vector3(0f, 33.3f, -91.8f),
             Quaternion.identity);
@@ -54,48 +63,27 @@ public class CameraController : MonoBehaviour
         if (player == null)
             yield break;
 
+        gameCamera.orthographic = false;
         isMoving = true;
 
         Vector3 startPosition = transform.position;
         Quaternion startRotation = transform.rotation;
-
-        Vector3 targetPosition =
-            player.position + cameraOffset3D;
-
-        Quaternion targetRotation =
-            Quaternion.Euler(cameraRotation3D);
+        Vector3 targetPosition = player.position + cameraOffset3D;
+        Quaternion targetRotation = Quaternion.Euler(cameraRotation3D);
 
         float elapsedTime = 0f;
-
         while (elapsedTime < startMoveDuration)
         {
             elapsedTime += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f,
+                Mathf.Clamp01(elapsedTime / startMoveDuration));
 
-            float t =
-                Mathf.Clamp01(
-                    elapsedTime / startMoveDuration);
-
-            t = Mathf.SmoothStep(0f, 1f, t);
-
-            transform.position =
-                Vector3.Lerp(
-                    startPosition,
-                    targetPosition,
-                    t);
-
-            transform.rotation =
-                Quaternion.Slerp(
-                    startRotation,
-                    targetRotation,
-                    t);
-
+            transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+            transform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
             yield return null;
         }
 
-        transform.SetPositionAndRotation(
-            targetPosition,
-            targetRotation);
-
+        transform.SetPositionAndRotation(targetPosition, targetRotation);
         isStartPosition = false;
         isMoving = false;
     }
@@ -106,46 +94,26 @@ public class CameraController : MonoBehaviour
 
         Vector3 startPosition = transform.position;
         Quaternion startRotation = transform.rotation;
-
-        Vector3 targetPosition =
-            new Vector3(0f, 33.3f, -91.8f);
-
-        Quaternion targetRotation =
-            Quaternion.identity;
+        Vector3 targetPosition = new Vector3(0f, 33.3f, -91.8f);
+        Quaternion targetRotation = Quaternion.identity;
 
         float elapsedTime = 0f;
-
         while (elapsedTime < startMoveDuration)
         {
             elapsedTime += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f,
+                Mathf.Clamp01(elapsedTime / startMoveDuration));
 
-            float t =
-                Mathf.Clamp01(
-                    elapsedTime / startMoveDuration);
-
-            t = Mathf.SmoothStep(0f, 1f, t);
-
-            transform.position =
-                Vector3.Lerp(
-                    startPosition,
-                    targetPosition,
-                    t);
-
-            transform.rotation =
-                Quaternion.Slerp(
-                    startRotation,
-                    targetRotation,
-                    t);
-
+            transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+            transform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
             yield return null;
         }
 
-        transform.SetPositionAndRotation(
-            targetPosition,
-            targetRotation);
-
+        transform.SetPositionAndRotation(targetPosition, targetRotation);
+        gameCamera.orthographic = false;
         isStartPosition = true;
         isMoving = false;
+        is2D = false;
     }
 
     public void Set3DView()
@@ -153,8 +121,9 @@ public class CameraController : MonoBehaviour
         is2D = false;
         isCameraLocked = false;
         isStartPosition = false;
-
-        Apply3DView();
+        gameCamera.orthographic = false;
+        if (player != null)
+            Apply3DView();
     }
 
     public void Set2DView()
@@ -162,31 +131,9 @@ public class CameraController : MonoBehaviour
         is2D = true;
         isCameraLocked = false;
         isStartPosition = false;
-
-        Apply2DView();
-    }
-
-    private void Update3DCamera()
-    {
-        transform.position =
-            player.position + cameraOffset3D;
-
-        transform.rotation =
-            Quaternion.Euler(cameraRotation3D);
-    }
-
-    private void Update2DCamera()
-    {
-        transform.position =
-            new Vector3(0f, 90f, 0f);
-
-        transform.rotation =
-            Quaternion.Euler(cameraRotation2D);
-    }
-
-    private void FollowPlayer()
-    {
-        transform.LookAt(player);
+        gameCamera.orthographic = true;
+        if (player != null)
+            Apply2DView();
     }
 
     public void LockCamera()
@@ -196,19 +143,27 @@ public class CameraController : MonoBehaviour
 
     private void Apply3DView()
     {
-        transform.position =
-            player.position + cameraOffset3D;
-
-        transform.rotation =
-            Quaternion.Euler(cameraRotation3D);
+        transform.SetPositionAndRotation(
+            player.position + cameraOffset3D,
+            Quaternion.Euler(cameraRotation3D));
     }
 
     private void Apply2DView()
     {
-        transform.position =
-            new Vector3(0f, 90f, 0f);
+        float aspect = Mathf.Max(0.01f, gameCamera.aspect);
+        gameCamera.orthographicSize = orthographicSize2D *
+            Mathf.Max(1f, ReferenceAspect2D / aspect);
 
-        transform.rotation =
-            Quaternion.Euler(cameraRotation2D);
+        // Keep the XZ arena centered; don't follow the player's X/Z movement.
+        transform.SetPositionAndRotation(
+            new Vector3(cameraOffset2D.x,
+                player.position.y + cameraOffset2D.y,
+                cameraOffset2D.z),
+            Quaternion.Euler(cameraRotation2D));
+    }
+
+    private void OnValidate()
+    {
+        orthographicSize2D = Mathf.Max(1f, orthographicSize2D);
     }
 }
