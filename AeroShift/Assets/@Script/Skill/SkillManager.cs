@@ -185,5 +185,8 @@ public class SkillManager : MonoBehaviour
 
         if (phaseDash != null)
             phaseDash.ResetSkill();
+
+        if(missileSlow != null)
+            missileSlow.ResetSkill();
     }
 }

@@ -78,17 +78,4 @@ public class Missile : MonoBehaviour
 
         ReturnToPool();
     }
-
-    public void SlowMissile()
-    {
-        StartCoroutine(MissileSpeed(60,5));
-    }
-
-    private IEnumerator MissileSpeed(float msspeed, float duration)
-    {
-        float orspeed = speed;
-        speed = msspeed;
-        yield return new WaitForSeconds(duration);
-        speed = orspeed;
-    }
 }

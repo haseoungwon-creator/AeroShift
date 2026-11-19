@@ -440,5 +440,32 @@ public sealed class PoolManager : MonoBehaviour
             return 0;
         return group.Buckets[variantIndex].Available.Count;
     }
+    public void ForEachActive<T>(
+    PoolId id, System.Action<T> action)
+    where T : Component
+    {
+        if (action == null ||
+            !pools.TryGetValue(id, out PoolGroup group))
+            return;
 
+        for (int i = 0; i < group.Buckets.Length; i++)
+        {
+            PoolBucket bucket = group.Buckets[i];
+
+            if (bucket == null)
+                continue;
+
+            for (int j = 0; j < bucket.Active.Count; j++)
+            {
+                PooledObject pooled = bucket.Active[j];
+
+                if (pooled != null &&
+                    pooled.IsRented &&
+                    pooled.TryGetComponent<T>(out T component))
+                {
+                    action(component);
+                }
+            }
+        }
+    }
 }
