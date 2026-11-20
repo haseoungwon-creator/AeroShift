@@ -52,6 +52,7 @@ public class DimensionTransition : MonoBehaviour
 
         isTransitioning = true;
         transitioningTo2D = false;
+        cameraController.SetPerspectiveFor3DTransition();
         runningTransition = StartCoroutine(TransitionTo3DSequence());
     }
 

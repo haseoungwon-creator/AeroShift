@@ -36,7 +36,7 @@ public class MissileSpawner : MonoBehaviour
         Vector3.right
     };
 
-    private readonly List<TransitionShot> transitionShots = new List<TransitionShot>(20);
+     private readonly List<TransitionShot> transitionShots = new List<TransitionShot>(20);
 
     private float spawnTimer;
     private float nextSpawnTime;
@@ -44,7 +44,6 @@ public class MissileSpawner : MonoBehaviour
     private WaitForSeconds warningWait;
     private Camera gameCamera;
     private bool poolsReady;
-    private Transform flightPlaneTarget;
 
     private void Awake()
     {
@@ -60,9 +59,9 @@ public class MissileSpawner : MonoBehaviour
         gameCamera = Camera.main;
     }
 
+   
     public void SetFlightPlane(Transform player)
     {
-        flightPlaneTarget = player;
         if (player == null)
             return;
 
@@ -165,12 +164,8 @@ public class MissileSpawner : MonoBehaviour
         return true;
     }
 
-    private void SpawnMissileAt(Vector3 spawnPosition, Vector3 direction,
-        bool followFlightAltitude = false)
+    private void SpawnMissileAt(Vector3 spawnPosition, Vector3 direction)
     {
-        if (followFlightAltitude && flightPlaneTarget != null)
-            spawnPosition.y = flightPlaneTarget.position.y;
-
         GameObject missileObject = poolManager.RentInactive(
             PoolId.Missile,
             spawnPosition,
@@ -187,8 +182,6 @@ public class MissileSpawner : MonoBehaviour
         }
 
         missile.Initialize(poolManager, missileObject, direction, GetTravelDistance(direction));
-        if (followFlightAltitude)
-            missile.FollowAltitude(flightPlaneTarget);
 
         missileObject.SetActive(true);
     }
@@ -246,6 +239,7 @@ public class MissileSpawner : MonoBehaviour
 
     public IEnumerator SpawnTransitionPattern(System.Action onMissilesFired = null)
     {
+        
         enabled = false;
         StopAllCoroutines();
 
@@ -267,6 +261,7 @@ public class MissileSpawner : MonoBehaviour
 
         transitionShots.Clear();
 
+       
         for (int side = 0; side < TransitionDirections.Length; side++)
         {
             Vector3 direction = TransitionDirections[side];
@@ -308,13 +303,15 @@ public class MissileSpawner : MonoBehaviour
             }
 
             TransitionShot shot = transitionShots[i];
-            SpawnMissileAt(shot.Position, shot.Direction, true);
+            SpawnMissileAt(shot.Position, shot.Direction);
         }
 
         transitionShots.Clear();
 
+       
         onMissilesFired?.Invoke();
 
+       
         while (poolManager.GetActiveCount(PoolId.Missile) > 0 ||
                poolManager.GetActiveCount(PoolId.MissileWarning) > 0)
         {

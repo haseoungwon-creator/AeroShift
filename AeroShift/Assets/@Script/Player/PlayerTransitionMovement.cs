@@ -9,60 +9,49 @@ public class PlayerTransitionMovement : MonoBehaviour
     [SerializeField] float baseWorldSpeed = 30f;
     [SerializeField] float riseRotationX = -70f;
     [SerializeField] float diveRotationX = 70f;
-    [SerializeField, Min(0f)] private float diveTargetY = 50f;
+    [SerializeField] private float diveTargetY = -90f;
+    [SerializeField, Min(1f)] private float diveSpeed = 100f;
+    [SerializeField, Min(1f)] private float diveRotationSpeed = 80f;
     [SerializeField] private float return3DHeight = 10f;
     [SerializeField] float riseSpeedMultiplier = 1.5f;
     [SerializeField, Min(0.01f)] private float diveFinishDuration = 0.35f;
-
-    private PlayerMovement2D movement2D;
-
-    private void Awake()
-    {
-        movement2D = GetComponent<PlayerMovement2D>();
-    }
 
     public IEnumerator Rise()
     {
         return MoveVertically(true);
     }
 
+   
     public IEnumerator Dive()
     {
-        float duration = Mathf.Max(0.01f, GetTransitionDuration());
-        float descentDistance = Mathf.Max(0f, transform.position.y - diveTargetY);
-        float elapsed = 0f;
-        float lastDistance = 0f;
-        Quaternion startRotation = transform.rotation;
         Quaternion targetRotation = Quaternion.Euler(
-            diveRotationX, startRotation.eulerAngles.y, startRotation.eulerAngles.z);
+            diveRotationX,
+            transform.eulerAngles.y,
+            transform.eulerAngles.z);
 
-        while (elapsed < duration)
+        while (GameManager.IsPlaying)
         {
-            if (!GameManager.IsPlaying)
-                yield break;
+            Vector3 position = transform.position;
+            if (position.y > diveTargetY)
+                position.y = Mathf.MoveTowards(
+                    position.y, diveTargetY, diveSpeed * Time.deltaTime);
 
-            elapsed += Time.deltaTime;
-            float progress = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
-            float distance = descentDistance * progress;
-            float delta = distance - lastDistance;
-            lastDistance = distance;
+            transform.position = position;
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation, targetRotation,
+                diveRotationSpeed * Time.deltaTime);
 
-            if (movement2D != null)
-                movement2D.ApplyTransitionOffset(Vector3.down * delta);
-            else
-                transform.position += Vector3.down * delta;
+            if (position.y <= diveTargetY + 0.01f &&
+                Quaternion.Angle(transform.rotation, targetRotation) < 0.1f)
+                break;
 
-            transform.rotation = Quaternion.Slerp(startRotation, targetRotation, progress);
             yield return null;
         }
-
-        transform.rotation = targetRotation;
     }
-
     public IEnumerator FinishDive()
     {
         Vector3 start = transform.position;
-        Vector3 end = new Vector3(0f, return3DHeight, 10f);
+        Vector3 end = new Vector3(0f, return3DHeight-90f, 10f);
         Quaternion initialRotation = transform.rotation;
         float elapsed = 0f;
 
@@ -113,7 +102,7 @@ public class PlayerTransitionMovement : MonoBehaviour
         }
 
         transform.SetPositionAndRotation(
-            rising ? new Vector3(0f, targetPosition.y, 0f) : new Vector3(0f, return3DHeight, 10f),
+            rising ? new Vector3(0f, 10f, 0f) : new Vector3(0f, return3DHeight, 10f),
             rising ? Quaternion.identity : targetRotation);
     }
 

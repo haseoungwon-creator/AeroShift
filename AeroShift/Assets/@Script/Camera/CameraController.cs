@@ -19,6 +19,7 @@ public class CameraController : MonoBehaviour
     private bool isCameraLocked;
     private bool isStartPosition = true;
     private bool isMoving;
+    private float fixed2DCameraY;
 
     private void Awake()
     {
@@ -54,6 +55,7 @@ public class CameraController : MonoBehaviour
         isMoving = false;
         isCameraLocked = false;
         is2D = false;
+        fixed2DCameraY = transform.position.y;
     }
 
     public IEnumerator MoveToGamePosition()
@@ -85,6 +87,11 @@ public class CameraController : MonoBehaviour
         isStartPosition = false;
         isMoving = false;
     }
+        
+    public void SetPerspectiveFor3DTransition()
+    {
+        gameCamera.orthographic = false;
+    }
 
     public void Set3DView()
     {
@@ -102,6 +109,8 @@ public class CameraController : MonoBehaviour
         isCameraLocked = false;
         isStartPosition = false;
         gameCamera.orthographic = true;
+        fixed2DCameraY = cameraOffset2D.y;
+
         if (player != null)
             Apply2DView();
     }
@@ -126,7 +135,7 @@ public class CameraController : MonoBehaviour
 
         transform.SetPositionAndRotation(
             new Vector3(cameraOffset2D.x,
-                player.position.y + cameraOffset2D.y,
+                fixed2DCameraY,
                 cameraOffset2D.z),
             Quaternion.Euler(cameraRotation2D));
     }
@@ -136,4 +145,3 @@ public class CameraController : MonoBehaviour
         orthographicSize2D = Mathf.Max(1f, orthographicSize2D);
     }
 }
-    

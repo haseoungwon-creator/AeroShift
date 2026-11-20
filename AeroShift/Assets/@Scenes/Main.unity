@@ -4487,6 +4487,10 @@ MonoBehaviour:
   baseWorldSpeed: 30
   riseRotationX: -70
   diveRotationX: 70
+  diveTargetY: 0
+  diveSpeed: 100
+  diveRotationSpeed: 80
+  return3DHeight: 10
   riseSpeedMultiplier: 1.5
   diveFinishDuration: 0.35
 --- !u!114 &4120526237632602676

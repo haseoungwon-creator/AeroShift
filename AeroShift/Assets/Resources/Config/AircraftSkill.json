@@ -25,14 +25,6 @@
       "canReroll": true
     },
     {
-      "id": "shockwave",
-      "name": "Shockwave",
-      "description": "Destroy obstacles with a shockwave reaching 24 meters.",
-      "iconID": "shockwave",
-      "skillValue": 24.0,
-      "canReroll": true
-    },
-    {
       "id": "phase_shield",
       "name": "Phase Shield",
       "description": "Block one obstacle or missile collision.",
