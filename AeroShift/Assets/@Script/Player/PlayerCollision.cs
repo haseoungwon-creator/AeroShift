@@ -8,6 +8,7 @@ public class PlayerCollision : MonoBehaviour
     [SerializeField] private Shield shield;
     [SerializeField] private PhaseDash phaseDash;
     private Renderer objRender;
+    bool coolHit = false;
 
     private void Awake()
     {
@@ -28,7 +29,7 @@ public class PlayerCollision : MonoBehaviour
     {
         GameManager gameManager = GameManager.Instance;
 
-        if (!GameManager.IsPlaying)
+        if (!GameManager.IsPlaying || coolHit)
             return;
 
         if (playerRewind != null && playerRewind.IsRewinding)
@@ -57,6 +58,7 @@ public class PlayerCollision : MonoBehaviour
 
     public IEnumerator BlinkRoutine(float duration, float interval)
     {
+        coolHit = true;
         float elapsed = 0f;
         WaitForSeconds blinkWait = new WaitForSeconds(interval);
         while (elapsed < duration)
@@ -68,6 +70,6 @@ public class PlayerCollision : MonoBehaviour
         }
 
         objRender.enabled = true;
-
+        coolHit = false;
     }
 }

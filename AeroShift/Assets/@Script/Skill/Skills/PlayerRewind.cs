@@ -28,6 +28,7 @@ public class PlayerRewind : MonoBehaviour
     }
 
     private PositionData[] positionBuffer;
+    private Transform playerTransform;
     private Collider[] playerColliders;
     private bool[] colliderEnabledStates;
     private Coroutine rewindCoroutine;
@@ -76,7 +77,10 @@ public class PlayerRewind : MonoBehaviour
         SetRewindDuration(rewindDuration);
 
         if (playerController == null)
-            playerController = GetComponent<PlayerController>();
+            playerController = GetComponentInParent<PlayerController>();
+
+        if (playerController != null)
+            playerTransform = playerController.transform;
 
         if (skillManager == null)
             skillManager = FindFirstObjectByType<SkillManager>();
@@ -84,10 +88,9 @@ public class PlayerRewind : MonoBehaviour
         CachePlayerColliders();
     }
 
-    private void Update()
+    private void LateUpdate()
     {
-
-        if (!GameManager.IsPlaying || !IsRewindSelected || !CanRewind)
+        if (!GameManager.IsPlaying || !IsRewindSelected || !CanRewind || playerTransform == null)
             return;
 
         RecordPosition();
@@ -127,7 +130,7 @@ public class PlayerRewind : MonoBehaviour
             ? worldMovement.transform.position
             : Vector3.zero;
 
-        return new PositionData(transform.position, transform.rotation, worldPosition);
+        return new PositionData(playerTransform.position, playerTransform.rotation, worldPosition);
     }
 
     public void Rewind()
@@ -136,7 +139,7 @@ public class PlayerRewind : MonoBehaviour
             !CanRewind || bufferCount == 0)
             return;
 
-        if (playerController == null)
+        if (playerController == null || playerTransform == null)
             return;
 
         StoreCurrentPosition();
@@ -167,7 +170,7 @@ public class PlayerRewind : MonoBehaviour
 
         while (elapsedTime < rewindPlayDuration)
         {
-            if (!GameManager.IsPlaying)
+            if (!GameManager.IsPlaying || playerTransform == null)
             {
                 FinishRewind();
                 yield break;
@@ -185,17 +188,7 @@ public class PlayerRewind : MonoBehaviour
             PositionData previous = positionBuffer[previousIndex];
             float interpolation = historyPosition - offset;
 
-            transform.SetPositionAndRotation(
-                Vector3.Lerp(current.playerPosition, previous.playerPosition, interpolation),
-                Quaternion.Slerp(current.playerRotation, previous.playerRotation, interpolation));
-
-            if (worldMovement != null)
-            {
-                worldMovement.transform.position = Vector3.Lerp(
-                    current.worldPosition,
-                    previous.worldPosition,
-                    interpolation);
-            }
+            ApplyRecordedPosition(current, previous, interpolation);
 
             yield return null;
         }
@@ -203,17 +196,34 @@ public class PlayerRewind : MonoBehaviour
         int oldestIndex = WrapIndex(newestIndex - (bufferCount - 1));
         PositionData oldest = positionBuffer[oldestIndex];
 
-        transform.SetPositionAndRotation(oldest.playerPosition, oldest.playerRotation);
-
-        if (worldMovement != null)
-            worldMovement.transform.position = oldest.worldPosition;
+        ApplyRecordedPosition(oldest, oldest, 0f);
 
         FinishRewind();
     }
 
+    private void ApplyRecordedPosition(PositionData current, PositionData previous, float interpolation)
+    {
+        if (worldMovement != null)
+        {
+            worldMovement.transform.position = Vector3.Lerp(
+                current.worldPosition,
+                previous.worldPosition,
+                interpolation);
+        }
+
+        if (playerTransform != null)
+        {
+            playerTransform.SetPositionAndRotation(
+                Vector3.Lerp(current.playerPosition, previous.playerPosition, interpolation),
+                Quaternion.Slerp(current.playerRotation, previous.playerRotation, interpolation));
+        }
+    }
+
     private void CachePlayerColliders()
     {
-        playerColliders = GetComponentsInChildren<Collider>(true);
+        playerColliders = playerTransform != null
+            ? playerTransform.GetComponentsInChildren<Collider>(true)
+            : Array.Empty<Collider>();
 
         if (playerCollider != null && Array.IndexOf(playerColliders, playerCollider) < 0)
         {
@@ -333,3 +343,6 @@ public class PlayerRewind : MonoBehaviour
         StopRewindAndRestore();
     }
 }
+
+
+
