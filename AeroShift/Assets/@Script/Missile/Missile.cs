@@ -7,6 +7,7 @@ public class Missile : MonoBehaviour
     private PoolManager poolManager;
     private GameObject pooledObject;
     private Transform movementTransform;
+    private Transform altitudeTarget;
     private Vector3 direction;
     private float travelDistance;
     private float movedDistance;
@@ -16,9 +17,14 @@ public class Missile : MonoBehaviour
         poolManager = pool;
         pooledObject = poolRoot;
         movementTransform = poolRoot != null ? poolRoot.transform : transform;
+        altitudeTarget = null; 
         direction = moveDirection.normalized;
         travelDistance = maxDistance;
         movedDistance = 0f;
+    }
+    public void FollowAltitude(Transform target)
+    {
+        altitudeTarget = target;
     }
 
     private void Update()
@@ -27,7 +33,11 @@ public class Missile : MonoBehaviour
             return;
 
         float moveDistance = speed * Time.deltaTime;
-        movementTransform.position += direction * moveDistance;
+        Vector3 nextPosition = movementTransform.position + direction * moveDistance;
+        if (altitudeTarget != null)
+            nextPosition.y = altitudeTarget.position.y;
+
+        movementTransform.position = nextPosition;
         movedDistance += moveDistance;
 
         if (movedDistance >= travelDistance)

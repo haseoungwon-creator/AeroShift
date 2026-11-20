@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -13,7 +14,29 @@ public class MissileSpawner : MonoBehaviour
     [SerializeField] float spawnHeight = 45f;
     [SerializeField] float spawnDistance = 20f;
     [SerializeField] float warningDuration = 2f;
-    [SerializeField, Min(1)] int transitionMissileCount = 3;
+    [SerializeField, Min(1)] private int transitionMissilesPerSide = 5;
+
+    private struct TransitionShot
+    {
+        public Vector3 Position;
+        public Vector3 Direction;
+
+        public TransitionShot(Vector3 position, Vector3 direction)
+        {
+            Position = position;
+            Direction = direction;
+        }
+    }
+
+    private static readonly Vector3[] TransitionDirections =
+    {
+        Vector3.back,
+        Vector3.forward,
+        Vector3.left,
+        Vector3.right
+    };
+
+    private readonly List<TransitionShot> transitionShots = new List<TransitionShot>(20);
 
     private float spawnTimer;
     private float nextSpawnTime;
@@ -21,6 +44,7 @@ public class MissileSpawner : MonoBehaviour
     private WaitForSeconds warningWait;
     private Camera gameCamera;
     private bool poolsReady;
+    private Transform flightPlaneTarget;
 
     private void Awake()
     {
@@ -34,6 +58,17 @@ public class MissileSpawner : MonoBehaviour
 
         warningWait = new WaitForSeconds(warningDuration);
         gameCamera = Camera.main;
+    }
+
+    public void SetFlightPlane(Transform player)
+    {
+        flightPlaneTarget = player;
+        if (player == null)
+            return;
+
+        Vector3 position = transform.position;
+        position.y = player.position.y;
+        transform.position = position;
     }
 
     public bool PrewarmFor2D()
@@ -130,8 +165,12 @@ public class MissileSpawner : MonoBehaviour
         return true;
     }
 
-    private void SpawnMissileAt(Vector3 spawnPosition, Vector3 direction)
+    private void SpawnMissileAt(Vector3 spawnPosition, Vector3 direction,
+        bool followFlightAltitude = false)
     {
+        if (followFlightAltitude && flightPlaneTarget != null)
+            spawnPosition.y = flightPlaneTarget.position.y;
+
         GameObject missileObject = poolManager.RentInactive(
             PoolId.Missile,
             spawnPosition,
@@ -148,6 +187,9 @@ public class MissileSpawner : MonoBehaviour
         }
 
         missile.Initialize(poolManager, missileObject, direction, GetTravelDistance(direction));
+        if (followFlightAltitude)
+            missile.FollowAltitude(flightPlaneTarget);
+
         missileObject.SetActive(true);
     }
 
@@ -202,37 +244,85 @@ public class MissileSpawner : MonoBehaviour
         return spawnHeight + spawnDistance * 2f;
     }
 
-    public IEnumerator SpawnTransitionPattern()
+    public IEnumerator SpawnTransitionPattern(System.Action onMissilesFired = null)
     {
-        StopSpawning();
+        enabled = false;
+        StopAllCoroutines();
 
         if (!poolsReady || poolManager == null)
             yield break;
 
-        for (int i = 0; i < transitionMissileCount; i++)
+        poolManager.ReturnAll(PoolId.MissileWarning);
+
+        while (poolManager.GetActiveCount(PoolId.Missile) > 0)
         {
             if (!GameManager.IsPlaying)
+            {
+                ReturnAllProjectiles();
                 yield break;
+            }
 
-            Vector3 direction = GetRandomDirection();
-            Vector3 spawnPosition = GetSpawnPosition(direction);
-
-            if (!ShowWarning(spawnPosition, direction))
-                yield break;
-
-            yield return warningWait;
-
-            if (!GameManager.IsPlaying)
-                yield break;
-
-            SpawnMissileAt(spawnPosition, direction);
+            yield return null;
         }
+
+        transitionShots.Clear();
+
+        for (int side = 0; side < TransitionDirections.Length; side++)
+        {
+            Vector3 direction = TransitionDirections[side];
+
+            for (int i = 0; i < transitionMissilesPerSide; i++)
+            {
+                if (!GameManager.IsPlaying)
+                {
+                    transitionShots.Clear();
+                    ReturnAllProjectiles();
+                    yield break;
+                }
+
+                Vector3 spawnPosition = GetSpawnPosition(direction);
+                if (ShowWarning(spawnPosition, direction))
+                    transitionShots.Add(new TransitionShot(spawnPosition, direction));
+            }
+        }
+
+        if (transitionShots.Count == 0)
+            yield break;
+
+        yield return warningWait;
+
+        if (!GameManager.IsPlaying)
+        {
+            transitionShots.Clear();
+            ReturnAllProjectiles();
+            yield break;
+        }
+
+        for (int i = 0; i < transitionShots.Count; i++)
+        {
+            if (!GameManager.IsPlaying)
+            {
+                transitionShots.Clear();
+                ReturnAllProjectiles();
+                yield break;
+            }
+
+            TransitionShot shot = transitionShots[i];
+            SpawnMissileAt(shot.Position, shot.Direction, true);
+        }
+
+        transitionShots.Clear();
+
+        onMissilesFired?.Invoke();
 
         while (poolManager.GetActiveCount(PoolId.Missile) > 0 ||
                poolManager.GetActiveCount(PoolId.MissileWarning) > 0)
         {
             if (!GameManager.IsPlaying)
+            {
+                ReturnAllProjectiles();
                 yield break;
+            }
 
             yield return null;
         }

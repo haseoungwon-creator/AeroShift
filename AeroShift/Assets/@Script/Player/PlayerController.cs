@@ -114,7 +114,7 @@ public class PlayerController : MonoBehaviour
     public void Set3DInput()
     {
         SetInputMaps(true);
-
+        playerMovement2D.BindMoveAction(null);
         playerMovement2D.SetControlEnabled(false);
         playerMovement3D.SetControlEnabled(true);
     }
@@ -123,24 +123,51 @@ public class PlayerController : MonoBehaviour
     {
         SetInputMaps(false);
 
+        // Bind to PlayerInput's active action, not the original asset's action.
+        // PlayerInput can use a private copy of the action asset.
+        InputActionMap active2DMap = playerInput.currentActionMap;
+        InputAction move = active2DMap != null && active2DMap.name == "Player2D"
+            ? active2DMap.FindAction("Move")
+            : playerInput.actions.FindActionMap("Player2D")?.FindAction("Move");
+        playerMovement2D.BindMoveAction(move);
+
         playerMovement3D.SetControlEnabled(false);
         playerMovement2D.SetControlEnabled(true);
     }
 
     private void SetInputMaps(bool use3D)
     {
+        if (playerInput == null || playerInput.actions == null)
+            return;
+
         InputActionMap map3D = playerInput.actions.FindActionMap("Player3D");
         InputActionMap map2D = playerInput.actions.FindActionMap("Player2D");
+        if (map3D == null || map2D == null)
+            return;
 
-        if (use3D)
+        string targetMap = use3D ? "Player3D" : "Player2D";
+
+        // Use PlayerInput to switch its current map so UnityEvent input
+        // callbacks and ReadValue operate on the same active action map.
+        if (playerInput.isActiveAndEnabled && playerInput.currentActionMap != null)
         {
-            map3D.Enable();
+            if (playerInput.currentActionMap.name != targetMap)
+                playerInput.SwitchCurrentActionMap(targetMap);
+        }
+        else if (use3D)
+        {
             map2D.Disable();
+            map3D.Enable();
         }
         else
         {
             map3D.Disable();
             map2D.Enable();
         }
+
+        // The dimension-shift button must work in both movement modes.
+        InputActionMap systemMap = playerInput.actions.FindActionMap("System");
+        if (systemMap != null && !systemMap.enabled)
+            systemMap.Enable();
     }
 }

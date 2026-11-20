@@ -1449,7 +1449,7 @@ MonoBehaviour:
   spawnHeight: 90
   spawnDistance: 50
   warningDuration: 2
-  transitionMissileCount: 3
+  transitionMissilesPerSide: 5
 --- !u!4 &514009907
 Transform:
   m_ObjectHideFlags: 0
@@ -4488,6 +4488,7 @@ MonoBehaviour:
   riseRotationX: -70
   diveRotationX: 70
   riseSpeedMultiplier: 1.5
+  diveFinishDuration: 0.35
 --- !u!114 &4120526237632602676
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4791,7 +4792,7 @@ MeshCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 5
   m_Convex: 1
   m_CookingOptions: 30

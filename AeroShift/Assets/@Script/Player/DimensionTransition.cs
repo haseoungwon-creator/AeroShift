@@ -22,6 +22,7 @@ public class DimensionTransition : MonoBehaviour
     [SerializeField, Min(1f)] private float safeMapWaitTimeout = 45f;
 
     private Coroutine runningTransition;
+    private Coroutine runningDive;
     private bool isTransitioning;
     private bool transitioningTo2D;
     private bool controlSuspended;
@@ -126,6 +127,7 @@ public class DimensionTransition : MonoBehaviour
         }
 
         mapManager.HideMaps();
+        missileSpawner.SetFlightPlane(transitionMovement.transform);
         cameraController.Set2DView();
         playerMode.SetMode(PlayerModes.Mode2D);
         playerController.Set2DInput();
@@ -140,10 +142,15 @@ public class DimensionTransition : MonoBehaviour
 
     private IEnumerator TransitionTo3DSequence()
     {
+        playerMode.SetMode(PlayerModes.Mode2D);
+        playerController.Set2DInput();
+        playerController.SetControlEnabled(true);
+
         scoreManager.StopScoring();
         scoringSuspended = true;
+        SaveTransitionPose();
 
-        yield return missileSpawner.SpawnTransitionPattern();
+        yield return missileSpawner.SpawnTransitionPattern(BeginDiveWhenMissilesFire);
 
         if (!GameManager.IsPlaying)
         {
@@ -151,8 +158,18 @@ public class DimensionTransition : MonoBehaviour
             yield break;
         }
 
-        SaveTransitionPose();
-        yield return transitionMovement.Dive();
+        if (runningDive != null)
+            yield return runningDive;
+
+        if (!GameManager.IsPlaying)
+        {
+            CancelCurrentTransition();
+            yield break;
+        }
+
+        playerController.SetControlEnabled(false);
+        controlSuspended = true;
+        yield return transitionMovement.FinishDive();
 
         if (!GameManager.IsPlaying)
         {
@@ -169,6 +186,14 @@ public class DimensionTransition : MonoBehaviour
         playerController.SetControlEnabled(true);
 
         CompleteTransition();
+    }
+
+    private void BeginDiveWhenMissilesFire()
+    {
+        if (!GameManager.IsPlaying || runningDive != null)
+            return;
+
+        runningDive = StartCoroutine(transitionMovement.Dive());
     }
 
     private void SaveTransitionPose()
@@ -201,6 +226,12 @@ public class DimensionTransition : MonoBehaviour
     {
         using (CancelMarker.Auto())
         {
+            if (runningDive != null)
+            {
+                StopCoroutine(runningDive);
+                runningDive = null;
+            }
+
             if (transitioningTo2D && mapManager != null)
                 mapManager.EndTransitionMap();
 
@@ -244,6 +275,7 @@ public class DimensionTransition : MonoBehaviour
     private void ResetTransitionFlags()
     {
         runningTransition = null;
+        runningDive = null;
         isTransitioning = false;
         transitioningTo2D = false;
         controlSuspended = false;

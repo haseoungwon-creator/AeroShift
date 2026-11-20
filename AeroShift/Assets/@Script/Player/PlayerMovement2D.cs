@@ -13,6 +13,7 @@ public class PlayerMovement2D : MonoBehaviour
     private Transform _t;
     private Vector2 currentInput;
     private Vector2 targetInput;
+    private InputAction moveAction;
     private Vector3 targetPosition;
     private bool canControl;
 
@@ -31,8 +32,16 @@ public class PlayerMovement2D : MonoBehaviour
         if (!canControl)
             return;
 
+        if (moveAction != null)
+            targetInput = moveAction.enabled ? moveAction.ReadValue<Vector2>() : Vector2.zero;
+
         UpdateInput();
         Move();
+    }
+
+    public void BindMoveAction(InputAction action)
+    {
+        moveAction = action;
     }
 
     public void OnMove(InputAction.CallbackContext context)
@@ -63,10 +72,28 @@ public class PlayerMovement2D : MonoBehaviour
         targetPosition.x = Mathf.Clamp(targetPosition.x, minX, maxX);
         targetPosition.z = Mathf.Clamp(targetPosition.z, minZ, maxZ);
 
+        targetPosition.y = _t.position.y;
         _t.position = Vector3.Lerp(
             _t.position,
             targetPosition,
             moveSmooth * Time.deltaTime);
+    }
+
+    public void ApplyTransitionOffset(Vector3 offset)
+    {
+        if (!canControl)
+            return;
+
+        Vector3 position = _t.position + offset;
+        position.x = Mathf.Clamp(position.x, minX, maxX);
+        position.z = Mathf.Clamp(position.z, minZ, maxZ);
+
+        Vector3 applied = position - _t.position;
+        _t.position = position;
+        targetPosition += applied;
+        targetPosition.x = Mathf.Clamp(targetPosition.x, minX, maxX);
+        targetPosition.z = Mathf.Clamp(targetPosition.z, minZ, maxZ);
+        targetPosition.y = position.y;
     }
 
     public void SetControlEnabled(bool value)
