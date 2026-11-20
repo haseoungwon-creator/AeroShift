@@ -9,6 +9,8 @@ public class PlayerTransitionMovement : MonoBehaviour
     [SerializeField] float baseWorldSpeed = 30f;
     [SerializeField] float riseRotationX = -70f;
     [SerializeField] float diveRotationX = 70f;
+    [SerializeField, Min(0f)] private float diveTargetY = 50f;
+    [SerializeField] private float return3DHeight = 10f;
     [SerializeField] float riseSpeedMultiplier = 1.5f;
     [SerializeField, Min(0.01f)] private float diveFinishDuration = 0.35f;
 
@@ -27,7 +29,7 @@ public class PlayerTransitionMovement : MonoBehaviour
     public IEnumerator Dive()
     {
         float duration = Mathf.Max(0.01f, GetTransitionDuration());
-        float descentDistance = Mathf.Max(0f, transform.position.y - 10f);
+        float descentDistance = Mathf.Max(0f, transform.position.y - diveTargetY);
         float elapsed = 0f;
         float lastDistance = 0f;
         Quaternion startRotation = transform.rotation;
@@ -60,7 +62,7 @@ public class PlayerTransitionMovement : MonoBehaviour
     public IEnumerator FinishDive()
     {
         Vector3 start = transform.position;
-        Vector3 end = new Vector3(0f, 10f, 10f);
+        Vector3 end = new Vector3(0f, return3DHeight, 10f);
         Quaternion initialRotation = transform.rotation;
         float elapsed = 0f;
 
@@ -109,8 +111,9 @@ public class PlayerTransitionMovement : MonoBehaviour
             transform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
             yield return null;
         }
+
         transform.SetPositionAndRotation(
-            rising ? new Vector3(0f, targetPosition.y, 0f) : new Vector3(0f, 10f, 10f),
+            rising ? new Vector3(0f, targetPosition.y, 0f) : new Vector3(0f, return3DHeight, 10f),
             rising ? Quaternion.identity : targetRotation);
     }
 

@@ -116,6 +116,7 @@ public class PlayerController : MonoBehaviour
         SetInputMaps(true);
         playerMovement2D.BindMoveAction(null);
         playerMovement2D.SetControlEnabled(false);
+        playerMovement3D.ResetTargetPosition();
         playerMovement3D.SetControlEnabled(true);
     }
 
@@ -123,8 +124,6 @@ public class PlayerController : MonoBehaviour
     {
         SetInputMaps(false);
 
-        // Bind to PlayerInput's active action, not the original asset's action.
-        // PlayerInput can use a private copy of the action asset.
         InputActionMap active2DMap = playerInput.currentActionMap;
         InputAction move = active2DMap != null && active2DMap.name == "Player2D"
             ? active2DMap.FindAction("Move")
@@ -147,8 +146,6 @@ public class PlayerController : MonoBehaviour
 
         string targetMap = use3D ? "Player3D" : "Player2D";
 
-        // Use PlayerInput to switch its current map so UnityEvent input
-        // callbacks and ReadValue operate on the same active action map.
         if (playerInput.isActiveAndEnabled && playerInput.currentActionMap != null)
         {
             if (playerInput.currentActionMap.name != targetMap)
@@ -164,8 +161,6 @@ public class PlayerController : MonoBehaviour
             map3D.Disable();
             map2D.Enable();
         }
-
-        // The dimension-shift button must work in both movement modes.
         InputActionMap systemMap = playerInput.actions.FindActionMap("System");
         if (systemMap != null && !systemMap.enabled)
             systemMap.Enable();
