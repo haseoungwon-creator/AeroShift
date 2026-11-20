@@ -786,9 +786,10 @@ MonoBehaviour:
   player: {fileID: 4959434284361090775}
   cameraOffset3D: {x: 0, y: 8, z: -12}
   cameraRotation3D: {x: 20, y: 0, z: 0}
-  cameraOffset2D: {x: 0, y: 90, z: 0}
+  cameraOffset2D: {x: 0, y: 75, z: 0}
   cameraRotation2D: {x: 90, y: 0, z: 0}
   orthographicSize2D: 48
+  transitionCameraPosition: {x: 0, y: 62.5, z: 0}
   startMoveDuration: 2
 --- !u!1 &375499736
 GameObject:
@@ -4487,7 +4488,7 @@ MonoBehaviour:
   baseWorldSpeed: 30
   riseRotationX: -70
   diveRotationX: 70
-  diveTargetY: 0
+  diveTargetY: -90
   diveSpeed: 100
   diveRotationSpeed: 80
   return3DHeight: 10

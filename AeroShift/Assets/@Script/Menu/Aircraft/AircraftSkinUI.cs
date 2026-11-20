@@ -17,7 +17,12 @@ public class AircraftSkinUI : MonoBehaviour
         if (aircraftSpawner == null || aircraftSpawner.SelectedAircraft == null)
             return;
 
-        aircraftData = aircraftSpawner.SelectedAircraft.GetAircraftData();
+        TextAsset json = Resources.Load<TextAsset>("Config/AircraftSkins");
+
+        if (json == null)
+            return;
+
+        aircraftData = JsonUtility.FromJson<AircraftJsonData>(json.text);
 
         if (aircraftData == null || aircraftData.aircraft == null || aircraftData.aircraft.Length == 0)
             return;
