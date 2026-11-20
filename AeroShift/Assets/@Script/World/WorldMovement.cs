@@ -67,11 +67,6 @@ public class WorldMovement : MonoBehaviour
         IsRewinding = value;
     }
 
-    public void SetSpeed(float speed)
-    {
-        currentSpeed = speed;
-    }
-
     public void ResetPosition()
     {
         transform.position = Vector3.zero;

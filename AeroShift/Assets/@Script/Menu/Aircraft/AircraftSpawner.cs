@@ -81,13 +81,11 @@ public class AircraftSpawner : MonoBehaviour
             return false;
 
         Mesh mesh = modelFilter.sharedMesh;
-        meshFilter.sharedMesh = mesh;
+        if (meshFilter.sharedMesh != mesh)
+            meshFilter.sharedMesh = mesh;
 
-        if (meshCollider != null)
-        {
-            meshCollider.sharedMesh = null;
+        if (meshCollider != null && meshCollider.sharedMesh != mesh)
             meshCollider.sharedMesh = mesh;
-        }
 
         return true;
     }

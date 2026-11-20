@@ -12,14 +12,12 @@ public class SelectedAircraftSO : ScriptableObject
     [SerializeField] private float passiveMultiplier = 1f;
     [SerializeField] private int bonusRerolls;
 
+    private AircraftJsonData aircraftData;
+
     private const string SaveKey = "AeroShift.SelectedAircraftId";
 
     public string AircraftId { get { return aircraftId; } }
-    public string AircraftName { get { return aircraftName; } }
-    public string Description { get { return description; } }
     public string PassiveId { get { return passiveId; } }
-    public string PassiveName { get { return passiveName; } }
-    public string PassiveDescription { get { return passiveDescription; } }
     public float PassiveMultiplier { get { return passiveMultiplier; } }
     public int BonusRerolls { get { return bonusRerolls; } }
 
@@ -57,16 +55,21 @@ public class SelectedAircraftSO : ScriptableObject
         PlayerPrefs.Save();
     }
 
+    public AircraftJsonData GetAircraftData()
+    {
+        if (aircraftData != null)
+            return aircraftData;
+
+        TextAsset json = Resources.Load<TextAsset>("Config/AircraftSkins");
+        if (json != null)
+            aircraftData = JsonUtility.FromJson<AircraftJsonData>(json.text);
+
+        return aircraftData;
+    }
+
     public void LoadSaved()
     {
-        TextAsset json = Resources.Load<TextAsset>("Config/AircraftSkins");
-
-        if (json == null)
-        {
-            return;
-        }
-
-        AircraftJsonData data = JsonUtility.FromJson<AircraftJsonData>(json.text);
+        AircraftJsonData data = GetAircraftData();
 
         if (data == null || data.aircraft == null || data.aircraft.Length == 0)
             return;

@@ -12,16 +12,6 @@ public class SkillSelectionManager : MonoBehaviour
     private int[] remainingRerolls;
     private int bonusRerolls;
 
-    public SkillInfo SelectedSkill
-    {
-        get { return selectedSkillSO != null ? selectedSkillSO.CurrentSkill : null; }
-    }
-
-    public string SelectedSkillId
-    {
-        get { return SelectedSkill != null ? SelectedSkill.id : ""; }
-    }
-
     private void Awake()
     {
         skillDataManager = new SkillDataManager();

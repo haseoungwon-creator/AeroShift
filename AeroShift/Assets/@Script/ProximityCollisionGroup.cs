@@ -11,9 +11,6 @@ public sealed class ProximityCollisionGroup : MonoBehaviour
     private Bounds localBounds;
     private bool boundsValid;
 
-    public int TrackedColliderCount { get; private set; }
-    public bool CollisionsEnabled => collisionsEnabled;
-
     public void Initialize(LayerMask obstacleLayers)
     {
         int layerMask = obstacleLayers.value;
@@ -34,7 +31,6 @@ public sealed class ProximityCollisionGroup : MonoBehaviour
                 originalEnabledStates[i] = colliders[i] != null && colliders[i].enabled;
         }
 
-        TrackedColliderCount = 0;
         bool hasBounds = false;
         boundsValid = true;
 
@@ -45,8 +41,6 @@ public sealed class ProximityCollisionGroup : MonoBehaviour
 
             if (!tracked[i])
                 continue;
-
-            TrackedColliderCount++;
 
             if (!TryGetLocalBounds(transform, current, out Bounds bounds))
             {

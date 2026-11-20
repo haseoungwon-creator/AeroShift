@@ -82,20 +82,6 @@ public sealed class MapManager : MonoBehaviour
         get { return worldMovement != null ? worldMovement.transform.position : Vector3.zero; }
     }
 
-    public int CurrentSeed { get { return seed; } }
-    public int NextChunkIndex { get { return nextChunkIndex; } }
-    public int ActiveChunkCount { get { return activeChunks.Count; } }
-    public float ChunkLength { get { return chunkLength; } }
-    public bool HasRequiredCoverage
-    {
-        get
-        {
-            return initialized && is3DMapActive && activeChunks.Count > 0 &&
-                ((double)nextChunkIndex - 0.5d) * chunkLength >=
-                (double)LogicalPlayerZ + forwardChunkCount * chunkLength;
-        }
-    }
-
     private void Start()
     {
         if (poolManager == null)
@@ -204,7 +190,7 @@ public sealed class MapManager : MonoBehaviour
 
         if (!instance.TryGetComponent(out MapChunk chunk))
             chunk = instance.AddComponent<MapChunk>();
-        chunk.SetChunkData(nextChunkIndex, centerZ - chunkLength * 0.5f, chunkLength, safe, rotated);
+        chunk.SetChunkData(safe);
 
         if (!safe && enableProximityCollisionCulling)
         {
@@ -323,7 +309,7 @@ public sealed class MapManager : MonoBehaviour
         transitionSafeChunksPlaced = 0;
     }
 
-    public bool IsTransitionMapArrived(float unused)
+    public bool IsTransitionMapArrived()
     {
         if (!transitionRequested || player == null)
             return false;
@@ -443,7 +429,7 @@ public sealed class MapManager : MonoBehaviour
 
     private bool IsGameplayCollisionAllowed()
     {
-        return GameManager.Instance != null && GameManager.Instance.CurrentState == GameStates.Playing &&
+        return GameManager.IsPlaying &&
             (playerRewind == null || !playerRewind.IsRewinding);
     }
 

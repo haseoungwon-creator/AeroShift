@@ -92,6 +92,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
     private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
     private static readonly UTF8Encoding CsvEncoding = new UTF8Encoding(true);
+    private static readonly char[] CsvSpecialCharacters = { ',', '"', '\n', '\r' };
 
     private readonly List<Metric> metrics = new List<Metric>(256);
     private readonly List<AvailableMetric> availableMetrics = new List<AvailableMetric>(2048);
@@ -110,7 +111,6 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     private float[] capturedWorldZ;
     private WorldMovement contextWorld;
     private PlayerMode contextPlayerMode;
-    private int stopwatchTicksPerSecondChecked;
     private int availableMetricCount;
     private int effectiveRecorderLimit;
     private int skippedByScope;
@@ -141,7 +141,6 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     private bool previousEditorProfilerDriverEnabled;
 #endif
     private float warmupStart;
-    private int warmupStartFrame;
     private float recordStart;
     private string outputDirectory;
     private string outputPrefix;
@@ -339,7 +338,6 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
             if (enableEditorDiagnostics && !profilerStateSaved)
             {
-                previousProfilerEnabled = Profiler.enabled;
 #if UNITY_EDITOR
                 previousEditorProfilerDriverEnabled = ProfilerDriver.enabled;
 #endif
@@ -354,7 +352,6 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                 ProfilerDriver.enabled = true;
 #endif
             warmupStart = Time.realtimeSinceStartup;
-            warmupStartFrame = Time.frameCount;
             warmingUp = true;
             finished = false;
         }
@@ -769,6 +766,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             int wait = FindMetric("WaitForLastPresentation");
             int draws = FindMetric("Draw Calls Count");
             int batches = FindMetric("Batches Count");
+            int[] col = { playerLoop, mainThread, physics, wait, draws, batches };
             for (int rank = 0; rank < n; rank++)
             {
                 int row = indices[rank];
@@ -781,7 +779,6 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                 writer.Write((row > 0 ? gcGen0[row] - gcGen0[row - 1] : 0).ToString(Invariant)); writer.Write(',');
                 writer.Write((row > 0 ? gcGen1[row] - gcGen1[row - 1] : 0).ToString(Invariant)); writer.Write(',');
                 writer.Write((row > 0 ? gcGen2[row] - gcGen2[row - 1] : 0).ToString(Invariant)); writer.Write(',');
-                int[] col = { playerLoop, mainThread, physics, wait, draws, batches };
                 for (int j = 0; j < col.Length; j++)
                 {
                     if (j != 0) writer.Write(',');
@@ -936,6 +933,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         int synced = FindMetric("Colliders Synced");
         int narrow = FindMetric("Narrowphase Touches");
         int broad = FindMetric("Broadphase Adds/Removes");
+        int[] indices = { sim, pxSim, fixedPhysics, fetch, sync, activeDynamic, staticColliders, overlaps, synced, narrow, broad };
 
         using (var writer = NewCsv("_physics_spike_frames.csv"))
         using (var details = NewCsv("_physics_spike_markers.csv"))
@@ -953,7 +951,6 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                 writer.Write(elapsedSeconds[row].ToString("F4", Invariant)); writer.Write(',');
                 writer.Write(frameMilliseconds[row].ToString("F4", Invariant)); writer.Write(',');
                 writer.Write(fixedUpdateCounts[row].ToString(Invariant)); writer.Write(',');
-                int[] indices = { sim, pxSim, fixedPhysics, fetch, sync, activeDynamic, staticColliders, overlaps, synced, narrow, broad };
                 for (int i = 0; i < indices.Length; i++)
                 {
                     WriteOptionalNumber(writer, MetricMsOrNaN(row, indices[i]));
@@ -1151,7 +1148,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     private static void WriteEscaped(StreamWriter writer, string value)
     {
         value = value ?? string.Empty;
-        if (value.IndexOfAny(new[] { ',', '"', '\n', '\r' }) < 0)
+        if (value.IndexOfAny(CsvSpecialCharacters) < 0)
         {
             writer.Write(value);
             return;
@@ -1545,7 +1542,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             index = sample.ParentIndex;
         }
         chain.Reverse();
-        return string.Join(" > ", chain.ToArray());
+        return string.Join(" > ", chain);
     }
 
     private void WriteEditorPhysicsSpikeDiagnostics()

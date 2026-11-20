@@ -28,7 +28,7 @@ public class PlayerCollision : MonoBehaviour
     {
         GameManager gameManager = GameManager.Instance;
 
-        if (gameManager == null || gameManager.CurrentState != GameStates.Playing)
+        if (!GameManager.IsPlaying)
             return;
 
         if (playerRewind != null && playerRewind.IsRewinding)
@@ -58,11 +58,12 @@ public class PlayerCollision : MonoBehaviour
     public IEnumerator BlinkRoutine(float duration, float interval)
     {
         float elapsed = 0f;
+        WaitForSeconds blinkWait = new WaitForSeconds(interval);
         while (elapsed < duration)
         {
             objRender.enabled = !objRender.enabled;
 
-            yield return new WaitForSeconds(interval);
+            yield return blinkWait;
             elapsed += interval;
         }
 

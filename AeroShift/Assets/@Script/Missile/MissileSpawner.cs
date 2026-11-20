@@ -73,9 +73,7 @@ public class MissileSpawner : MonoBehaviour
 
     public void StopSpawning()
     {
-        StopAllCoroutines();
-        enabled = false;
-        ReturnAllProjectiles();
+        SetSpawning(false);
     }
 
     private void ReturnAllProjectiles()
@@ -142,7 +140,6 @@ public class MissileSpawner : MonoBehaviour
         if (missileObject == null)
             return;
 
-        // 풀링 루트 아래의 자식에 Missile이 있어도 찾는다.
         Missile missile = missileObject.GetComponentInChildren<Missile>(true);
         if (missile == null)
         {
@@ -207,7 +204,6 @@ public class MissileSpawner : MonoBehaviour
 
     public IEnumerator SpawnTransitionPattern()
     {
-        // Stop the ordinary 2D waves before the final transition sequence.
         StopSpawning();
 
         if (!poolsReady || poolManager == null)
@@ -215,8 +211,7 @@ public class MissileSpawner : MonoBehaviour
 
         for (int i = 0; i < transitionMissileCount; i++)
         {
-            if (GameManager.Instance == null ||
-                GameManager.Instance.CurrentState != GameStates.Playing)
+            if (!GameManager.IsPlaying)
                 yield break;
 
             Vector3 direction = GetRandomDirection();
@@ -227,19 +222,16 @@ public class MissileSpawner : MonoBehaviour
 
             yield return warningWait;
 
-            if (GameManager.Instance == null ||
-                GameManager.Instance.CurrentState != GameStates.Playing)
+            if (!GameManager.IsPlaying)
                 yield break;
 
             SpawnMissileAt(spawnPosition, direction);
         }
 
-        // Finish the missiles and warnings before diving back into 3D.
         while (poolManager.GetActiveCount(PoolId.Missile) > 0 ||
                poolManager.GetActiveCount(PoolId.MissileWarning) > 0)
         {
-            if (GameManager.Instance == null ||
-                GameManager.Instance.CurrentState != GameStates.Playing)
+            if (!GameManager.IsPlaying)
                 yield break;
 
             yield return null;

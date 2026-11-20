@@ -16,11 +16,6 @@ public class PlayerMode : MonoBehaviour
         currentMode = mode;
     }
 
-    public void ResetMode()
-    {
-        currentMode = PlayerModes.Mode3D;
-    }
-
     public bool Is3D()
     {
         return currentMode == PlayerModes.Mode3D;

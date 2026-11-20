@@ -31,14 +31,10 @@ public class DimensionTransition : MonoBehaviour
     private Vector3 savedPosition;
     private Quaternion savedRotation;
 
-    public bool IsTransitioning => isTransitioning;
-    public float LastSafeMapWaitSeconds { get; private set; }
-    public int SafeMapTimeoutCount { get; private set; }
-    public int TransitionCancelCount { get; private set; }
-
+    private float safeMapWaitSeconds;
     public void TransitionTo2D()
     {
-        if (isTransitioning || !isActiveAndEnabled || !IsGamePlaying() ||
+        if (isTransitioning || !isActiveAndEnabled || !GameManager.IsPlaying ||
             playerMode == null || !playerMode.Is3D() || !ValidateReferences())
             return;
 
@@ -49,7 +45,7 @@ public class DimensionTransition : MonoBehaviour
 
     public void TransitionTo3D()
     {
-        if (isTransitioning || !isActiveAndEnabled || !IsGamePlaying() ||
+        if (isTransitioning || !isActiveAndEnabled || !GameManager.IsPlaying ||
             playerMode == null || !playerMode.IsMode2D() || !ValidateReferences())
             return;
 
@@ -60,31 +56,30 @@ public class DimensionTransition : MonoBehaviour
 
     private IEnumerator TransitionTo2DSequence()
     {
-        LastSafeMapWaitSeconds = 0f;
+        safeMapWaitSeconds = 0f;
         mapManager.SpawnTransitionSafeMaps();
 
         bool missilePoolsPrepared = false;
-        while (!mapManager.IsTransitionMapArrived(0f) || !missilePoolsPrepared)
+        while (!mapManager.IsTransitionMapArrived() || !missilePoolsPrepared)
         {
             missilePoolsPrepared = missileSpawner.PrewarmFor2D();
-            if (!IsGamePlaying())
+            if (!GameManager.IsPlaying)
             {
-                CancelCurrentTransition("게임 상태가 변경되어 3D→2D 전환을 취소했습니다.");
+                CancelCurrentTransition();
                 yield break;
             }
 
             if (!mapManager.isActiveAndEnabled)
             {
-                CancelCurrentTransition("MapManager가 비활성화되어 안전 맵을 준비할 수 없습니다.");
+                CancelCurrentTransition();
                 yield break;
             }
 
-            LastSafeMapWaitSeconds += Time.unscaledDeltaTime;
+            safeMapWaitSeconds += Time.unscaledDeltaTime;
 
-            if (LastSafeMapWaitSeconds >= safeMapWaitTimeout)
+            if (safeMapWaitSeconds >= safeMapWaitTimeout)
             {
-                SafeMapTimeoutCount++;
-                CancelCurrentTransition($"안전 맵 도착을 {safeMapWaitTimeout:F1}초 동안 기다렸지만 완료되지 않았습니다.");
+                CancelCurrentTransition();
                 yield break;
             }
 
@@ -98,9 +93,9 @@ public class DimensionTransition : MonoBehaviour
 
         while (delay > 0f)
         {
-            if (!IsGamePlaying())
+            if (!GameManager.IsPlaying)
             {
-                CancelCurrentTransition("게임이 종료되어 상승 대기 중 전환을 취소했습니다.");
+                CancelCurrentTransition();
                 yield break;
             }
 
@@ -108,9 +103,9 @@ public class DimensionTransition : MonoBehaviour
             yield return null;
         }
 
-        if (!IsGamePlaying())
+        if (!GameManager.IsPlaying)
         {
-            CancelCurrentTransition("상승 시작 전에 게임 상태가 변경됐습니다.");
+            CancelCurrentTransition();
             yield break;
         }
 
@@ -124,9 +119,9 @@ public class DimensionTransition : MonoBehaviour
         SaveTransitionPose();
         yield return transitionMovement.Rise();
 
-        if (!IsGamePlaying())
+        if (!GameManager.IsPlaying)
         {
-            CancelCurrentTransition("상승 도중 게임 상태가 변경됐습니다.");
+            CancelCurrentTransition();
             yield break;
         }
 
@@ -150,18 +145,18 @@ public class DimensionTransition : MonoBehaviour
 
         yield return missileSpawner.SpawnTransitionPattern();
 
-        if (!IsGamePlaying())
+        if (!GameManager.IsPlaying)
         {
-            CancelCurrentTransition("미사일 패턴 중 게임 상태가 변경됐습니다.");
+            CancelCurrentTransition();
             yield break;
         }
 
         SaveTransitionPose();
         yield return transitionMovement.Dive();
 
-        if (!IsGamePlaying())
+        if (!GameManager.IsPlaying)
         {
-            CancelCurrentTransition("하강 도중 게임 상태가 변경됐습니다.");
+            CancelCurrentTransition();
             yield break;
         }
 
@@ -194,12 +189,6 @@ public class DimensionTransition : MonoBehaviour
         return false;
     }
 
-    private static bool IsGamePlaying()
-    {
-        return GameManager.Instance != null &&
-            GameManager.Instance.CurrentState == GameStates.Playing;
-    }
-
     private void CompleteTransition()
     {
         using (CompleteMarker.Auto())
@@ -208,19 +197,17 @@ public class DimensionTransition : MonoBehaviour
         }
     }
 
-    private void CancelCurrentTransition(string reason)
+    private void CancelCurrentTransition()
     {
         using (CancelMarker.Auto())
         {
-            TransitionCancelCount++;
-
             if (transitioningTo2D && mapManager != null)
                 mapManager.EndTransitionMap();
 
             if (poseSaved && transitionMovement != null)
                 transitionMovement.transform.SetPositionAndRotation(savedPosition, savedRotation);
 
-            if (IsGamePlaying())
+            if (GameManager.IsPlaying)
             {
                 if (transitioningTo2D)
                 {
@@ -273,7 +260,7 @@ public class DimensionTransition : MonoBehaviour
         if (runningTransition != null)
             StopCoroutine(runningTransition);
 
-        CancelCurrentTransition("컴포넌트가 비활성화됐습니다.");
+        CancelCurrentTransition();
     }
 
     private void OnValidate()

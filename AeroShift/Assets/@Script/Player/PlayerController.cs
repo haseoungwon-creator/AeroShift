@@ -18,8 +18,7 @@ public class PlayerController : MonoBehaviour
     private void Awake()
     {
         playerInput.actions.FindActionMap("System").Enable();
-        playerInput.actions.FindActionMap("Player3D").Enable();
-        playerInput.actions.FindActionMap("Player2D").Disable();
+        SetInputMaps(true);
     }
 
     public void OnShift(InputAction.CallbackContext context)
@@ -57,10 +56,7 @@ public class PlayerController : MonoBehaviour
         if (!canControl)
             return;
 
-        if (GameManager.Instance == null)
-            return;
-
-        if (GameManager.Instance.CurrentState != GameStates.Playing)
+        if (!GameManager.IsPlaying)
             return;
 
         if (skillManager == null)
@@ -79,22 +75,14 @@ public class PlayerController : MonoBehaviour
 
     public void ResetPlayer()
     {
-        playerInput.actions.FindActionMap("Player3D").Enable();
-        playerInput.actions.FindActionMap("Player2D").Disable();
-
+        SetInputMaps(true);
         playerMode.SetMode(PlayerModes.Mode3D);
-
-        rb.linearVelocity = Vector3.zero;
-        rb.angularVelocity = Vector3.zero;
 
         transform.SetPositionAndRotation(
             new Vector3(0f, 10f, 0f),
             Quaternion.identity);
 
-        playerMovement2D.SetControlEnabled(false);
-        playerMovement3D.SetControlEnabled(false);
-
-        canControl = false;
+        StopPlayer();
     }
 
     public void StopPlayer()
@@ -125,8 +113,7 @@ public class PlayerController : MonoBehaviour
 
     public void Set3DInput()
     {
-        playerInput.actions.FindActionMap("Player3D").Enable();
-        playerInput.actions.FindActionMap("Player2D").Disable();
+        SetInputMaps(true);
 
         playerMovement2D.SetControlEnabled(false);
         playerMovement3D.SetControlEnabled(true);
@@ -134,10 +121,26 @@ public class PlayerController : MonoBehaviour
 
     public void Set2DInput()
     {
-        playerInput.actions.FindActionMap("Player3D").Disable();
-        playerInput.actions.FindActionMap("Player2D").Enable();
+        SetInputMaps(false);
 
         playerMovement3D.SetControlEnabled(false);
         playerMovement2D.SetControlEnabled(true);
+    }
+
+    private void SetInputMaps(bool use3D)
+    {
+        InputActionMap map3D = playerInput.actions.FindActionMap("Player3D");
+        InputActionMap map2D = playerInput.actions.FindActionMap("Player2D");
+
+        if (use3D)
+        {
+            map3D.Enable();
+            map2D.Disable();
+        }
+        else
+        {
+            map3D.Disable();
+            map2D.Enable();
+        }
     }
 }

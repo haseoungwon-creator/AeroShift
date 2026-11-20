@@ -171,7 +171,7 @@ public class PlayerMovement3D : MonoBehaviour
         canControl = value;
 
         if (!value)
-            ResetMovement();
+            ResetTargetPosition();
     }
 
     public void ResetTargetPosition()
@@ -183,12 +183,4 @@ public class PlayerMovement3D : MonoBehaviour
         clickHeld = false;
     }
 
-    private void ResetMovement()
-    {
-        currentInput = Vector2.zero;
-        targetInput = Vector2.zero;
-        rawMouseX = 0f;
-        clickHeld = false;
-        targetPosition = _t.position;
-    }
 }

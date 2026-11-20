@@ -73,8 +73,7 @@ public sealed class PoolManager : MonoBehaviour
 
     private void Update()
     {
-        if (!shrinkDuringGameplay && GameManager.Instance != null &&
-            GameManager.Instance.CurrentState == GameStates.Playing)
+        if (!shrinkDuringGameplay && GameManager.IsPlaying)
             return;
 
         float now = Time.unscaledTime;
@@ -159,12 +158,12 @@ public sealed class PoolManager : MonoBehaviour
             if (prewarm)
             {
                 for (int j = 0; j < bucket.InitialCount; j++)
-                    CreateObject(config.id, i, group, bucket);
+                    CreateObject(config.id, i, bucket);
             }
         }
     }
 
-    private PooledObject CreateObject(PoolId id, int variant, PoolGroup group, PoolBucket bucket)
+    private PooledObject CreateObject(PoolId id, int variant, PoolBucket bucket)
     {
         if (inactiveRoot == null)
         {
@@ -266,7 +265,7 @@ public sealed class PoolManager : MonoBehaviour
         int created = 0;
         while (bucket.Available.Count < desiredAvailableCount && CanCreate(group))
         {
-            CreateObject(id, variant, group, bucket);
+            CreateObject(id, variant, bucket);
             group.CreationsThisFrame++;
             created++;
         }
@@ -327,7 +326,7 @@ public sealed class PoolManager : MonoBehaviour
 
         if (pooled == null && bucket.Expand && CanCreate(group))
         {
-            pooled = CreateObject(id, variant, group, bucket);
+            pooled = CreateObject(id, variant, bucket);
             bucket.Available.Dequeue();
             group.CreationsThisFrame++;
         }
@@ -432,12 +431,4 @@ public sealed class PoolManager : MonoBehaviour
         return pools.TryGetValue(id, out PoolGroup group) ? group.ActiveCount : 0;
     }
 
-    public int GetAvailableCount(PoolId id, int variantIndex)
-    {
-        EnsureGroup(id);
-        if (!pools.TryGetValue(id, out PoolGroup group) ||
-            variantIndex < 0 || variantIndex >= group.Buckets.Length || group.Buckets[variantIndex] == null)
-            return 0;
-        return group.Buckets[variantIndex].Available.Count;
-    }
 }

@@ -22,20 +22,12 @@ public class SkillManager : MonoBehaviour
 
     public void SetSelectedSkill(SkillInfo info)
     {
-        // 재시작 후 같은 스킬을 다시 고른 경우에도 사용 횟수를 초기화해야 한다.
-        // 플레이 도중 중복 갱신으로 사용 횟수가 초기화되는 것은 방지한다.
         if (info != null && selectedSkillInfo != null && info.id == selectedSkillInfo.id &&
-            GameManager.Instance != null && GameManager.Instance.CurrentState == GameStates.Playing)
+            GameManager.IsPlaying)
             return;
 
-        if (shield != null)
-            shield.ResetSkill();
-
-        if (phaseDash != null)
-            phaseDash.ResetSkill();
-
+        ResetSkill();
         selectedSkillInfo = info;
-        SelectedSkill = SkillType.None;
 
         if (info == null)
             return;
@@ -69,13 +61,7 @@ public class SkillManager : MonoBehaviour
         if (GameManager.Instance == null || GameManager.Instance.CurrentState != GameStates.Ready)
             return;
 
-        if (shield != null)
-            shield.ResetSkill();
-
-        if (phaseDash != null)
-            phaseDash.ResetSkill();
-
-        selectedSkillInfo = null;
+        ResetSkill();
         SelectedSkill = skillType;
 
         if (skillType == SkillType.phase_shield && shield != null)
@@ -84,7 +70,7 @@ public class SkillManager : MonoBehaviour
 
     public void UseSkill()
     {
-        if (GameManager.Instance == null || GameManager.Instance.CurrentState != GameStates.Playing)
+        if (!GameManager.IsPlaying)
             return;
 
         switch (SelectedSkill)
@@ -132,11 +118,6 @@ public class SkillManager : MonoBehaviour
             distance = selectedSkillInfo.skillValue;
 
         phaseDash.Activate(distance);
-    }
-
-    public bool IsSkillSelected()
-    {
-        return SelectedSkill != SkillType.None;
     }
 
     public bool IsSelected(SkillType skillType)

@@ -11,19 +11,9 @@ public class PhaseDash : MonoBehaviour
     private float dashEndTime;
     private float protectionEndTime = -1f;
 
-    public bool IsDashing
-    {
-        get { return isDashing; }
-    }
-
     public bool IsProtected
     {
         get { return isDashing || Time.time < protectionEndTime; }
-    }
-
-    public bool HasUsed
-    {
-        get { return hasUsed; }
     }
 
     private void Awake()
@@ -37,7 +27,7 @@ public class PhaseDash : MonoBehaviour
         if (!isDashing)
             return;
 
-        if (GameManager.Instance == null || GameManager.Instance.CurrentState != GameStates.Playing)
+        if (!GameManager.IsPlaying)
         {
             EndDash(false);
             return;
@@ -55,7 +45,7 @@ public class PhaseDash : MonoBehaviour
         if (worldMovement == null || distance <= 0f || dashDuration <= 0f)
             return;
 
-        if (GameManager.Instance == null || GameManager.Instance.CurrentState != GameStates.Playing)
+        if (!GameManager.IsPlaying)
             return;
 
         hasUsed = true;

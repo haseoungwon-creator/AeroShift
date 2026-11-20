@@ -6,16 +6,6 @@ public class TimeSlow : MonoBehaviour
     [SerializeField] WorldMovement worldMovement;
     [SerializeField] float duration = 5f;
 
-    public bool IsActive
-    {
-        get { return isActive; }
-    }
-
-    public bool HasUsed
-    {
-        get { return hasUsed; }
-    }
-
     public bool CanUse
     {
         get { return !hasUsed && !isActive; }
@@ -34,10 +24,7 @@ public class TimeSlow : MonoBehaviour
         if (!CanUse || multiplier <= 0f)
             return;
 
-        if (GameManager.Instance == null)
-            return;
-
-        if (GameManager.Instance.CurrentState != GameStates.Playing)
+        if (!GameManager.IsPlaying)
             return;
 
         if (worldMovement == null)

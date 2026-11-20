@@ -41,26 +41,15 @@ public sealed class CloudSpawner : MonoBehaviour
     private float effectiveSpawnDistance;
     private float originX;
     private float originZ;
-    private int initialTargetCount;
-    private int initialPlacedCount;
     private int initialIndex;
     private int stalledFrames;
     private int cloudLayer = -1;
     private bool initialized;
     private bool is2D;
-    private bool spawnRangeLimited;
     private GameStates lastState;
     private bool hasLastState;
 
-    public bool DistanceCullingEnabled { get { return enableDistanceCulling; } }
-    public int InitialTargetCount { get { return initialTargetCount; } }
-    public int InitialPlacedCount { get { return initialPlacedCount; } }
-    public int ActiveCloudCount { get { return initialClouds.Count + runtimeClouds.Count; } }
-    public float EffectiveSpawnDistance { get { return effectiveSpawnDistance; } }
-    public bool SpawnRangeLimited { get { return spawnRangeLimited; } }
-    public int CloudRentFailures { get; private set; }
-    public int RuntimeSpawnCount { get; private set; }
-    public bool InitialPlacementComplete { get { return initialized && initialIndex < 0; } }
+    private bool InitialPlacementComplete { get { return initialized && initialIndex < 0; } }
 
     private void Start()
     {
@@ -127,18 +116,15 @@ public sealed class CloudSpawner : MonoBehaviour
     private void ConfigureSpawn()
     {
         effectiveSpawnDistance = Mathf.Max(0f, spawnDistance);
-        spawnRangeLimited = false;
         if (enableDistanceCulling && cloudLayer >= 0 && originalCullDistances.Count > 0)
         {
             effectiveSpawnDistance = Mathf.Min(effectiveSpawnDistance, cloudCullDistance + cullPreloadMargin);
-            spawnRangeLimited = effectiveSpawnDistance < spawnDistance;
         }
 
         spawnSpacing = Mathf.Max(0.1f, spawnSpacing);
         originX = transform.position.x;
         originZ = transform.position.z;
-        initialTargetCount = Mathf.CeilToInt((effectiveSpawnDistance + Mathf.Max(0f, despawnDistance)) / spawnSpacing);
-        initialPlacedCount = 0;
+        int initialTargetCount = Mathf.CeilToInt((effectiveSpawnDistance + Mathf.Max(0f, despawnDistance)) / spawnSpacing);
         initialIndex = initialTargetCount - 1;
         stalledFrames = 0;
         nextSpawnDistance = scrollDistance + spawnSpacing;
@@ -158,14 +144,12 @@ public sealed class CloudSpawner : MonoBehaviour
             }
             if (!SpawnCloud(z, initialClouds))
             {
-                CloudRentFailures++;
                 stalledFrames++;
                 if (stalledFrames >= 120)
                     initialIndex = -1;
                 return;
             }
             stalledFrames = 0;
-            initialPlacedCount++;
             initialIndex--;
             processed++;
         }
@@ -184,10 +168,7 @@ public sealed class CloudSpawner : MonoBehaviour
             float z = transform.position.z + effectiveSpawnDistance - (float)(scrollDistance - nextSpawnDistance);
             if (z >= transform.position.z - despawnDistance)
             {
-                if (SpawnCloud(z, runtimeClouds))
-                    RuntimeSpawnCount++;
-                else
-                    CloudRentFailures++;
+                SpawnCloud(z, runtimeClouds);
             }
             nextSpawnDistance += spacing;
             processed++;
@@ -274,8 +255,6 @@ public sealed class CloudSpawner : MonoBehaviour
         cloudRoot.localPosition = Vector3.zero;
         scrollDistance = 0d;
         is2D = false;
-        CloudRentFailures = 0;
-        RuntimeSpawnCount = 0;
         ConfigureSpawn();
     }
 

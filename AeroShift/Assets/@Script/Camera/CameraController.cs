@@ -12,8 +12,6 @@ public class CameraController : MonoBehaviour
     [SerializeField, Min(1f)] private float orthographicSize2D = 48f;
     [SerializeField] private float startMoveDuration = 2f;
 
-    // The missile field in Main is 160 x 90 (16:9). On narrow screens,
-    // increase the vertical size to keep the same horizontal play area visible.
     private const float ReferenceAspect2D = 16f / 9f;
 
     private Camera gameCamera;
@@ -88,34 +86,6 @@ public class CameraController : MonoBehaviour
         isMoving = false;
     }
 
-    public IEnumerator MoveFromGamePosition()
-    {
-        isMoving = true;
-
-        Vector3 startPosition = transform.position;
-        Quaternion startRotation = transform.rotation;
-        Vector3 targetPosition = new Vector3(0f, 33.3f, -91.8f);
-        Quaternion targetRotation = Quaternion.identity;
-
-        float elapsedTime = 0f;
-        while (elapsedTime < startMoveDuration)
-        {
-            elapsedTime += Time.deltaTime;
-            float t = Mathf.SmoothStep(0f, 1f,
-                Mathf.Clamp01(elapsedTime / startMoveDuration));
-
-            transform.position = Vector3.Lerp(startPosition, targetPosition, t);
-            transform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
-            yield return null;
-        }
-
-        transform.SetPositionAndRotation(targetPosition, targetRotation);
-        gameCamera.orthographic = false;
-        isStartPosition = true;
-        isMoving = false;
-        is2D = false;
-    }
-
     public void Set3DView()
     {
         is2D = false;
@@ -154,7 +124,6 @@ public class CameraController : MonoBehaviour
         gameCamera.orthographicSize = orthographicSize2D *
             Mathf.Max(1f, ReferenceAspect2D / aspect);
 
-        // Keep the XZ arena centered; don't follow the player's X/Z movement.
         transform.SetPositionAndRotation(
             new Vector3(cameraOffset2D.x,
                 player.position.y + cameraOffset2D.y,
@@ -167,3 +136,4 @@ public class CameraController : MonoBehaviour
         orthographicSize2D = Mathf.Max(1f, orthographicSize2D);
     }
 }
+    

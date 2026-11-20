@@ -73,8 +73,7 @@ public class PlayerRewind : MonoBehaviour
         recordInterval = Mathf.Max(0.001f, recordInterval);
         rewindPlayDuration = Mathf.Max(0.01f, rewindPlayDuration);
 
-        int bufferSize = Mathf.Max(2, Mathf.CeilToInt(rewindDuration / recordInterval) + 1);
-        positionBuffer = new PositionData[bufferSize];
+        SetRewindDuration(rewindDuration);
 
         if (playerController == null)
             playerController = GetComponent<PlayerController>();
@@ -88,7 +87,7 @@ public class PlayerRewind : MonoBehaviour
     private void Update()
     {
 
-        if (!IsGamePlaying() || !IsRewindSelected || !CanRewind)
+        if (!GameManager.IsPlaying || !IsRewindSelected || !CanRewind)
             return;
 
         RecordPosition();
@@ -103,11 +102,23 @@ public class PlayerRewind : MonoBehaviour
 
         recordTimer = Mathf.Min(recordTimer - recordInterval, recordInterval);
 
+        StoreCurrentPosition();
+    }
+
+    private void StoreCurrentPosition()
+    {
         positionBuffer[bufferIndex] = CapturePosition();
         bufferIndex = (bufferIndex + 1) % positionBuffer.Length;
 
         if (bufferCount < positionBuffer.Length)
             bufferCount++;
+    }
+
+    private void ClearHistory()
+    {
+        bufferIndex = 0;
+        bufferCount = 0;
+        recordTimer = 0f;
     }
 
     private PositionData CapturePosition()
@@ -121,18 +132,14 @@ public class PlayerRewind : MonoBehaviour
 
     public void Rewind()
     {
-        if (!isActiveAndEnabled || !IsGamePlaying() || !IsRewindSelected ||
+        if (!isActiveAndEnabled || !GameManager.IsPlaying || !IsRewindSelected ||
             !CanRewind || bufferCount == 0)
             return;
 
         if (playerController == null)
             return;
 
-        positionBuffer[bufferIndex] = CapturePosition();
-        bufferIndex = (bufferIndex + 1) % positionBuffer.Length;
-
-        if (bufferCount < positionBuffer.Length)
-            bufferCount++;
+        StoreCurrentPosition();
 
         hasUsed = true;
         isRewinding = true;
@@ -160,7 +167,7 @@ public class PlayerRewind : MonoBehaviour
 
         while (elapsedTime < rewindPlayDuration)
         {
-            if (!IsGamePlaying())
+            if (!GameManager.IsPlaying)
             {
                 FinishRewind();
                 yield break;
@@ -266,7 +273,7 @@ public class PlayerRewind : MonoBehaviour
         if (scoreManager != null)
             scoreManager.SetRewinding(false);
 
-        bool isPlaying = IsGamePlaying();
+        bool isPlaying = GameManager.IsPlaying;
 
         if (worldMovement != null)
         {
@@ -300,12 +307,6 @@ public class PlayerRewind : MonoBehaviour
         return index < 0 ? index + positionBuffer.Length : index;
     }
 
-    private static bool IsGamePlaying()
-    {
-        return GameManager.Instance != null &&
-            GameManager.Instance.CurrentState == GameStates.Playing;
-    }
-
     public void SetRewindDuration(float seconds)
     {
         if (seconds <= 0f)
@@ -314,19 +315,16 @@ public class PlayerRewind : MonoBehaviour
         rewindDuration = seconds;
 
         int bufferSize = Mathf.Max(2, Mathf.CeilToInt(rewindDuration / recordInterval) + 1);
-        positionBuffer = new PositionData[bufferSize];
-        bufferIndex = 0;
-        bufferCount = 0;
-        recordTimer = 0f;
+        if (positionBuffer == null || positionBuffer.Length != bufferSize)
+            positionBuffer = new PositionData[bufferSize];
+        ClearHistory();
     }
 
     public void ResetRewind()
     {
         StopRewindAndRestore();
 
-        bufferIndex = 0;
-        bufferCount = 0;
-        recordTimer = 0f;
+        ClearHistory();
         hasUsed = false;
     }
 

@@ -10,7 +10,6 @@ public class PlayerStats : MonoBehaviour
     [SerializeField] private SkillSelectionManager skillSelectionManager;
     [SerializeField] private SkillManager skillManager;
 
-    public string AircraftId { get; private set; }
     public float ScoreMultiplier { get; private set; } = 1f;
     public float WorldSpeedMultiplier { get; private set; } = 1f;
     public float SensitivityMultiplier { get; private set; } = 1f;
@@ -23,7 +22,6 @@ public class PlayerStats : MonoBehaviour
 
     public void LoadStats()
     {
-        AircraftId = "";
         ScoreMultiplier = 1f;
         WorldSpeedMultiplier = 1f;
         SensitivityMultiplier = 1f;
@@ -58,8 +56,6 @@ public class PlayerStats : MonoBehaviour
     {
         if (selectedAircraft == null)
             return;
-
-        AircraftId = selectedAircraft.AircraftId;
 
         if (selectedAircraft.PassiveId == "score_multiplier")
         {

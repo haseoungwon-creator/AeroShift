@@ -17,9 +17,4 @@ public sealed class PooledObject : MonoBehaviour
         IsRented = false;
     }
 
-    public void Release()
-    {
-        if (Owner != null)
-            Owner.Return(gameObject);
-    }
 }

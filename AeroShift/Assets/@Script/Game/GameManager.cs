@@ -14,6 +14,7 @@ public class GameManager : MonoBehaviour
 {
     private static readonly ProfilerMarker MapResetMarker = new ProfilerMarker("AeroShift.Game.MapReset");
     public static GameManager Instance { get; private set; }
+    public static bool IsPlaying => Instance != null && Instance.CurrentState == GameStates.Playing;
 
     [SerializeField] string menuScene = "Menu";
 
@@ -86,7 +87,6 @@ public class GameManager : MonoBehaviour
                 using (MapResetMarker.Auto())
                     mapManager.ResetMaps();
                 cameraController.ResetCamera();
-                playerController.SetControlEnabled(false);
                 skillSelectionManager.ShowRandomSkills();
                 break;
 

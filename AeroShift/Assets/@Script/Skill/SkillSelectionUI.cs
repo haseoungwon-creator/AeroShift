@@ -33,7 +33,8 @@ public class SkillSelectionUI : MonoBehaviour, IPointerClickHandler
 
         if (skillImage != null)
         {
-            Sprite sprite = Resources.Load<Sprite>("SkillIcons/" + skillInfo.id);
+            string iconId = string.IsNullOrEmpty(skillInfo.iconID) ? skillInfo.id : skillInfo.iconID;
+            Sprite sprite = Resources.Load<Sprite>("SkillIcons/" + iconId);
             skillImage.sprite = sprite;
             skillImage.enabled = sprite != null;
         }
