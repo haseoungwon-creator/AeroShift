@@ -235,6 +235,18 @@ public sealed class PoolManager : MonoBehaviour
             group.Names.TryGetValue(prefabName, out variantIndex);
     }
 
+    // Returns the number of currently unused objects of a specific prefab variant.
+    // Used before renting a full JSON layout so a chunk is never half-populated.
+    public int GetAvailableCount(PoolId id, int variantIndex)
+    {
+        EnsureGroup(id);
+        if (!pools.TryGetValue(id, out PoolGroup group) ||
+            variantIndex < 0 || variantIndex >= group.Buckets.Length ||
+            group.Buckets[variantIndex] == null)
+            return 0;
+        return group.Buckets[variantIndex].Available.Count;
+    }
+
     public bool PrewarmInitialCount(PoolId id)
     {
         EnsureGroup(id);
@@ -377,6 +389,14 @@ public sealed class PoolManager : MonoBehaviour
         group.ActiveCount--;
         pooled.IsRented = false;
         pooled.ActiveIndex = -1;
+
+        // If this is a map chunk, release its pooled structures while the
+        // roadBase hierarchy is still active. Reparenting child rocks from
+        // MapChunk.OnDisable would throw during parent deactivation.
+        if ((pooled.PoolId == PoolId.NormalMap || pooled.PoolId == PoolId.SafeMap) &&
+            instance.TryGetComponent(out MapChunk mapChunk))
+            mapChunk.ReleaseStructures();
+
         instance.SetActive(false);
         if (instance.transform.parent != bucket.Parent)
             instance.transform.SetParent(bucket.Parent, false);

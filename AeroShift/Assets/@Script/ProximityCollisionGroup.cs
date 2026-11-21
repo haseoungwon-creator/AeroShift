@@ -14,22 +14,13 @@ public sealed class ProximityCollisionGroup : MonoBehaviour
     public void Initialize(LayerMask obstacleLayers)
     {
         int layerMask = obstacleLayers.value;
-
         if (initialized && configuredLayerMask == layerMask)
             return;
 
-        if (initialized)
-            SetCollisionsEnabled(true);
-        else
-        {
-
-            colliders = GetComponentsInChildren<Collider>(true);
-            originalEnabledStates = new bool[colliders.Length];
-            tracked = new bool[colliders.Length];
-
-            for (int i = 0; i < colliders.Length; i++)
-                originalEnabledStates[i] = colliders[i] != null && colliders[i].enabled;
-        }
+        Invalidate();
+        colliders = GetComponentsInChildren<Collider>(true);
+        originalEnabledStates = new bool[colliders.Length];
+        tracked = new bool[colliders.Length];
 
         bool hasBounds = false;
         boundsValid = true;
@@ -37,8 +28,11 @@ public sealed class ProximityCollisionGroup : MonoBehaviour
         for (int i = 0; i < colliders.Length; i++)
         {
             Collider current = colliders[i];
-            tracked[i] = current != null && ((1 << current.gameObject.layer) & layerMask) != 0;
+            if (current == null)
+                continue;
 
+            originalEnabledStates[i] = current.enabled;
+            tracked[i] = ((1 << current.gameObject.layer) & layerMask) != 0;
             if (!tracked[i])
                 continue;
 
@@ -52,13 +46,32 @@ public sealed class ProximityCollisionGroup : MonoBehaviour
                 localBounds.Encapsulate(bounds);
             else
                 localBounds = bounds;
-
             hasBounds = true;
         }
 
         boundsValid &= hasBounds;
         configuredLayerMask = layerMask;
         initialized = true;
+        collisionsEnabled = true;
+    }
+
+    // Refresh only after the set of pooled rock children has changed.
+    public void Rebuild()
+    {
+        int layers = configuredLayerMask;
+        Invalidate();
+        Initialize(layers);
+    }
+
+    public void Invalidate()
+    {
+        if (initialized)
+            SetCollisionsEnabled(true);
+        colliders = null;
+        originalEnabledStates = null;
+        tracked = null;
+        initialized = false;
+        boundsValid = false;
         collisionsEnabled = true;
     }
 
@@ -70,12 +83,9 @@ public sealed class ProximityCollisionGroup : MonoBehaviour
         for (int i = 0; i < colliders.Length; i++)
         {
             Collider current = colliders[i];
-
             if (!tracked[i] || current == null)
                 continue;
-
             bool desired = enable && originalEnabledStates[i];
-
             if (current.enabled != desired)
                 current.enabled = desired;
         }
@@ -87,10 +97,8 @@ public sealed class ProximityCollisionGroup : MonoBehaviour
     public bool TryGetWorldZRange(out float minZ, out float maxZ)
     {
         minZ = maxZ = 0f;
-
         if (!boundsValid)
             return false;
-
         GetWorldZRange(transform, localBounds, out minZ, out maxZ);
         return true;
     }
@@ -98,7 +106,6 @@ public sealed class ProximityCollisionGroup : MonoBehaviour
     internal static bool TryGetLocalBounds(Transform root, Collider collider, out Bounds bounds)
     {
         Bounds shape;
-
         if (collider is BoxCollider box)
             shape = new Bounds(box.center, box.size);
         else if (collider is MeshCollider mesh && mesh.sharedMesh != null)

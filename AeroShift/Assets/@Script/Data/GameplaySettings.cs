@@ -178,6 +178,7 @@ public sealed class PoolManagerSettings : JsonSettingsData
         new PoolGroupSettings { id = PoolId.TransitionWall, resourceInitialCount = 1, resourceExpandWhenEmpty = true, initializeOnFirstUse = false, enableAutoShrink = false, idleSecondsBeforeShrink = 60, shrinkCheckIntervalSeconds = 10.0f },
         new PoolGroupSettings { id = PoolId.Missile, resourceInitialCount = 20, resourceExpandWhenEmpty = true, initializeOnFirstUse = true, enableAutoShrink = false, idleSecondsBeforeShrink = 30, shrinkCheckIntervalSeconds = 1.0f },
         new PoolGroupSettings { id = PoolId.MissileWarning, resourceInitialCount = 30, resourceExpandWhenEmpty = true, initializeOnFirstUse = true, enableAutoShrink = false, idleSecondsBeforeShrink = 30, shrinkCheckIntervalSeconds = 1.0f },
+        new PoolGroupSettings { id = PoolId.MapStructure, resourceInitialCount = 100, resourceExpandWhenEmpty = true, initializeOnFirstUse = false, enableAutoShrink = false, idleSecondsBeforeShrink = 60, shrinkCheckIntervalSeconds = 5.0f },
     };
     public bool shrinkDuringGameplay = false;
     public int prewarmObstacleLayers = 1;

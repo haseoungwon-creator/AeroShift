@@ -17,11 +17,12 @@ public class ResourceManager : MonoBehaviour
     {
         new ResourceGroupConfig { poolId = PoolId.Cloud, resourcesFolder = "Cloud" },
         new ResourceGroupConfig { poolId = PoolId.SafeMap, resourcesFolder = "SafeMap" },
-        new ResourceGroupConfig { poolId = PoolId.NormalMap, resourcesFolder = "NormalMap" },
+        new ResourceGroupConfig { poolId = PoolId.NormalMap, resourcesFolder = "MapBase" },
         new ResourceGroupConfig { poolId = PoolId.TransitionWall, resourcesFolder = "TransitionWall" },
         new ResourceGroupConfig { poolId = PoolId.Missile, resourcesFolder = "Missile" },
         new ResourceGroupConfig { poolId = PoolId.MissileWarning, resourcesFolder = "MissileWarning" },
-        new ResourceGroupConfig { poolId = PoolId.Effect, resourcesFolder = "Effect" }
+        new ResourceGroupConfig { poolId = PoolId.Effect, resourcesFolder = "Effect" },
+        new ResourceGroupConfig { poolId = PoolId.MapStructure, resourcesFolder = "MapStructures" }
     };
 
     private readonly Dictionary<PoolId, string> groupPaths = new Dictionary<PoolId, string>();

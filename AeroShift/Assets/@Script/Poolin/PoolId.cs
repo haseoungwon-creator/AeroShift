@@ -6,5 +6,6 @@ public enum PoolId
     TransitionWall,
     Missile,
     MissileWarning,
-    Effect
+    Effect,
+    MapStructure = 7
 }

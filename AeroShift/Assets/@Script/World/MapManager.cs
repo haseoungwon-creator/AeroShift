@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -52,6 +52,11 @@ public sealed class MapManager : MonoBehaviour
     private int[] normalVariants = Array.Empty<int>();
     private int[] safeVariants = Array.Empty<int>();
     private int[] normalDemand = Array.Empty<int>();
+    private MapLayoutDefinition[] normalLayouts = Array.Empty<MapLayoutDefinition>();
+    private int[][] layoutStructureVariants = Array.Empty<int[]>();
+    private int[] structureVariants = Array.Empty<int>();
+    private int[] structureDemand = Array.Empty<int>();
+    private int[] structureRequired = Array.Empty<int>();
     private int lastPreparedChunk = int.MinValue;
     private float nextPrepareTime;
     private int[] safeDemand = Array.Empty<int>();
@@ -101,8 +106,9 @@ public sealed class MapManager : MonoBehaviour
 
         normalVariants = LoadVariants(PoolId.NormalMap);
         safeVariants = LoadVariants(PoolId.SafeMap);
-        if (normalVariants.Length == 0 || (startingSafeChunkCount > 0 && safeVariants.Length == 0))
+        if (normalVariants.Length != 1 || safeVariants.Length == 0 || !LoadMapLayouts())
         {
+            Debug.LogError("[AeroShift Map] MapBase, SafeMap, or JSON map layouts are not configured.", this);
             enabled = false;
             return;
         }
@@ -127,6 +133,104 @@ public sealed class MapManager : MonoBehaviour
                 return Array.Empty<int>();
         }
         return result;
+    }
+
+    private bool LoadMapLayouts()
+    {
+        const string path = "Config/Maps/MapLayouts";
+        TextAsset json = Resources.Load<TextAsset>(path);
+        if (json == null)
+        {
+            Debug.LogError("[AeroShift Map] Missing JSON at Resources/" + path + ".json", this);
+            return false;
+        }
+
+        MapLayoutDatabase database;
+        try
+        {
+            database = JsonUtility.FromJson<MapLayoutDatabase>(json.text);
+        }
+        catch (ArgumentException exception)
+        {
+            Debug.LogError("[AeroShift Map] Invalid layout JSON: " + exception.Message, this);
+            return false;
+        }
+
+        if (database == null || database.schemaVersion != 1 ||
+            database.maps == null || database.maps.Length == 0)
+            return false;
+
+        int variantCount = poolManager.GetVariantCount(PoolId.MapStructure);
+        if (variantCount == 0)
+        {
+            Debug.LogError("[AeroShift Map] MapStructure pool has no prefabs.", this);
+            return false;
+        }
+
+        var knownLayouts = new HashSet<string>(StringComparer.Ordinal);
+        var resolved = new int[database.maps.Length][];
+
+        for (int m = 0; m < database.maps.Length; m++)
+        {
+            MapLayoutDefinition map = database.maps[m];
+            if (map == null || string.IsNullOrEmpty(map.id) ||
+                !knownLayouts.Add(map.id) || map.structures == null)
+                return false;
+
+            resolved[m] = new int[map.structures.Length];
+            for (int i = 0; i < map.structures.Length; i++)
+            {
+                MapStructurePlacement structure = map.structures[i];
+                if (structure == null || !IsFinite(structure.position) ||
+                    !IsFinite(structure.rotation) || !IsFinite(structure.scale) ||
+                    structure.scale.x == 0f || structure.scale.y == 0f || structure.scale.z == 0f ||
+                    !poolManager.TryGetVariantIndex(PoolId.MapStructure, structure.prefabId, out int variant))
+                {
+                    Debug.LogError("[AeroShift Map] Invalid structure entry in " + map.id +
+                        " at index " + i, this);
+                    return false;
+                }
+                resolved[m][i] = variant;
+            }
+        }
+
+        normalLayouts = database.maps;
+        layoutStructureVariants = resolved;
+        structureVariants = new int[variantCount];
+        structureDemand = new int[variantCount];
+        structureRequired = new int[variantCount];
+        for (int i = 0; i < variantCount; i++)
+            structureVariants[i] = i;
+        return true;
+    }
+
+    private static bool IsFinite(Vector3 value)
+    {
+        return !float.IsNaN(value.x) && !float.IsNaN(value.y) && !float.IsNaN(value.z) &&
+            !float.IsInfinity(value.x) && !float.IsInfinity(value.y) && !float.IsInfinity(value.z);
+    }
+
+    private bool EnsureStructureAvailability(int layoutIndex)
+    {
+        Array.Clear(structureRequired, 0, structureRequired.Length);
+        int[] variants = layoutStructureVariants[layoutIndex];
+        for (int i = 0; i < variants.Length; i++)
+            structureRequired[variants[i]]++;
+
+        bool ready = true;
+        for (int variant = 0; variant < structureRequired.Length; variant++)
+        {
+            int count = structureRequired[variant];
+            if (count == 0)
+                continue;
+            if (poolManager.GetAvailableCount(PoolId.MapStructure, variant) >= count)
+                continue;
+
+            poolManager.Prepare(PoolId.MapStructure, variant, count);
+            if (poolManager.GetAvailableCount(PoolId.MapStructure, variant) < count)
+                ready = false;
+        }
+        return ready;
     }
 
     private void Update()
@@ -173,12 +277,9 @@ public sealed class MapManager : MonoBehaviour
     {
         bool initialSafe = IsInitialSafe(nextChunkIndex);
         bool safe = initialSafe || pendingSafeChunks > 0;
-        int[] variants = safe ? safeVariants : normalVariants;
-        if (variants.Length == 0)
-            return false;
-
-        int choice = safe ? 0 : ChunkSeedUtility.SelectNormalPrefab(seed, nextChunkIndex, variants.Length);
-        if (choice < 0 || choice >= variants.Length)
+        int layoutIndex = safe ? -1 :
+            ChunkSeedUtility.SelectNormalPrefab(seed, nextChunkIndex, normalLayouts.Length);
+        if (!safe && (layoutIndex < 0 || !EnsureStructureAvailability(layoutIndex)))
             return false;
 
         float centerZ = nextChunkIndex * chunkLength;
@@ -187,13 +288,21 @@ public sealed class MapManager : MonoBehaviour
         Quaternion rotation = rotated ? Quaternion.Euler(0f, 180f, 0f) : Quaternion.identity;
         PoolId id = safe ? PoolId.SafeMap : PoolId.NormalMap;
         Transform parent = worldMovement != null ? worldMovement.transform : null;
-        GameObject instance = poolManager.RentInactive(id, position, rotation, parent, variants[choice]);
+        int baseVariant = safe ? safeVariants[0] : normalVariants[0];
+        GameObject instance = poolManager.RentInactive(id, position, rotation, parent, baseVariant);
         if (instance == null)
             return false;
 
         if (!instance.TryGetComponent(out MapChunk chunk))
             chunk = instance.AddComponent<MapChunk>();
         chunk.SetChunkData(safe);
+
+        if (!safe && !chunk.ApplyLayout(normalLayouts[layoutIndex],
+                layoutStructureVariants[layoutIndex], poolManager))
+        {
+            poolManager.Return(instance);
+            return false;
+        }
 
         if (!safe && enableProximityCollisionCulling)
         {
@@ -228,6 +337,8 @@ public sealed class MapManager : MonoBehaviour
         while (activeChunks.Count > 0 && activeChunks.Peek().EndZ < releaseZ)
         {
             ActiveChunk chunk = activeChunks.Dequeue();
+            if (chunk.Chunk != null)
+                chunk.Chunk.ReleaseStructures();
             if (chunk.Object != null)
                 poolManager.Return(chunk.Object);
         }
@@ -243,6 +354,7 @@ public sealed class MapManager : MonoBehaviour
         nextPrepareTime = Time.unscaledTime + 0.1f;
         Array.Clear(normalDemand, 0, normalDemand.Length);
         Array.Clear(safeDemand, 0, safeDemand.Length);
+        Array.Clear(structureDemand, 0, structureDemand.Length);
         int remainingSafe = pendingSafeChunks;
 
         for (int i = 0; i < prepareLookaheadChunks; i++)
@@ -255,20 +367,22 @@ public sealed class MapManager : MonoBehaviour
             if (!initialSafe && remainingSafe > 0)
                 remainingSafe--;
 
-            int[] variants = safe ? safeVariants : normalVariants;
-            if (variants.Length == 0)
-                continue;
-            int choice = safe ? 0 : ChunkSeedUtility.SelectNormalPrefab(seed, index, variants.Length);
-            if (choice < 0 || choice >= variants.Length)
-                continue;
             if (safe)
-                safeDemand[choice]++;
-            else
-                normalDemand[choice]++;
+            {
+                safeDemand[0]++;
+                continue;
+            }
+
+            normalDemand[0]++;
+            int layoutIndex = ChunkSeedUtility.SelectNormalPrefab(seed, index, normalLayouts.Length);
+            int[] variants = layoutStructureVariants[layoutIndex];
+            for (int j = 0; j < variants.Length; j++)
+                structureDemand[variants[j]]++;
         }
 
         PrepareVariants(PoolId.NormalMap, normalVariants, normalDemand);
         PrepareVariants(PoolId.SafeMap, safeVariants, safeDemand);
+        PrepareVariants(PoolId.MapStructure, structureVariants, structureDemand);
     }
 
     private void PrepareVariants(PoolId id, int[] variants, int[] demand)
@@ -396,6 +510,8 @@ public sealed class MapManager : MonoBehaviour
         while (activeChunks.Count > 0)
         {
             ActiveChunk chunk = activeChunks.Dequeue();
+            if (chunk.Chunk != null)
+                chunk.Chunk.ReleaseStructures();
             if (chunk.Object != null && poolManager != null)
                 poolManager.Return(chunk.Object);
         }

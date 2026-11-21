@@ -564,6 +564,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74ce5976e680a1048ad6d57078878bb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PoolManager
+  settingsJson: {fileID: 4900000, guid: 398f356006c14c649e822cffce7100a4, type: 3}
   resourceManager: {fileID: 1808679688}
   groups:
   - id: 0
@@ -614,6 +615,14 @@ MonoBehaviour:
     enableAutoShrink: 0
     idleSecondsBeforeShrink: 30
     shrinkCheckIntervalSeconds: 1
+  - id: 7
+    parent: {fileID: 2088902088}
+    resourceInitialCount: 100
+    resourceExpandWhenEmpty: 1
+    initializeOnFirstUse: 0
+    enableAutoShrink: 0
+    idleSecondsBeforeShrink: 60
+    shrinkCheckIntervalSeconds: 5
   shrinkDuringGameplay: 0
   prewarmObstacleLayers:
     serializedVersion: 2
@@ -630,7 +639,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2088902088}
   m_Father: {fileID: 1808679687}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &330585543
@@ -783,14 +793,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0f2f39b794575943bebdffd41f731e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraController
+  settingsJson: {fileID: 4900000, guid: 8b41a39a905a4605a6dc7f183ee09aa0, type: 3}
   player: {fileID: 4959434284361090775}
-  cameraOffset3D: {x: 0, y: 8, z: -12}
-  cameraRotation3D: {x: 20, y: 0, z: 0}
-  cameraOffset2D: {x: 0, y: 75, z: 0}
-  cameraRotation2D: {x: 90, y: 0, z: 0}
-  orthographicSize2D: 48
-  transitionCameraPosition: {x: 0, y: 62.5, z: 0}
-  startMoveDuration: 2
 --- !u!1 &375499736
 GameObject:
   m_ObjectHideFlags: 0
@@ -1107,6 +1111,64 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!1 &404541426
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 404541428}
+  - component: {fileID: 404541427}
+  m_Layer: 0
+  m_Name: AeroOptimizationExperiment
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &404541427
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 404541426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1082c9336484014fbf24abcb843847a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AeroOptimizationExperiment
+  saveSubfolder: ProfilerCaptures
+  startAutomatically: 0
+  warmupSeconds: 5
+  captureSeconds: 30
+  slowFrameThresholdMs: 40
+  recordEveryAvailableMetric: 0
+  maxRecorders: 128
+  maxMetricBufferMiB: 32
+  enableEditorDiagnostics: 0
+  saveUnityProfilerRawCapture: 0
+  rawProfilerBufferMiB: 128
+  capacityFramesPerSecond: 1000
+  settleAfterAllocationSeconds: 1
+  frameTimingSampleEveryNFrames: 8
+--- !u!4 &404541428
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 404541426}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -42.25681, y: 0, z: 66.95975}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -1441,16 +1503,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ba3fdcaf0e2448429a05c2a48a192bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MissileSpawner
+  settingsJson: {fileID: 4900000, guid: 0c3efd374563479abd54350e547be0cc, type: 3}
   poolManager: {fileID: 318424434}
-  minSpawnInterval: 0.5
-  maxSpawnInterval: 1
-  minMissileCount: 2
-  maxMissileCount: 4
-  spawnWidth: 160
-  spawnHeight: 90
-  spawnDistance: 50
-  warningDuration: 2
-  transitionMissilesPerSide: 5
 --- !u!4 &514009907
 Transform:
   m_ObjectHideFlags: 0
@@ -2016,10 +2070,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac8aa9ce5d6ff954c9c3c484e9914cde, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WorldMovement
-  worldSpeed: 30
-  maxWorldSpeed: 60
-  speedIncrease: 5
-  speedIncreaseInterval: 10
+  settingsJson: {fileID: 4900000, guid: e4875e6f09d84d2a93e7f96e1654e283, type: 3}
   canMove: 1
 --- !u!114 &774914389
 MonoBehaviour:
@@ -2033,29 +2084,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2eb22d2b6aa950f4aa4b98e735c44493, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapManager
+  settingsJson: {fileID: 4900000, guid: d2ddbc6c3bd04492baa68ef7d675a74f, type: 3}
   player: {fileID: 4959434284361090775}
   poolManager: {fileID: 318424434}
   resourceManager: {fileID: 1808679688}
   worldMovement: {fileID: 774914384}
   playerRewind: {fileID: 1942181598}
-  chunkLength: 80
-  mapOriginXY: {x: 0, y: 0}
-  forwardChunkCount: 6
-  startingSafeChunkCount: 3
-  keepBehindDistance: 160
-  maxSpawnsPerFrame: 2
-  prepareLookaheadChunks: 4
-  transitionSafeChunkCount: 3
-  spawnTransitionWall: 1
-  transitionWallOffset: 30
-  enableProximityCollisionCulling: 1
-  obstacleCollisionLayers:
-    serializedVersion: 2
-    m_Bits: 1
-  collisionEnableAhead: 160
-  collisionKeepBehind: 80
-  collisionCheckInterval: 0.1
-  allow180DegreeRotation: 1
 --- !u!4 &774914390
 Transform:
   m_ObjectHideFlags: 0
@@ -3764,7 +3798,7 @@ MonoBehaviour:
   - poolId: 1
     resourcesFolder: SafeMap
   - poolId: 2
-    resourcesFolder: NormalMap
+    resourcesFolder: MapBase
   - poolId: 3
     resourcesFolder: TransitionWall
   - poolId: 4
@@ -3773,6 +3807,8 @@ MonoBehaviour:
     resourcesFolder: MissileWarning
   - poolId: 6
     resourcesFolder: Effect
+  - poolId: 7
+    resourcesFolder: MapStructures
 --- !u!1 &1903047161
 GameObject:
   m_ObjectHideFlags: 0
@@ -4129,6 +4165,37 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2072879988}
   m_CullTransparentMesh: 1
+--- !u!1 &2088902087
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2088902088}
+  m_Layer: 0
+  m_Name: MapStructurePool
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2088902088
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2088902087}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 318424435}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2136591281
 GameObject:
   m_ObjectHideFlags: 0
@@ -4482,18 +4549,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8aa65cfda1e69f4f8f636cce4e37f08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerTransitionMovement
+  settingsJson: {fileID: 4900000, guid: a1faf9aed4da43ddbf3ff5cb10b2cca0, type: 3}
   worldMovement: {fileID: 774914384}
-  transitionHeight: 150
-  transitionDuration: 1.5
-  baseWorldSpeed: 30
-  riseRotationX: -70
-  diveRotationX: 70
-  diveTargetY: -90
-  diveSpeed: 100
-  diveRotationSpeed: 80
-  return3DHeight: 10
-  riseSpeedMultiplier: 1.5
-  diveFinishDuration: 0.35
 --- !u!114 &4120526237632602676
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4797,7 +4854,7 @@ MeshCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 0
+  m_Enabled: 1
   serializedVersion: 5
   m_Convex: 1
   m_CookingOptions: 30
@@ -5137,3 +5194,4 @@ SceneRoots:
   - {fileID: 930761020}
   - {fileID: 1383944817}
   - {fileID: 1336853234}
+  - {fileID: 404541428}

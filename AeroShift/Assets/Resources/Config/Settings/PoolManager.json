@@ -55,6 +55,15 @@
       "enableAutoShrink": false,
       "idleSecondsBeforeShrink": 30,
       "shrinkCheckIntervalSeconds": 1
+    },
+    {
+      "id": 7,
+      "resourceInitialCount": 100,
+      "resourceExpandWhenEmpty": true,
+      "initializeOnFirstUse": false,
+      "enableAutoShrink": false,
+      "idleSecondsBeforeShrink": 60,
+      "shrinkCheckIntervalSeconds": 5
     }
   ],
   "shrinkDuringGameplay": false,
