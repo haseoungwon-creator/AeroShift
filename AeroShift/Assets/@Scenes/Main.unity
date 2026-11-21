@@ -3872,6 +3872,64 @@ MonoBehaviour:
   worldMovement: {fileID: 774914384}
   playerCollider: {fileID: 6349540993517379019}
   skillManager: {fileID: 1383944816}
+--- !u!1 &1964602097
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1964602099}
+  - component: {fileID: 1964602098}
+  m_Layer: 0
+  m_Name: AeroOptimizationExperiment
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1964602098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1964602097}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1082c9336484014fbf24abcb843847a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AeroOptimizationExperiment
+  saveSubfolder: ProfilerCaptures
+  startAutomatically: 1
+  warmupSeconds: 5
+  captureSeconds: 30
+  slowFrameThresholdMs: 40
+  recordEveryAvailableMetric: 0
+  maxRecorders: 128
+  maxMetricBufferMiB: 32
+  enableEditorDiagnostics: 0
+  saveUnityProfilerRawCapture: 0
+  rawProfilerBufferMiB: 128
+  capacityFramesPerSecond: 1000
+  settleAfterAllocationSeconds: 1
+  frameTimingSampleEveryNFrames: 8
+--- !u!4 &1964602099
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1964602097}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!224 &1970898460 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 6818406519408594392, guid: eeae8f7a904c0a04a81e77eb34b80df5, type: 3}
@@ -5137,3 +5195,4 @@ SceneRoots:
   - {fileID: 930761020}
   - {fileID: 1383944817}
   - {fileID: 1336853234}
+  - {fileID: 1964602099}
