@@ -84,7 +84,7 @@ public class PlayerTransitionMovement : MonoBehaviour
 
         Vector3 startPosition = transform.position;
         Vector3 targetPosition = rising
-            ? startPosition + Vector3.up * transitionHeight
+            ? new Vector3(startPosition.x, transitionHeight, startPosition.z)
             : startPosition - Vector3.up * transitionHeight;
 
         Quaternion startRotation = transform.rotation;
@@ -104,8 +104,10 @@ public class PlayerTransitionMovement : MonoBehaviour
             yield return null;
         }
 
+        // 2D 플레이는 원래 기준 고도(Y=10)에서 시작한다.
+        // 상승 연출만 Y=transitionHeight까지 실행하고 마지막에 높이를 복구한다.
         transform.SetPositionAndRotation(
-            rising ? new Vector3(0f, targetPosition.y, 0f) : new Vector3(0f, return3DHeight, 10f),
+            rising ? new Vector3(0f, return3DHeight, 0f) : new Vector3(0f, return3DHeight, 10f),
             rising ? Quaternion.identity : targetRotation);
     }
 
