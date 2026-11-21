@@ -3,18 +3,21 @@ using System.Collections;
 
 public class PlayerTransitionMovement : MonoBehaviour
 {
+    [SerializeField] private TextAsset settingsJson;
+    private bool settingsLoaded;
+
     [SerializeField] WorldMovement worldMovement;
-    [SerializeField] float transitionHeight = 150f;
-    [SerializeField] float transitionDuration = 1.5f;
-    [SerializeField] float baseWorldSpeed = 30f;
-    [SerializeField] float riseRotationX = -70f;
-    [SerializeField] float diveRotationX = 70f;
-    [SerializeField] private float diveTargetY = -90f;
-    [SerializeField, Min(1f)] private float diveSpeed = 100f;
-    [SerializeField, Min(1f)] private float diveRotationSpeed = 80f;
-    [SerializeField] private float return3DHeight = 10f;
-    [SerializeField] float riseSpeedMultiplier = 1.5f;
-    [SerializeField, Min(0.01f)] private float diveFinishDuration = 0.35f;
+    private float transitionHeight;
+    private float transitionDuration;
+    private float baseWorldSpeed;
+    private float riseRotationX;
+    private float diveRotationX;
+    private float diveTargetY;
+    private float diveSpeed;
+    private float diveRotationSpeed;
+    private float return3DHeight;
+    private float riseSpeedMultiplier;
+    private float diveFinishDuration;
 
     public IEnumerator Rise()
     {
@@ -51,7 +54,7 @@ public class PlayerTransitionMovement : MonoBehaviour
     public IEnumerator FinishDive()
     {
         Vector3 start = transform.position;
-        Vector3 end = new Vector3(0f, return3DHeight-90f, 10f);
+        Vector3 end = new Vector3(0f, return3DHeight, 10f);
         Quaternion initialRotation = transform.rotation;
         float elapsed = 0f;
 
@@ -102,7 +105,7 @@ public class PlayerTransitionMovement : MonoBehaviour
         }
 
         transform.SetPositionAndRotation(
-            rising ? new Vector3(0f, 10f, 0f) : new Vector3(0f, return3DHeight, 10f),
+            rising ? new Vector3(0f, targetPosition.y, 0f) : new Vector3(0f, return3DHeight, 10f),
             rising ? Quaternion.identity : targetRotation);
     }
 
@@ -112,5 +115,31 @@ public class PlayerTransitionMovement : MonoBehaviour
             return transitionDuration;
 
         return transitionDuration * baseWorldSpeed / worldMovement.CurrentSpeed;
+    }
+
+    private void LoadSettings()
+    {
+        if (settingsLoaded)
+            return;
+
+        PlayerTransitionMovementSettings data = JsonSettingsStore.Load<PlayerTransitionMovementSettings>(
+            settingsJson, "Config/Settings/PlayerTransitionMovement");
+        transitionHeight = data.transitionHeight;
+        transitionDuration = data.transitionDuration;
+        baseWorldSpeed = data.baseWorldSpeed;
+        riseRotationX = data.riseRotationX;
+        diveRotationX = data.diveRotationX;
+        diveTargetY = data.diveTargetY;
+        diveSpeed = data.diveSpeed;
+        diveRotationSpeed = data.diveRotationSpeed;
+        return3DHeight = data.return3DHeight;
+        riseSpeedMultiplier = data.riseSpeedMultiplier;
+        diveFinishDuration = data.diveFinishDuration;
+        settingsLoaded = true;
+    }
+
+    private void Awake()
+    {
+        LoadSettings();
     }
 }

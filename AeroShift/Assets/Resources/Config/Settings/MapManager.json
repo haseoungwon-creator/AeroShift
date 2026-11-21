@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "configType": "MapManagerSettings",
+  "chunkLength": 80,
+  "mapOriginXY": {
+    "x": 0,
+    "y": 0
+  },
+  "forwardChunkCount": 6,
+  "startingSafeChunkCount": 3,
+  "keepBehindDistance": 160,
+  "maxSpawnsPerFrame": 2,
+  "prepareLookaheadChunks": 4,
+  "transitionSafeChunkCount": 3,
+  "spawnTransitionWall": true,
+  "transitionWallOffset": 30,
+  "enableProximityCollisionCulling": true,
+  "obstacleCollisionLayers": 1,
+  "collisionEnableAhead": 160,
+  "collisionKeepBehind": 80,
+  "collisionCheckInterval": 0.1,
+  "allow180DegreeRotation": true
+}

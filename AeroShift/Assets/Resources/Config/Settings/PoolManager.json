@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "configType": "PoolManagerSettings",
+  "groups": [
+    {
+      "id": 0,
+      "resourceInitialCount": 192,
+      "resourceExpandWhenEmpty": true,
+      "initializeOnFirstUse": false,
+      "enableAutoShrink": true,
+      "idleSecondsBeforeShrink": 6,
+      "shrinkCheckIntervalSeconds": 2
+    },
+    {
+      "id": 1,
+      "resourceInitialCount": 3,
+      "resourceExpandWhenEmpty": true,
+      "initializeOnFirstUse": false,
+      "enableAutoShrink": false,
+      "idleSecondsBeforeShrink": 60,
+      "shrinkCheckIntervalSeconds": 10
+    },
+    {
+      "id": 2,
+      "resourceInitialCount": 14,
+      "resourceExpandWhenEmpty": true,
+      "initializeOnFirstUse": false,
+      "enableAutoShrink": true,
+      "idleSecondsBeforeShrink": 10,
+      "shrinkCheckIntervalSeconds": 5
+    },
+    {
+      "id": 3,
+      "resourceInitialCount": 1,
+      "resourceExpandWhenEmpty": true,
+      "initializeOnFirstUse": false,
+      "enableAutoShrink": false,
+      "idleSecondsBeforeShrink": 60,
+      "shrinkCheckIntervalSeconds": 10
+    },
+    {
+      "id": 4,
+      "resourceInitialCount": 20,
+      "resourceExpandWhenEmpty": true,
+      "initializeOnFirstUse": true,
+      "enableAutoShrink": false,
+      "idleSecondsBeforeShrink": 30,
+      "shrinkCheckIntervalSeconds": 1
+    },
+    {
+      "id": 5,
+      "resourceInitialCount": 30,
+      "resourceExpandWhenEmpty": true,
+      "initializeOnFirstUse": true,
+      "enableAutoShrink": false,
+      "idleSecondsBeforeShrink": 30,
+      "shrinkCheckIntervalSeconds": 1
+    }
+  ],
+  "shrinkDuringGameplay": false,
+  "prewarmObstacleLayers": 1
+}

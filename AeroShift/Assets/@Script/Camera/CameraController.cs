@@ -5,23 +5,21 @@ using UnityEngine;
 [RequireComponent(typeof(Camera))]
 public class CameraController : MonoBehaviour
 {
-    [Header("References")]
+    [SerializeField] private TextAsset settingsJson;
+    private bool settingsLoaded;
+
     [SerializeField] private Transform player;
 
-    [Header("3D Camera")]
-    [SerializeField] private Vector3 cameraOffset3D = new Vector3(0f, 8f, -12f);
-    [SerializeField] private Vector3 cameraRotation3D = new Vector3(20f, 0f, 0f);
+    private Vector3 cameraOffset3D;
+    private Vector3 cameraRotation3D;
 
-    [Header("2D Camera")]
-    [SerializeField] private Vector3 cameraOffset2D = new Vector3(0f, 90f, 0f);
-    [SerializeField] private Vector3 cameraRotation2D = new Vector3(90f, 0f, 0f);
-    [SerializeField, Min(1f)] private float orthographicSize2D = 48f;
+    private Vector3 cameraOffset2D;
+    private Vector3 cameraRotation2D;
+    private float orthographicSize2D;
 
-    [Header("2D to 3D Transition")]
-    [SerializeField] private Vector3 transitionCameraPosition = new Vector3(0f, 62.5f, 0f);
+    private Vector3 transitionCameraPosition;
 
-    [Header("Start Camera")]
-    [SerializeField] private float startMoveDuration = 2f;
+    private float startMoveDuration;
 
     private const float ReferenceAspect2D = 16f / 9f;
 
@@ -36,6 +34,7 @@ public class CameraController : MonoBehaviour
 
     private void Awake()
     {
+        LoadSettings();
         gameCamera = GetComponent<Camera>();
         defaultPerspectiveFov = gameCamera.fieldOfView;
         ResetCamera();
@@ -122,19 +121,19 @@ public class CameraController : MonoBehaviour
         isMoving = false;
     }
 
-    // 2D¿¡¼­ Shift ÀÔ·Â ½Ã È£Ãâ
+    // 2Dì—ì„œ Shift ì…ë ¥ ì‹œ í˜¸ì¶œ
     public void SetPerspectiveFor3DTransition()
     {
         isTransitioningTo3D = true;
         isCameraLocked = false;
         isStartPosition = false;
 
-        // ÁöÁ¤µÈ À§Ä¡·Î Áï½Ã ÀÌµ¿
+        // ì§€ì •ëœ ìœ„ì¹˜ë¡œ ì¦‰ì‹œ ì´ë™
         transform.SetPositionAndRotation(
             transitionCameraPosition,
             Quaternion.Euler(cameraRotation2D));
 
-        // Orthographic°ú PerspectiveÀÇ È­¸é Å©±â Â÷ÀÌ º¸Á¤
+        // Orthographicê³¼ Perspectiveì˜ í™”ë©´ í¬ê¸° ì°¨ì´ ë³´ì •
         if (gameCamera.orthographic && player != null)
         {
             float planeDepth = Vector3.Dot(
@@ -207,7 +206,7 @@ public class CameraController : MonoBehaviour
         gameCamera.orthographicSize = orthographicSize2D *
             Mathf.Max(1f, ReferenceAspect2D / aspect);
 
-        // ÀüÈ¯ Áß¿¡´Â Ä«¸Ş¶ó À§Ä¡¸¦ °íÁ¤
+        // ì „í™˜ ì¤‘ì—ëŠ” ì¹´ë©”ë¼ ìœ„ì¹˜ë¥¼ ê³ ì •
         Vector3 targetPosition = isTransitioningTo3D
             ? transitionCameraPosition
             : new Vector3(
@@ -225,5 +224,22 @@ public class CameraController : MonoBehaviour
         orthographicSize2D = Mathf.Max(
             1f,
             orthographicSize2D);
+    }
+
+    private void LoadSettings()
+    {
+        if (settingsLoaded)
+            return;
+
+        CameraControllerSettings data = JsonSettingsStore.Load<CameraControllerSettings>(
+            settingsJson, "Config/Settings/CameraController");
+        cameraOffset3D = data.cameraOffset3D;
+        cameraRotation3D = data.cameraRotation3D;
+        cameraOffset2D = data.cameraOffset2D;
+        cameraRotation2D = data.cameraRotation2D;
+        orthographicSize2D = data.orthographicSize2D;
+        transitionCameraPosition = data.transitionCameraPosition;
+        startMoveDuration = data.startMoveDuration;
+        settingsLoaded = true;
     }
 }

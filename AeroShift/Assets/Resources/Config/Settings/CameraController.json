@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "configType": "CameraControllerSettings",
+  "cameraOffset3D": {
+    "x": 0,
+    "y": 8,
+    "z": -12
+  },
+  "cameraRotation3D": {
+    "x": 20,
+    "y": 0,
+    "z": 0
+  },
+  "cameraOffset2D": {
+    "x": 0,
+    "y": 80,
+    "z": 0
+  },
+  "cameraRotation2D": {
+    "x": 90,
+    "y": 0,
+    "z": 0
+  },
+  "orthographicSize2D": 48,
+  "transitionCameraPosition": {
+    "x": 0,
+    "y": 62.5,
+    "z": 0
+  },
+  "startMoveDuration": 2
+}

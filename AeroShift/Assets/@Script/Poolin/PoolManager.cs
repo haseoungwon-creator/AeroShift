@@ -56,6 +56,10 @@ public sealed class PoolManager : MonoBehaviour
         public bool AutoShrink;
     }
 
+    [Header("Core JSON Balance (Resources/Config/Settings/PoolManager)")]
+    [SerializeField] private TextAsset settingsJson;
+    private bool settingsLoaded;
+
     [SerializeField] private ResourceManager resourceManager;
     [SerializeField] private PoolGroupConfig[] groups;
     [SerializeField] private bool shrinkDuringGameplay;
@@ -68,6 +72,7 @@ public sealed class PoolManager : MonoBehaviour
 
     private void Awake()
     {
+        LoadSettings();
         Initialize();
     }
 
@@ -89,6 +94,7 @@ public sealed class PoolManager : MonoBehaviour
 
     private void Initialize()
     {
+        LoadSettings();
         if (initialized)
             return;
 
@@ -429,6 +435,52 @@ public sealed class PoolManager : MonoBehaviour
     public int GetActiveCount(PoolId id)
     {
         return pools.TryGetValue(id, out PoolGroup group) ? group.ActiveCount : 0;
+    }
+
+    // JSON stores pool balance only. Scene Transform parents and layer references stay intact.
+    private void LoadSettings()
+    {
+        if (settingsLoaded)
+            return;
+
+        PoolManagerSettings data = JsonSettingsStore.Load<PoolManagerSettings>(
+            settingsJson, "Config/Settings/PoolManager");
+        shrinkDuringGameplay = data.shrinkDuringGameplay;
+
+        if (groups == null || groups.Length == 0)
+        {
+            Debug.LogError("[AeroShift] PoolManager has no scene pool groups. Keep the original scene references.", this);
+            settingsLoaded = true;
+            return;
+        }
+
+        for (int i = 0; i < data.groups.Length; i++)
+        {
+            PoolGroupSettings source = data.groups[i];
+            PoolGroupConfig target = null;
+            for (int j = 0; j < groups.Length; j++)
+            {
+                if (groups[j] != null && groups[j].id == source.id)
+                {
+                    target = groups[j];
+                    break;
+                }
+            }
+
+            if (target == null)
+            {
+                Debug.LogWarning("[AeroShift] Pool group not found in scene: " + source.id, this);
+                continue;
+            }
+
+            target.resourceInitialCount = source.resourceInitialCount;
+            target.resourceExpandWhenEmpty = source.resourceExpandWhenEmpty;
+            target.initializeOnFirstUse = source.initializeOnFirstUse;
+            target.enableAutoShrink = source.enableAutoShrink;
+            target.idleSecondsBeforeShrink = source.idleSecondsBeforeShrink;
+            target.shrinkCheckIntervalSeconds = source.shrinkCheckIntervalSeconds;
+        }
+        settingsLoaded = true;
     }
 
 }

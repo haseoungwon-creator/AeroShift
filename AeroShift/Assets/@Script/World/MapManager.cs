@@ -4,32 +4,35 @@ using UnityEngine;
 
 public sealed class MapManager : MonoBehaviour
 {
+    [SerializeField] private TextAsset settingsJson;
+    private bool settingsLoaded;
+
     [SerializeField] private Transform player;
     [SerializeField] private PoolManager poolManager;
     [SerializeField] private ResourceManager resourceManager;
     [SerializeField] private WorldMovement worldMovement;
     [SerializeField] private PlayerRewind playerRewind;
 
-    [SerializeField] private float chunkLength = 80f;
-    [SerializeField] private Vector2 mapOriginXY = Vector2.zero;
-    [SerializeField] private int forwardChunkCount = 6;
-    [SerializeField] private int startingSafeChunkCount = 3;
-    [SerializeField] private float keepBehindDistance = 160f;
-    [SerializeField] private int maxSpawnsPerFrame = 2;
-    [SerializeField] private int prepareLookaheadChunks = 4;
+    private float chunkLength;
+    private Vector2 mapOriginXY;
+    private int forwardChunkCount;
+    private int startingSafeChunkCount;
+    private float keepBehindDistance;
+    private int maxSpawnsPerFrame;
+    private int prepareLookaheadChunks;
 
-    [SerializeField] private int transitionSafeChunkCount = 3;
-    [SerializeField] private bool spawnTransitionWall = true;
-    [SerializeField] private float transitionWallOffset = 30f;
+    private int transitionSafeChunkCount;
+    private bool spawnTransitionWall;
+    private float transitionWallOffset;
 
-    [SerializeField] private bool enableProximityCollisionCulling;
-    [SerializeField] private LayerMask obstacleCollisionLayers = 1;
-    [SerializeField] private float collisionEnableAhead = 160f;
-    [SerializeField] private float collisionKeepBehind = 80f;
-    [SerializeField] private float collisionCheckInterval = 0.1f;
+    private bool enableProximityCollisionCulling;
+    private LayerMask obstacleCollisionLayers;
+    private float collisionEnableAhead;
+    private float collisionKeepBehind;
+    private float collisionCheckInterval;
 
     private int seed;
-    [SerializeField] private bool allow180DegreeRotation;
+    private bool allow180DegreeRotation;
 
     private struct ActiveChunk
     {
@@ -481,5 +484,36 @@ public sealed class MapManager : MonoBehaviour
     {
         ReturnWall();
         ClearChunks();
+    }
+
+    private void LoadSettings()
+    {
+        if (settingsLoaded)
+            return;
+
+        MapManagerSettings data = JsonSettingsStore.Load<MapManagerSettings>(
+            settingsJson, "Config/Settings/MapManager");
+        chunkLength = data.chunkLength;
+        mapOriginXY = data.mapOriginXY;
+        forwardChunkCount = data.forwardChunkCount;
+        startingSafeChunkCount = data.startingSafeChunkCount;
+        keepBehindDistance = data.keepBehindDistance;
+        maxSpawnsPerFrame = data.maxSpawnsPerFrame;
+        prepareLookaheadChunks = data.prepareLookaheadChunks;
+        transitionSafeChunkCount = data.transitionSafeChunkCount;
+        spawnTransitionWall = data.spawnTransitionWall;
+        transitionWallOffset = data.transitionWallOffset;
+        enableProximityCollisionCulling = data.enableProximityCollisionCulling;
+        obstacleCollisionLayers = data.obstacleCollisionLayers;
+        collisionEnableAhead = data.collisionEnableAhead;
+        collisionKeepBehind = data.collisionKeepBehind;
+        collisionCheckInterval = data.collisionCheckInterval;
+        allow180DegreeRotation = data.allow180DegreeRotation;
+        settingsLoaded = true;
+    }
+
+    private void Awake()
+    {
+        LoadSettings();
     }
 }

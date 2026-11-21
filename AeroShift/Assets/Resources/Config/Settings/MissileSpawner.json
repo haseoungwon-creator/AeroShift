@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "configType": "MissileSpawnerSettings",
+  "minSpawnInterval": 0.5,
+  "maxSpawnInterval": 1,
+  "minMissileCount": 2,
+  "maxMissileCount": 4,
+  "spawnWidth": 160,
+  "spawnHeight": 90,
+  "spawnDistance": 50,
+  "warningDuration": 2,
+  "transitionMissilesPerSide": 5
+}

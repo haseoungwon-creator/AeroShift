@@ -2,11 +2,14 @@ using UnityEngine;
 
 public class WorldMovement : MonoBehaviour
 {
-    [SerializeField] float worldSpeed = 30f;
-    [SerializeField] float maxWorldSpeed = 60f;
-    [SerializeField] float speedIncrease = 5f;
-    [SerializeField] float speedIncreaseInterval = 10f;
-    [SerializeField] bool canMove;
+    [SerializeField] private TextAsset settingsJson;
+    private bool settingsLoaded;
+
+    private float worldSpeed;
+    private float maxWorldSpeed;
+    private float speedIncrease;
+    private float speedIncreaseInterval;
+    [SerializeField] private bool canMove;
 
     public float CurrentSpeed
     {
@@ -23,6 +26,7 @@ public class WorldMovement : MonoBehaviour
 
     private void Awake()
     {
+        LoadSettings();
         currentSpeed = worldSpeed;
     }
 
@@ -75,5 +79,19 @@ public class WorldMovement : MonoBehaviour
         temporarySpeedMultiplier = 1f;
         dashSpeedBonus = 0f;
         IsRewinding = false;
+    }
+
+    private void LoadSettings()
+    {
+        if (settingsLoaded)
+            return;
+
+        WorldMovementSettings data = JsonSettingsStore.Load<WorldMovementSettings>(
+            settingsJson, "Config/Settings/WorldMovement");
+        worldSpeed = data.worldSpeed;
+        maxWorldSpeed = data.maxWorldSpeed;
+        speedIncrease = data.speedIncrease;
+        speedIncreaseInterval = data.speedIncreaseInterval;
+        settingsLoaded = true;
     }
 }

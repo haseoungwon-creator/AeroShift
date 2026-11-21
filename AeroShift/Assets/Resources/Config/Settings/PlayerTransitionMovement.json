@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "configType": "PlayerTransitionMovementSettings",
+  "transitionHeight": 180,
+  "transitionDuration": 1.5,
+  "baseWorldSpeed": 30,
+  "riseRotationX": -70,
+  "diveRotationX": 70,
+  "diveTargetY": -90,
+  "diveSpeed": 100,
+  "diveRotationSpeed": 80,
+  "return3DHeight": 10,
+  "riseSpeedMultiplier": 1.5,
+  "diveFinishDuration": 0.35
+}

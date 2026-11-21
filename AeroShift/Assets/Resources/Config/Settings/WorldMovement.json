@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "configType": "WorldMovementSettings",
+  "worldSpeed": 30,
+  "maxWorldSpeed": 60,
+  "speedIncrease": 5,
+  "speedIncreaseInterval": 10
+}

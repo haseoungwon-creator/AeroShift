@@ -5,16 +5,19 @@ using Random = UnityEngine.Random;
 
 public class MissileSpawner : MonoBehaviour
 {
+    [SerializeField] private TextAsset settingsJson;
+    private bool settingsLoaded;
+
     [SerializeField] private PoolManager poolManager;
-    [SerializeField] float minSpawnInterval = 2f;
-    [SerializeField] float maxSpawnInterval = 4f;
-    [SerializeField] int minMissileCount = 1;
-    [SerializeField] int maxMissileCount = 3;
-    [SerializeField] float spawnWidth = 80f;
-    [SerializeField] float spawnHeight = 45f;
-    [SerializeField] float spawnDistance = 20f;
-    [SerializeField] float warningDuration = 2f;
-    [SerializeField, Min(1)] private int transitionMissilesPerSide = 5;
+    private float minSpawnInterval;
+    private float maxSpawnInterval;
+    private int minMissileCount;
+    private int maxMissileCount;
+    private float spawnWidth;
+    private float spawnHeight;
+    private float spawnDistance;
+    private float warningDuration;
+    private int transitionMissilesPerSide;
 
     private struct TransitionShot
     {
@@ -47,6 +50,7 @@ public class MissileSpawner : MonoBehaviour
 
     private void Awake()
     {
+        LoadSettings();
         enabled = false;
         if (poolManager == null)
             poolManager = FindFirstObjectByType<PoolManager>();
@@ -368,4 +372,23 @@ public class MissileSpawner : MonoBehaviour
         return screenPosition;
     }
 
+
+    private void LoadSettings()
+    {
+        if (settingsLoaded)
+            return;
+
+        MissileSpawnerSettings data = JsonSettingsStore.Load<MissileSpawnerSettings>(
+            settingsJson, "Config/Settings/MissileSpawner");
+        minSpawnInterval = data.minSpawnInterval;
+        maxSpawnInterval = data.maxSpawnInterval;
+        minMissileCount = data.minMissileCount;
+        maxMissileCount = data.maxMissileCount;
+        spawnWidth = data.spawnWidth;
+        spawnHeight = data.spawnHeight;
+        spawnDistance = data.spawnDistance;
+        warningDuration = data.warningDuration;
+        transitionMissilesPerSide = data.transitionMissilesPerSide;
+        settingsLoaded = true;
+    }
 }
