@@ -1141,7 +1141,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AeroOptimizationExperiment
   saveSubfolder: ProfilerCaptures
-  startAutomatically: 0
+  startAutomatically: 1
   warmupSeconds: 5
   captureSeconds: 30
   slowFrameThresholdMs: 40
@@ -1149,7 +1149,7 @@ MonoBehaviour:
   maxRecorders: 128
   maxMetricBufferMiB: 32
   enableEditorDiagnostics: 0
-  saveUnityProfilerRawCapture: 0
+  saveUnityProfilerRawCapture: 1
   rawProfilerBufferMiB: 128
   capacityFramesPerSecond: 1000
   settleAfterAllocationSeconds: 1

@@ -16,26 +16,46 @@ using UnityEditor.Profiling;
 using UnityEditorInternal;
 #endif
 
+// 최적화 ON/OFF에 관여하지 않고 Unity Profiler 수치를 CSV로 기록합니다.
+// 필요할 때만 Unity Profiler 원본 .raw 캡처를 추가로 저장할 수 있습니다.
+[DisallowMultipleComponent]
 public sealed class AeroOptimizationExperiment : MonoBehaviour
 {
+    [Header("CSV ���� ����")]
+    [Tooltip("AeroBenchmarks/Experiments �Ʒ��� ��� ����Դϴ�. ��: Map/ColliderCulling/ON/Run01")]
     [SerializeField] private string saveSubfolder = "ProfilerCaptures";
 
+    [Header("���� �ð�")]
     [SerializeField] private bool startAutomatically;
     [SerializeField, Min(0f)] private float warmupSeconds = 5f;
     [SerializeField, Min(1f)] private float captureSeconds = 30f;
 
+    [Header("���� ������ ���� ���")]
+    [Tooltip("�� �ð� �̻��� �����Ӹ� Editor Profiler ȣ�� Ʈ���� �߰� �����մϴ�. �⺻ 40ms.")]
     [SerializeField, Min(20f)] private float slowFrameThresholdMs = 40f;
 
+    [Header("���� ���� - ���� �������� AeroFlip / AeroShift ��")]
+    [Tooltip("�⺻ OFF: �ֿ� CPU/GPU/Physics/GC/Render ī���͸� ������ ���� ����� ����ϴ�. ON�� ����� ��� ��ǥ�� ������� �ϹǷ� ���� �񱳿��� �ƴ� ���� Ž����Դϴ�.")]
     [SerializeField] private bool recordEveryAvailableMetric = false;
+    [Tooltip("���ÿ� �д� Recorder ���� �����Դϴ�. ��õ ���� ��ǥ�� ���� ���� ��ü�� ������ �� �ֽ��ϴ�.")]
     [SerializeField, Range(64, 8192)] private int maxRecorders = 128;
+    [Tooltip("Recorder ��� ���� �迭�� �ִ� �޸� ����. ���� ���� Editor �޸𸮸� ũ�� ����մϴ�.")]
     [SerializeField, Range(16, 2048)] private int maxMetricBufferMiB = 32;
+    [Header("Capture overhead controls")]
+    [Tooltip("Enable only for a separate call-tree investigation. Baseline capture does not turn on the global Profiler.")]
     [SerializeField] private bool enableEditorDiagnostics;
 
+    [Header("Unity Profiler 원본 캡처 (선택 사항)")]
+    [Tooltip("ON: CSV 외에 Unity Profiler에서 다시 열 수 있는 .raw 파일을 저장합니다. 전체 Profiler 수집으로 성능 오버헤드가 증가하므로 최적화 전후 수치 비교용 기본 측정에서는 OFF를 권장합니다.")]
     [SerializeField] private bool saveUnityProfilerRawCapture = false;
+    [Tooltip("원본 프로파일링을 위한 최대 버퍼(MiB). 메모리 사용량이 늘어날 수 있으므로 필요한 경우에만 조절하세요.")]
     [SerializeField, Range(32, 512)] private int rawProfilerBufferMiB = 128;
 
+    [Tooltip("Preallocate for this FPS. The capture reports truncation if this capacity is exceeded.")]
     [SerializeField, Range(60, 2000)] private int capacityFramesPerSecond = 1000;
     [SerializeField, Min(0.1f)] private float settleAfterAllocationSeconds = 1f;
+    [Header("CPU/GPU ������ Ÿ�̹�")]
+    [Tooltip("Unity FrameTimingManager�� N�����Ӹ��� ȣ���մϴ�. ����� 4������ �̻� �ʰ� ������ �� �־� ���� CSV�� �����մϴ�.")]
     [SerializeField, Range(4, 120)] private int frameTimingSampleEveryNFrames = 8;
 
     private sealed class AvailableMetric
@@ -92,7 +112,6 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
     private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
     private static readonly UTF8Encoding CsvEncoding = new UTF8Encoding(true);
-    private static readonly char[] CsvSpecialCharacters = { ',', '"', '\n', '\r' };
 
     private readonly List<Metric> metrics = new List<Metric>(256);
     private readonly List<AvailableMetric> availableMetrics = new List<AvailableMetric>(2048);
@@ -111,6 +130,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     private float[] capturedWorldZ;
     private WorldMovement contextWorld;
     private PlayerMode contextPlayerMode;
+    private int stopwatchTicksPerSecondChecked;
     private int availableMetricCount;
     private int effectiveRecorderLimit;
     private int skippedByScope;
@@ -129,6 +149,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     private bool profilerStateSaved;
     private bool previousProfilerEnabled;
 
+    // .raw 캡처 시 Unity 전역 Profiler 설정을 잠시 변경하고 종료 후 복원합니다.
     private bool rawProfilerStateSaved;
     private bool rawProfilerActive;
     private bool rawPreviousEnabled;
@@ -141,6 +162,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     private bool previousEditorProfilerDriverEnabled;
 #endif
     private float warmupStart;
+    private int warmupStartFrame;
     private float recordStart;
     private string outputDirectory;
     private string outputPrefix;
@@ -156,11 +178,14 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     private double[,] metricValues;
     private int invalidRecorderCount;
 #if UNITY_EDITOR
-
+    // Editor �������Ϸ� �������� ���� Time.frameCount�� ������ �ε����Դϴ�.
     private int editorStartFrame = -1;
     private int editorTraceFrames;
     private string editorTraceStatus = "not_started";
 
+    // ProfilerDriver�� Game Time.frameCount�� ������ ������ �ε����� ����մϴ�.
+    // ��ü 30�ʸ� ������ 180�����Ӹ� �����ϸ� �ʹ� ���� ������ũ�� ��Ĩ�ϴ�.
+    // �׷��� Editor ������Ʈ���� �Ϸ�� �������� �ð��� Ȯ���ϰ�, ���� �����Ӹ� ��� �����մϴ�.
     private readonly List<EditorSpikeFrame> editorSpikeFrames = new List<EditorSpikeFrame>(24);
     private int editorLastInspected = -1;
     private int editorInspectedFrameCount;
@@ -172,6 +197,9 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     private const int MaxEditorThreads = 64;
 #endif
 
+    // ���� ���� �и��� ���� �� �����ӿ� ����� ����� �������� ����մϴ�.
+    // Physics.Simulate�� ProfilerRecorder.LastValue�� ���� �Ϸ� �������� �� �����Ƿ�
+    // CSV�� frame_ms�� ������ �ϴ��� ����ȭ�� �������� �ʽ��ϴ�.
     private void Start()
     {
         if (startAutomatically)
@@ -189,7 +217,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         if (preparingCapture && Time.frameCount >= preparationFrame + 3 &&
             Time.realtimeSinceStartup - preparationStartedAt >= settleAfterAllocationSeconds)
         {
-
+            // ��Ը� ���� ���� ������ �Ͼ �������� GC �񱳿� �������� �ʽ��ϴ�.
             preparingCapture = false;
 #if UNITY_EDITOR
             if (enableEditorDiagnostics)
@@ -242,13 +270,16 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         capturedWorldSpeeds[row] = contextWorld != null ? contextWorld.CurrentSpeed : float.NaN;
         capturedWorldZ[row] = contextWorld != null ? contextWorld.transform.position.z : float.NaN;
 
+        // LastValue�� Unity�� '���������� �Ϸ��� ������'�� ����Դϴ�.
+        // ���� LateUpdate�� ��Ȯ�� ���� �������� ��Ŀ��� �����ϸ� �� �˴ϴ�.
         int validReads = 0;
         for (int i = 0; i < metrics.Count; i++)
         {
             ProfilerRecorder recorder = metrics[i].Recorder;
             bool valid = recorder.Valid && recorder.Count > 0;
             double value = valid ? recorder.LastValueAsDouble : double.NaN;
-
+            // These selected counters/timings are non-negative. Some Unity
+            // recorders expose an invalid signed sentinel instead of a sample.
             if (valid && (double.IsNaN(value) || double.IsInfinity(value) || value < 0 ||
                 (metrics[i].Name == "GPU Frame Time" &&
                  (value == 0 || ConvertUnit(value, metrics[i].Unit) >= 1000))))
@@ -266,6 +297,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         gcGen2[row] = GC.CollectionCount(2);
         readRecorderMs[row] = (Stopwatch.GetTimestamp() - readStartTicks) * 1000.0 / Stopwatch.Frequency;
 
+        // FrameTiming�� �Ϸ�� ���� �������� �񵿱� ����Դϴ�. ���� ���� �����Ӱ� �������� �ʽ��ϴ�.
         if (frameTimingSupported && frameTimingSampleEveryNFrames > 0 &&
             (recordedFrames % frameTimingSampleEveryNFrames) == 0)
         {
@@ -335,9 +367,10 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         try
         {
             previousProfilerEnabled = Profiler.enabled;
-
+            // ���־� ���� Profiler�� Ȱ��ȭ�� ���� ��Ŀ�� ��ϵ� ��ȸ�� �ݴϴ�.
             if (enableEditorDiagnostics && !profilerStateSaved)
             {
+                previousProfilerEnabled = Profiler.enabled;
 #if UNITY_EDITOR
                 previousEditorProfilerDriverEnabled = ProfilerDriver.enabled;
 #endif
@@ -347,11 +380,12 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             if (enableEditorDiagnostics)
                 Profiler.enabled = true;
 #if UNITY_EDITOR
-
+            // Profiler â�� Record ����ġ�� ���� �־ ���� �������� �����մϴ�.
             if (enableEditorDiagnostics)
                 ProfilerDriver.enabled = true;
 #endif
             warmupStart = Time.realtimeSinceStartup;
+            warmupStartFrame = Time.frameCount;
             warmingUp = true;
             finished = false;
         }
@@ -359,6 +393,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         {
             warmingUp = false;
             RestoreProfilerState();
+            Debug.LogException(ex, this);
         }
     }
 
@@ -369,7 +404,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
         try
         {
-
+            // ���־� ���� FPS�� ���� �� �ʿ��� ���۸� �� ���� �Ҵ��մϴ�.
             frameCapacity = Mathf.Clamp(
                 Mathf.CeilToInt(captureSeconds * capacityFramesPerSecond) + 32,
                 256, 120000);
@@ -430,6 +465,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             preparationFrame = Time.frameCount;
             preparationStartedAt = Time.realtimeSinceStartup;
             preparingCapture = true;
+            Debug.Log("[AeroProfiler] ���� ���� �غ� �Ϸ�. 3������ ���� CSV ��� ����: " + metrics.Count + "�� ��ǥ", this);
         }
         catch (Exception ex)
         {
@@ -443,6 +479,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 #if UNITY_EDITOR
             StopEditorSpikeObserver();
 #endif
+            Debug.LogException(ex, this);
         }
     }
 
@@ -450,7 +487,9 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     {
         string c = category ?? "";
         string n = name ?? "";
-
+        // Essential COUNTERS must precede thousands of optional timing markers.
+        // Alphabetical category ordering previously filled the 512 slots before
+        // Draw Calls, Batches, SetPass and Triangles were reached.
         if (CoreMetricNames.Contains(n)) return 0;
         if (n.StartsWith("AeroShift.", StringComparison.Ordinal) ||
             (c == "Scripts" && (n.IndexOf("CloudSpawner", StringComparison.Ordinal) >= 0 ||
@@ -549,7 +588,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             }
             try
             {
-
+                // capacity=1: ����Ƽ�� ���ۿ� �Ϸ�� ������ ������ �� �ϳ��� ����.
                 ProfilerRecorder recorder = new ProfilerRecorder(a.Handle, 1, ProfilerRecorderOptions.Default);
                 if (!recorder.Valid)
                 {
@@ -583,27 +622,26 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             return;
 
 #if UNITY_EDITOR
-
+        // ���� ���� ���� �̹� �Ϸ�� Editor �������� ���������� �н��ϴ�.
         if (enableEditorDiagnostics)
             CollectEditorSpikeFrames();
 #endif
         recording = false;
         finished = true;
         finishReason = reason;
-
+        // 원본 Profiler 기록은 CSV 작성/씬 조사가 시작되기 전에 종료합니다.
         StopUnityProfilerRawCapture();
-
+        // ������ ���� �� ������Ʈ ���� ���縦 �����մϴ�. ���� �����ӿ� ���Ե��� �ʽ��ϴ�.
         try { finalCensus = TakeSceneCensus("after_capture_finished"); }
-        catch (Exception)
-        {
-        }
+        catch (Exception e) { Debug.LogWarning("[AeroProfiler] Scene Census ����: " + e.Message, this); }
 #if UNITY_EDITOR
         StopEditorSpikeObserver();
 #endif
-
+        // Recorder�� ����/�����ϰ� �̸������� ��Ÿ�����ʹ� CSV �ۼ����� �����մϴ�.
         DisposeRecorders(true);
 #if UNITY_EDITOR
-
+        // ���� ���� ������ ���� ��, Unity Editor�� ���� �ִ� Profiler �����Ӹ�
+        // �ؼ��մϴ�. �м��� ��� CPU/GC�� ���� ���ۿ� ���Ե��� �ʽ��ϴ�.
         try
         {
             if (enableEditorDiagnostics)
@@ -612,6 +650,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         catch (Exception editorEx)
         {
             editorTraceStatus = "error: " + editorEx.GetType().Name + ": " + editorEx.Message;
+            Debug.LogWarning("[AeroProfiler] Editor ���� CSV ���� ����: " + editorEx, this);
         }
 #endif
         RestoreProfilerState();
@@ -632,9 +671,11 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                 WriteEditorPhysicsSpikeDiagnostics();
 #endif
             WriteSummary();
+            Debug.Log("[AeroProfiler] CSV ���� �Ϸ�: " + outputDirectory, this);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Debug.LogException(ex, this);
         }
         finally
         {
@@ -675,7 +716,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
     private static SceneCensus TakeSceneCensus(string stage)
     {
-
+        // FindObjectsByType�� �迭�� �Ҵ��մϴ�. ���־� �غ�/���� ���� �ÿ��� ȣ���մϴ�.
         var c = new SceneCensus { Stage = stage };
         GameObject[] objects = UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         c.GameObjects = objects.Length;
@@ -766,7 +807,6 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             int wait = FindMetric("WaitForLastPresentation");
             int draws = FindMetric("Draw Calls Count");
             int batches = FindMetric("Batches Count");
-            int[] col = { playerLoop, mainThread, physics, wait, draws, batches };
             for (int rank = 0; rank < n; rank++)
             {
                 int row = indices[rank];
@@ -779,6 +819,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                 writer.Write((row > 0 ? gcGen0[row] - gcGen0[row - 1] : 0).ToString(Invariant)); writer.Write(',');
                 writer.Write((row > 0 ? gcGen1[row] - gcGen1[row - 1] : 0).ToString(Invariant)); writer.Write(',');
                 writer.Write((row > 0 ? gcGen2[row] - gcGen2[row - 1] : 0).ToString(Invariant)); writer.Write(',');
+                int[] col = { playerLoop, mainThread, physics, wait, draws, batches };
                 for (int j = 0; j < col.Length; j++)
                 {
                     if (j != 0) writer.Write(',');
@@ -809,7 +850,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
     private void WriteMetricCoverage()
     {
-
+        // unavailable = Unity did not expose this marker to ProfilerRecorder here,
+        // not proof that the corresponding gameplay system was never executed.
         string[] interesting = {
             "Main Thread", "PlayerLoop", "EditorLoop", "Render Thread", "CPU Total Frame Time",
             "CPU Main Thread Frame Time", "CPU Render Thread Frame Time", "GPU Frame Time",
@@ -870,7 +912,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
     private void WriteAllMetrics()
     {
-
+        // ��(����) ����: �� ���� �ϳ��� ��� �������Դϴ�.
+        // ��� Recorder ���� ��ǥ�� �ڵ����� ���� ����ϴ�.
         using (var writer = NewCsv("_all_metrics.csv"))
         {
             writer.Write("frame,elapsed_seconds");
@@ -899,6 +942,9 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         }
     }
 
+
+    // ����� ��� ���� ī���� ��� ���� �������� ���� ���� CSV�� �����մϴ�.
+    // �� ����� Editor�� Development Build ���ʿ��� �����մϴ�.
     private int FindMetric(string metricName)
     {
         for (int i = 0; i < metrics.Count; i++)
@@ -933,7 +979,6 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         int synced = FindMetric("Colliders Synced");
         int narrow = FindMetric("Narrowphase Touches");
         int broad = FindMetric("Broadphase Adds/Removes");
-        int[] indices = { sim, pxSim, fixedPhysics, fetch, sync, activeDynamic, staticColliders, overlaps, synced, narrow, broad };
 
         using (var writer = NewCsv("_physics_spike_frames.csv"))
         using (var details = NewCsv("_physics_spike_markers.csv"))
@@ -951,6 +996,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                 writer.Write(elapsedSeconds[row].ToString("F4", Invariant)); writer.Write(',');
                 writer.Write(frameMilliseconds[row].ToString("F4", Invariant)); writer.Write(',');
                 writer.Write(fixedUpdateCounts[row].ToString(Invariant)); writer.Write(',');
+                int[] indices = { sim, pxSim, fixedPhysics, fetch, sync, activeDynamic, staticColliders, overlaps, synced, narrow, broad };
                 for (int i = 0; i < indices.Length; i++)
                 {
                     WriteOptionalNumber(writer, MetricMsOrNaN(row, indices[i]));
@@ -1148,7 +1194,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
     private static void WriteEscaped(StreamWriter writer, string value)
     {
         value = value ?? string.Empty;
-        if (value.IndexOfAny(CsvSpecialCharacters) < 0)
+        if (value.IndexOfAny(new[] { ',', '"', '\n', '\r' }) < 0)
         {
             writer.Write(value);
             return;
@@ -1206,6 +1252,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             metrics.Clear();
     }
 
+    // 선택적인 Unity 원본 Profiler 캡처입니다. Player에서는 Development Build가 필요합니다.
+    // .raw는 Profiler 창에서 Load하여 CPU Timeline / Hierarchy를 다시 볼 수 있습니다.
     private void StartUnityProfilerRawCapture()
     {
         rawProfilerOutputFile = Path.Combine(outputDirectory, outputPrefix + "_unity_profiler.raw");
@@ -1213,12 +1261,15 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         if (!Application.isEditor && !Debug.isDebugBuild)
         {
             rawProfilerStatus = "skipped_requires_development_build";
+            Debug.LogWarning("[AeroProfiler] .raw 캡처는 Player의 Development Build에서 실행하세요.", this);
             return;
         }
 
+        // 다른 도구가 원본 기록을 저장하고 있으면 해당 파일을 덮어쓰지 않습니다.
         if (Profiler.enableBinaryLog)
         {
             rawProfilerStatus = "skipped_existing_binary_capture";
+            Debug.LogWarning("[AeroProfiler] 이미 Unity Profiler binary log가 기록 중이므로 .raw 캡처를 건너뜁니다.", this);
             return;
         }
 
@@ -1245,6 +1296,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             rawProfilerStatus = "start_error_" + ex.GetType().Name;
             rawProfilerActive = false;
             RestoreUnityProfilerRawState();
+            Debug.LogWarning("[AeroProfiler] Unity 원본 Profiler 캡처 시작 실패: " + ex.Message, this);
         }
     }
 
@@ -1257,7 +1309,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         {
             if (rawProfilerActive)
             {
-
+                // Unity 문서에 따라 logFile을 비워서 .raw 파일을 닫습니다.
                 Profiler.enabled = false;
                 Profiler.logFile = "";
                 Profiler.enableBinaryLog = false;
@@ -1268,6 +1320,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         catch (Exception ex)
         {
             rawProfilerStatus = "stop_error_" + ex.GetType().Name;
+            Debug.LogWarning("[AeroProfiler] Unity 원본 Profiler 캡처 종료 실패: " + ex.Message, this);
         }
         finally
         {
@@ -1289,8 +1342,9 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             Profiler.maxUsedMemory = rawPreviousMaxUsedMemory;
             Profiler.enabled = rawPreviousEnabled;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Debug.LogWarning("[AeroProfiler] Unity Profiler 전역 설정 복원 실패: " + ex.Message, this);
         }
         finally
         {
@@ -1310,7 +1364,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
     private void ReleaseCaptureBuffers()
     {
-
+        // Dispose releases native recorders; these managed arrays need their
+        // references released too. Do not force GC.Collect during gameplay.
         metricValues = null;
         frameNumbers = null;
         fixedUpdateCounts = null;
@@ -1400,6 +1455,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             editorSpikeStatus = "completed";
     }
 
+    // EditorApplication.update���� �Ϸ�� Profiler frameTime�� Ȯ���մϴ�.
+    // ��� �������� ��ü ������ ��ȸ���� �ʰ�, ���� �����ӿ����� �� �м��մϴ�.
     private void CollectEditorSpikeFrames()
     {
         if (!recording) return;
@@ -1410,7 +1467,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             if (first < 0 || last < first) return;
             if (editorLastInspected > last)
             {
-
+                // Profiler â�� Clear ������ ������ �ε����� �ʱ�ȭ�� ���
                 editorLastInspected = first - 1;
                 editorSpikeStatus = "history_was_reset_during_capture";
             }
@@ -1447,7 +1504,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             }
             if (next <= last && last - next > 64)
             {
-
+                // �������� �뷮 �������� �� ���� ��ü�� �ٽ� �� ������ũ�� ������ �ʵ��� ����.
                 editorMissedFrameCount += last - next - 32;
                 editorLastInspected = last - 33;
             }
@@ -1456,6 +1513,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         {
             editorSpikeStatus = "collection_error_" + ex.GetType().Name;
             StopEditorSpikeObserver();
+            Debug.LogWarning("[AeroProfiler] ���� ������ �� ��� ����: " + ex.Message, this);
         }
     }
 
@@ -1542,12 +1600,12 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             index = sample.ParentIndex;
         }
         chain.Reverse();
-        return string.Join(" > ", chain);
+        return string.Join(" > ", chain.ToArray());
     }
 
     private void WriteEditorPhysicsSpikeDiagnostics()
     {
-
+        // game frame�� editor_frame�� ���� �ε���. ���� ���� ��ȣ��� ��Ī�ϸ� �� �˴ϴ�.
         using (var frames = NewCsv("_editor_spike_frames.csv"))
         using (var samples = NewCsv("_editor_spike_samples.csv"))
         {
@@ -1569,6 +1627,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                 WriteEscaped(frames, "Unity Editor Profiler frame index; no guaranteed match to game Time.frameCount");
                 frames.WriteLine();
 
+                // ���� �� ��� + ���� Ʈ���� �߿��� ���ø� ����մϴ�.
+                // CPU inclusive �ð��� �θ�/�ڽ��� ��ġ�Ƿ� �ջ� ����.
                 var selected = new List<int>(192);
                 for (int i = 0; i < frame.Samples.Count; i++)
                 {
@@ -1579,7 +1639,7 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                 }
                 selected.Sort((a, b) =>
                 {
-
+                    // ���� �ڱ� �ڽ��� �ð��� ū ��Ŀ�� ���� ��� ���/���� ����� �����ϱ� ���մϴ�.
                     int result = frame.Samples[b].ExclusiveMs.CompareTo(frame.Samples[a].ExclusiveMs);
                     return result != 0 ? result : frame.Samples[b].InclusiveMs.CompareTo(frame.Samples[a].InclusiveMs);
                 });
@@ -1602,6 +1662,9 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
         }
     }
 
+    // GC.Alloc�� �޸� �Ҵ� ��ġ�� ũ�⸦ �����մϴ�. RawFrameDataView�� ����
+    // �ֱ� Editor Profiler �������� ȣ�� ������ �Ҵ� ������ CSV�� �����մϴ�.
+    // Player ���忡�� �� �ڵ� ��ü�� ���Ե��� �ʽ��ϴ�.
     private sealed class EditorGcSite
     {
         public string Thread;
@@ -1639,6 +1702,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             return;
         }
 
+        // Editor Profiler�� ������ ��ȯ �����丮�̹Ƿ� ���� 30�ʸ� �������� �ʽ��ϴ�.
+        // ���� ������ ������ ���� �ʵ��� ���� �� �ֱ� �ִ� 180�����Ӹ� �ؼ��մϴ�.
         const int MaxEditorFrames = 180;
         int start = Math.Max(Math.Max(first, editorStartFrame), last - MaxEditorFrames + 1);
         if (start > last)
@@ -1680,7 +1745,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
 
                         for (int i = 0; i < samples; i++)
                         {
-
+                            // Unity raw samples are in depth-first order. Each scope's
+                            // child samples immediately follow its parent sample.
                             while (scopes.Count > 0 && i >= scopes[scopes.Count - 1].EndExclusive)
                                 scopes.RemoveAt(scopes.Count - 1);
 
@@ -1710,6 +1776,10 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
                                     if (frame < site.FirstFrame) site.FirstFrame = frame;
                                     if (frame > site.LastFrame) site.LastFrame = frame;
 
+                                    // Full GC callstacks exist only when the Unity Profiler
+                                    // window's Call Stacks > GC.Alloc option was enabled.
+                                    // To avoid huge analysis cost, resolve an example per
+                                    // parent marker rather than every allocation sample.
                                     if (callstackExamples < MaxCallstackExamples &&
                                         !exampleAttempted.Contains(key))
                                     {
@@ -1806,6 +1876,8 @@ public sealed class AeroOptimizationExperiment : MonoBehaviour
             }
         }
 
+        // Inclusive sample times overlap for parent/child markers. The individual
+        // rows must not be summed as if they were separate parts of frame time.
         var sortedCpu = new List<EditorCpuSite>(cpuSites.Values);
         sortedCpu.Sort((a, b) => b.TotalInclusiveMs.CompareTo(a.TotalInclusiveMs));
         using (var writer = NewCsv("_editor_cpu_hotspots.csv"))
