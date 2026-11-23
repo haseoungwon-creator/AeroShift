@@ -1428,7 +1428,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Irregularity Map
+  m_Text: Random Map
 --- !u!222 &798904426
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2861,7 +2861,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Rule Map
+  m_Text: Regular Map
 --- !u!222 &1630320570
 CanvasRenderer:
   m_ObjectHideFlags: 0

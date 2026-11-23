@@ -86,7 +86,7 @@ public class GameManager : MonoBehaviour
     {
         SetGameMode(GameMode.Random);
     }
-
+    
     public void SetGameMode(GameMode mode)
     {
         if (CurrentState == GameStates.Playing || mapManager == null)
