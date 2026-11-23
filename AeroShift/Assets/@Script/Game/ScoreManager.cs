@@ -37,7 +37,7 @@ public class ScoreManager : MonoBehaviour
 
     private void AddDistanceScore(float distance)
     {
-        float random_Scroe = GameManager.Instance.CurrentGameMode == GameMode.Random ? 2.0f : 0;
+        float random_Scroe = GameManager.Instance.CurrentGameMode == GameMode.Random ? 2.0f : 1.0f;
         accumulatedDistance += distance * distanceScoreMultiplier * scoreMultiplier * random_Scroe;
 
         int score = Mathf.FloorToInt(accumulatedDistance);
