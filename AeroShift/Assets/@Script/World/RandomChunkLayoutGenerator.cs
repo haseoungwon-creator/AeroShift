@@ -226,48 +226,69 @@ public sealed class RandomChunkLayoutGenerator
         return result;
     }
 
-    private Rect CreateSafeZone(float sizeRatio, float worldSpeed, System.Random random)
+    private Rect CreateSafeZone(
+    float sizeRatio,
+    float worldSpeed,
+    System.Random random)
     {
-        float width = (settings.areaMaxX - settings.areaMinX) * sizeRatio;
-        float height = (settings.areaMaxY - settings.areaMinY) * sizeRatio;
+        float areaWidth = settings.areaMaxX - settings.areaMinX;
+        float areaHeight = settings.areaMaxY - settings.areaMinY;
+
+        float width = areaWidth * sizeRatio;
+        float height = areaHeight * sizeRatio;
+
         float minCenterX = settings.areaMinX + width * 0.5f;
         float maxCenterX = settings.areaMaxX - width * 0.5f;
         float minCenterY = settings.areaMinY + height * 0.5f;
         float maxCenterY = settings.areaMaxY - height * 0.5f;
+
         float centerX;
         float centerY;
 
         if (!hasPrevious)
         {
-            centerX = Mathf.Clamp(initialCenter.x, minCenterX, maxCenterX);
-            centerY = Mathf.Clamp(initialCenter.y, minCenterY, maxCenterY);
+            centerX = Mathf.Clamp(
+                initialCenter.x, minCenterX, maxCenterX);
+
+            centerY = Mathf.Clamp(
+                initialCenter.y, minCenterY, maxCenterY);
         }
         else
         {
             float seconds = chunkLength / Mathf.Max(1f, worldSpeed);
+
             float maxDeltaX = Mathf.Min(
-                width * settings.maxSafeZoneShiftRatio,
-                settings.playerMoveSpeedX * seconds * 0.6f,
-                (width + previousSize.x) * 0.5f - 2f * (playerExtents.x + settings.safeZoneClearance));
+                areaWidth * settings.maxSafeZoneShiftRatio,
+                settings.playerMoveSpeedX * seconds * 0.6f);
+
             float maxDeltaY = Mathf.Min(
-                height * settings.maxSafeZoneShiftRatio,
-                settings.playerMoveSpeedY * seconds * 0.6f,
-                (height + previousSize.y) * 0.5f - 2f * (playerExtents.y + settings.safeZoneClearance));
-            maxDeltaX = Mathf.Max(0f, maxDeltaX);
-            maxDeltaY = Mathf.Max(0f, maxDeltaY);
-            float lowX = Mathf.Max(minCenterX, previousCenter.x - maxDeltaX);
-            float highX = Mathf.Min(maxCenterX, previousCenter.x + maxDeltaX);
-            float lowY = Mathf.Max(minCenterY, previousCenter.y - maxDeltaY);
-            float highY = Mathf.Min(maxCenterY, previousCenter.y + maxDeltaY);
-            centerX = lowX <= highX
-                ? Mathf.Lerp(lowX, highX, (float)random.NextDouble())
-                : Mathf.Clamp(previousCenter.x, minCenterX, maxCenterX);
-            centerY = lowY <= highY
-                ? Mathf.Lerp(lowY, highY, (float)random.NextDouble())
-                : Mathf.Clamp(previousCenter.y, minCenterY, maxCenterY);
+                areaHeight * settings.maxSafeZoneShiftRatio,
+                settings.playerMoveSpeedY * seconds * 0.6f);
+
+            float lowX = Mathf.Max(
+                minCenterX, previousCenter.x - maxDeltaX);
+
+            float highX = Mathf.Min(
+                maxCenterX, previousCenter.x + maxDeltaX);
+
+            float lowY = Mathf.Max(
+                minCenterY, previousCenter.y - maxDeltaY);
+
+            float highY = Mathf.Min(
+                maxCenterY, previousCenter.y + maxDeltaY);
+
+            centerX = ChooseShiftedCenter(
+                lowX, highX, previousCenter.x, random);
+
+            centerY = ChooseShiftedCenter(
+                lowY, highY, previousCenter.y, random);
         }
 
-        return new Rect(centerX - width * 0.5f, centerY - height * 0.5f, width, height);
+        return new Rect(
+            centerX - width * 0.5f,
+            centerY - height * 0.5f,
+            width,
+            height);
     }
 
     private StoneType ChooseStone(MapGenerationStoneWeight[] weights, System.Random random)
@@ -422,5 +443,63 @@ public sealed class RandomChunkLayoutGenerator
     private static float Cross(Vector2 a, Vector2 b)
     {
         return a.x * b.y - a.y * b.x;
+    }
+
+    private static float ChooseShiftedCenter(
+     float min,
+     float max,
+     float previous,
+     System.Random random)
+    {
+        if (min >= max)
+            return Mathf.Clamp(previous, min, max);
+
+        float leftDistance = Mathf.Max(0f, previous - min);
+        float rightDistance = Mathf.Max(0f, max - previous);
+
+        float maxDistance = Mathf.Max(
+            leftDistance, rightDistance);
+
+        if (maxDistance <= 0.001f)
+            return Mathf.Clamp(previous, min, max);
+
+        float minimumShift = maxDistance * 0.6f;
+
+        bool canMoveLeft = leftDistance >= minimumShift;
+        bool canMoveRight = rightDistance >= minimumShift;
+
+        if (canMoveLeft && canMoveRight)
+        {
+            if (random.Next(2) == 0)
+            {
+                return Mathf.Lerp(
+                    min,
+                    previous - minimumShift,
+                    (float)random.NextDouble());
+            }
+
+            return Mathf.Lerp(
+                previous + minimumShift,
+                max,
+                (float)random.NextDouble());
+        }
+
+        if (canMoveLeft)
+        {
+            return Mathf.Lerp(
+                min,
+                previous - minimumShift,
+                (float)random.NextDouble());
+        }
+
+        if (canMoveRight)
+        {
+            return Mathf.Lerp(
+                previous + minimumShift,
+                max,
+                (float)random.NextDouble());
+        }
+
+        return Mathf.Clamp(previous, min, max);
     }
 }
