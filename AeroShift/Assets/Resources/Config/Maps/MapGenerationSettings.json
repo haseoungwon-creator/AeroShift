@@ -3,17 +3,17 @@
   "difficultyIntervalSeconds": 30,
   "maxDifficultyLevel": 5,
   "minScale": 0.6,
-  "maxScale": 1.4,
-  "maxOverlapRatio": 0.1,
-  "maxSafeZoneShiftRatio": 0.75,
+  "maxScale": 3.4,
+  "maxOverlapRatio": 0.5,
+  "maxSafeZoneShiftRatio": 1,
   "placementAttemptLimit": 30,
   "prepareLookaheadChunks": 3,
   "levels": [
     {
       "level": 1,
-      "safeZoneSizeRatio": 0.6,
-      "minStones": 3,
-      "maxStones": 5,
+      "safeZoneSizeRatio": 0.3,
+      "minStones": 15,
+      "maxStones": 20,
       "weights": [
         {
           "prefabId": "ST_Stone1",
@@ -39,9 +39,9 @@
     },
     {
       "level": 2,
-      "safeZoneSizeRatio": 0.55,
-      "minStones": 5,
-      "maxStones": 7,
+      "safeZoneSizeRatio": 0.2,
+      "minStones": 20,
+      "maxStones": 25,
       "weights": [
         {
           "prefabId": "ST_Stone1",
@@ -67,9 +67,9 @@
     },
     {
       "level": 3,
-      "safeZoneSizeRatio": 0.5,
-      "minStones": 7,
-      "maxStones": 9,
+      "safeZoneSizeRatio": 0.15,
+      "minStones": 25,
+      "maxStones": 30,
       "weights": [
         {
           "prefabId": "ST_Stone1",
@@ -95,9 +95,9 @@
     },
     {
       "level": 4,
-      "safeZoneSizeRatio": 0.45,
-      "minStones": 9,
-      "maxStones": 11,
+      "safeZoneSizeRatio": 0.1,
+      "minStones": 30,
+      "maxStones": 35,
       "weights": [
         {
           "prefabId": "ST_Stone1",
@@ -123,9 +123,9 @@
     },
     {
       "level": 5,
-      "safeZoneSizeRatio": 0.4,
-      "minStones": 11,
-      "maxStones": 13,
+      "safeZoneSizeRatio": 0.05,
+      "minStones": 35,
+      "maxStones": 40,
       "weights": [
         {
           "prefabId": "ST_Stone1",
@@ -155,7 +155,7 @@
   "areaMinY": 5,
   "areaMaxY": 50,
   "stoneLocalZ": 0,
-  "safeZoneClearance": 1,
+  "safeZoneClearance": 0,
   "playerMoveSpeedX": 25,
   "playerMoveSpeedY": 50,
   "stones": [
