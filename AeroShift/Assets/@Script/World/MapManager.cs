@@ -43,7 +43,8 @@ public sealed class MapManager : MonoBehaviour
         if (CurrentGameMode == mode || GameManager.IsPlaying)
             return;
 
-        if (mode == GameMode.Random && !TryLoadGenerationSettings())
+        if (mode == GameMode.Random &&
+            (!TryLoadGenerationSettings() || (initialized && !EnsureRandomGenerator())))
             return;
 
         CurrentGameMode = mode;
@@ -79,6 +80,7 @@ public sealed class MapManager : MonoBehaviour
     private float nextPrepareTime;
     private int[] safeDemand = Array.Empty<int>();
     private Collider[] playerColliders;
+    private RandomChunkLayoutGenerator randomGenerator;
 
     private int initialChunkIndex;
     private int nextChunkIndex;
@@ -134,6 +136,11 @@ public sealed class MapManager : MonoBehaviour
         normalDemand = new int[normalVariants.Length];
         safeDemand = new int[safeVariants.Length];
         playerColliders = player.GetComponentsInChildren<Collider>(true);
+        if (CurrentGameMode == GameMode.Random && !EnsureRandomGenerator())
+        {
+            enabled = false;
+            return;
+        }
         seed = GenerateSeed();
         InitializeStream();
     }
@@ -228,10 +235,9 @@ public sealed class MapManager : MonoBehaviour
             !float.IsInfinity(value.x) && !float.IsInfinity(value.y) && !float.IsInfinity(value.z);
     }
 
-    private bool EnsureStructureAvailability(int layoutIndex)
+    private bool EnsureStructureAvailability(int[] variants)
     {
         Array.Clear(structureRequired, 0, structureRequired.Length);
-        int[] variants = layoutStructureVariants[layoutIndex];
         for (int i = 0; i < variants.Length; i++)
             structureRequired[variants[i]]++;
 
@@ -295,14 +301,38 @@ public sealed class MapManager : MonoBehaviour
     {
         bool initialSafe = IsInitialSafe(nextChunkIndex);
         bool safe = initialSafe || pendingSafeChunks > 0;
-        int layoutIndex = safe ? -1 :
-            ChunkSeedUtility.SelectNormalPrefab(seed, nextChunkIndex, normalLayouts.Length);
-        if (!safe && (layoutIndex < 0 || !EnsureStructureAvailability(layoutIndex)))
-            return false;
+        MapLayoutDefinition layout = null;
+        int[] variants = null;
+        bool random = CurrentGameMode == GameMode.Random;
+
+        if (!safe)
+        {
+            if (random)
+            {
+                RandomChunkLayoutGenerator.Chunk generated = GetRandomChunk(nextChunkIndex);
+                if (generated == null)
+                    return false;
+                layout = generated.Layout;
+                variants = generated.Variants;
+            }
+            else
+            {
+                int layoutIndex = ChunkSeedUtility.SelectNormalPrefab(
+                    seed, nextChunkIndex, normalLayouts.Length);
+                if (layoutIndex < 0)
+                    return false;
+                layout = normalLayouts[layoutIndex];
+                variants = layoutStructureVariants[layoutIndex];
+            }
+
+            if (!EnsureStructureAvailability(variants))
+                return false;
+        }
 
         float centerZ = nextChunkIndex * chunkLength;
         Vector3 position = WorldOrigin + new Vector3(mapOriginXY.x, mapOriginXY.y, centerZ);
-        bool rotated = !safe && allow180DegreeRotation && ChunkSeedUtility.ShouldRotate180(seed, nextChunkIndex);
+        bool rotated = !safe && !random && allow180DegreeRotation &&
+            ChunkSeedUtility.ShouldRotate180(seed, nextChunkIndex);
         Quaternion rotation = rotated ? Quaternion.Euler(0f, 180f, 0f) : Quaternion.identity;
         PoolId id = safe ? PoolId.SafeMap : PoolId.NormalMap;
         Transform parent = worldMovement != null ? worldMovement.transform : null;
@@ -315,8 +345,7 @@ public sealed class MapManager : MonoBehaviour
             chunk = instance.AddComponent<MapChunk>();
         chunk.SetChunkData(safe);
 
-        if (!safe && !chunk.ApplyLayout(normalLayouts[layoutIndex],
-                layoutStructureVariants[layoutIndex], poolManager))
+        if (!safe && !chunk.ApplyLayout(layout, variants, poolManager))
         {
             poolManager.Return(instance);
             return false;
@@ -340,6 +369,8 @@ public sealed class MapManager : MonoBehaviour
         if (transitionRequested && nextChunkIndex >= transitionFirstChunkIndex &&
             nextChunkIndex <= transitionLastChunkIndex)
             transitionSafeChunksPlaced++;
+        if (!safe && random)
+            randomGenerator.Release(nextChunkIndex);
         nextChunkIndex++;
         if (!initialSafe && pendingSafeChunks > 0)
             pendingSafeChunks--;
@@ -392,8 +423,20 @@ public sealed class MapManager : MonoBehaviour
             }
 
             normalDemand[0]++;
-            int layoutIndex = ChunkSeedUtility.SelectNormalPrefab(seed, index, normalLayouts.Length);
-            int[] variants = layoutStructureVariants[layoutIndex];
+            int[] variants;
+            if (CurrentGameMode == GameMode.Random)
+            {
+                RandomChunkLayoutGenerator.Chunk generated = GetRandomChunk(index);
+                if (generated == null)
+                    return;
+                variants = generated.Variants;
+            }
+            else
+            {
+                int layoutIndex = ChunkSeedUtility.SelectNormalPrefab(seed, index, normalLayouts.Length);
+                variants = layoutStructureVariants[layoutIndex];
+            }
+
             for (int j = 0; j < variants.Length; j++)
                 structureDemand[variants[j]]++;
         }
@@ -500,6 +543,8 @@ public sealed class MapManager : MonoBehaviour
             return;
         ClearTransition();
         ClearChunks();
+        if (randomGenerator != null)
+            randomGenerator.Reset();
         seed = newSeed;
         InitializeStream();
     }
@@ -685,10 +730,35 @@ public sealed class MapManager : MonoBehaviour
             float.IsNaN(data.maxOverlapRatio) ||
             data.maxSafeZoneShiftRatio < 0f || data.maxSafeZoneShiftRatio > 1f ||
             float.IsNaN(data.maxSafeZoneShiftRatio) ||
-            data.placementAttemptLimit <= 0)
+            data.placementAttemptLimit <= 0 ||
+            data.areaMaxX <= data.areaMinX ||
+            data.areaMaxY <= data.areaMinY ||
+            data.safeZoneClearance < 0f ||
+            data.playerMoveSpeedX <= 0f ||
+            data.playerMoveSpeedY <= 0f ||
+            data.stones == null || data.stones.Length == 0 ||
+            float.IsNaN(data.areaMinX) || float.IsNaN(data.areaMaxX) ||
+            float.IsNaN(data.areaMinY) || float.IsNaN(data.areaMaxY) ||
+            float.IsNaN(data.safeZoneClearance) ||
+            float.IsInfinity(data.areaMinX) || float.IsInfinity(data.areaMaxX) ||
+            float.IsInfinity(data.areaMinY) || float.IsInfinity(data.areaMaxY))
         {
             Debug.LogError("[AeroShift Map] Invalid generation settings.", this);
             return false;
+        }
+
+        HashSet<string> knownStoneNames = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < data.stones.Length; i++)
+        {
+            MapGenerationStoneTypeData stone = data.stones[i];
+            if (stone == null || string.IsNullOrEmpty(stone.prefabId) ||
+                !knownStoneNames.Add(stone.prefabId) ||
+                stone.baseScale <= 0f || float.IsNaN(stone.baseScale) ||
+                float.IsInfinity(stone.baseScale))
+            {
+                Debug.LogError("[AeroShift Map] Invalid random stone definition.", this);
+                return false;
+            }
         }
 
         for (int i = 0; i < data.levels.Length; i++)
@@ -713,7 +783,8 @@ public sealed class MapManager : MonoBehaviour
                 MapGenerationStoneWeight weight = level.weights[j];
 
                 if (weight == null || string.IsNullOrEmpty(weight.prefabId) ||
-                    weight.weight <= 0 || !prefabNames.Add(weight.prefabId))
+                    weight.weight <= 0 || !prefabNames.Add(weight.prefabId) ||
+                    !knownStoneNames.Contains(weight.prefabId))
                 {
                     Debug.LogError("[AeroShift Map] Invalid stone weight at level: " + level.level, this);
                     return false;
@@ -728,6 +799,51 @@ public sealed class MapManager : MonoBehaviour
 
         generationSettings = data;
         return true;
+    }
+
+    private bool EnsureRandomGenerator()
+    {
+        if (randomGenerator != null)
+            return true;
+        if (!TryLoadGenerationSettings() || player == null ||
+            poolManager == null || resourceManager == null)
+            return false;
+
+        try
+        {
+            randomGenerator = new RandomChunkLayoutGenerator(
+                generationSettings,
+                resourceManager,
+                poolManager,
+                player,
+                playerColliders,
+                mapOriginXY,
+                chunkLength);
+            return true;
+        }
+        catch (ArgumentException exception)
+        {
+            Debug.LogError("[AeroShift Map] " + exception.Message, this);
+            return false;
+        }
+    }
+
+    private RandomChunkLayoutGenerator.Chunk GetRandomChunk(int index)
+    {
+        if (!EnsureRandomGenerator())
+            return null;
+
+        float survivalSeconds = GameManager.Instance != null
+            ? GameManager.Instance.SurvivalSeconds
+            : 0f;
+        MapGenerationDifficultyData difficulty = GetGenerationDifficulty(survivalSeconds);
+        if (difficulty == null)
+            return null;
+
+        float worldSpeed = worldMovement != null
+            ? Mathf.Abs(worldMovement.CurrentSpeed)
+            : 30f;
+        return randomGenerator.GetOrCreate(index, difficulty, seed, worldSpeed);
     }
 
     public MapGenerationDifficultyData GetGenerationDifficulty(float survivalSeconds)

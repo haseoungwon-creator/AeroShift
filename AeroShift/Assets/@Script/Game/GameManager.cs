@@ -46,6 +46,13 @@ public class GameManager : MonoBehaviour
     [SerializeField] private SkillSelectionManager skillSelectionManager;
 
     public GameStates CurrentState { get; private set; }
+    public float SurvivalSeconds { get; private set; }
+
+    private void Update()
+    {
+        if (CurrentState == GameStates.Playing)
+            SurvivalSeconds += Time.deltaTime;
+    }
 
     public GameMode CurrentGameMode =>
         mapManager != null
@@ -86,7 +93,7 @@ public class GameManager : MonoBehaviour
     {
         SetGameMode(GameMode.Random);
     }
-    
+
     public void SetGameMode(GameMode mode)
     {
         if (CurrentState == GameStates.Playing || mapManager == null)
@@ -123,6 +130,7 @@ public class GameManager : MonoBehaviour
         switch (state)
         {
             case GameStates.Ready:
+                SurvivalSeconds = 0f;
                 worldMoveMent.SetMovement(false);
                 worldMoveMent.ResetPosition();
                 scoreManager.StopScoring();

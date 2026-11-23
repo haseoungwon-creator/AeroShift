@@ -1,4 +1,3 @@
-
 {
   "schemaVersion": 1,
   "difficultyIntervalSeconds": 30,
@@ -16,11 +15,26 @@
       "minStones": 3,
       "maxStones": 5,
       "weights": [
-        {"prefabId": "ST_Stone1", "weight": 30},
-        {"prefabId": "ST_Stone2", "weight": 25},
-        {"prefabId": "ST_Stone3", "weight": 20},
-        {"prefabId": "ST_Stone4", "weight": 15},
-        {"prefabId": "ST_Stone5", "weight": 10}
+        {
+          "prefabId": "ST_Stone1",
+          "weight": 30
+        },
+        {
+          "prefabId": "ST_Stone2",
+          "weight": 25
+        },
+        {
+          "prefabId": "ST_Stone3",
+          "weight": 20
+        },
+        {
+          "prefabId": "ST_Stone4",
+          "weight": 15
+        },
+        {
+          "prefabId": "ST_Stone5",
+          "weight": 10
+        }
       ]
     },
     {
@@ -29,11 +43,26 @@
       "minStones": 5,
       "maxStones": 7,
       "weights": [
-        {"prefabId": "ST_Stone1", "weight": 25},
-        {"prefabId": "ST_Stone2", "weight": 25},
-        {"prefabId": "ST_Stone3", "weight": 20},
-        {"prefabId": "ST_Stone4", "weight": 20},
-        {"prefabId": "ST_Stone5", "weight": 10}
+        {
+          "prefabId": "ST_Stone1",
+          "weight": 25
+        },
+        {
+          "prefabId": "ST_Stone2",
+          "weight": 25
+        },
+        {
+          "prefabId": "ST_Stone3",
+          "weight": 20
+        },
+        {
+          "prefabId": "ST_Stone4",
+          "weight": 20
+        },
+        {
+          "prefabId": "ST_Stone5",
+          "weight": 10
+        }
       ]
     },
     {
@@ -42,11 +71,26 @@
       "minStones": 7,
       "maxStones": 9,
       "weights": [
-        {"prefabId": "ST_Stone1", "weight": 20},
-        {"prefabId": "ST_Stone2", "weight": 25},
-        {"prefabId": "ST_Stone3", "weight": 20},
-        {"prefabId": "ST_Stone4", "weight": 20},
-        {"prefabId": "ST_Stone5", "weight": 15}
+        {
+          "prefabId": "ST_Stone1",
+          "weight": 20
+        },
+        {
+          "prefabId": "ST_Stone2",
+          "weight": 25
+        },
+        {
+          "prefabId": "ST_Stone3",
+          "weight": 20
+        },
+        {
+          "prefabId": "ST_Stone4",
+          "weight": 20
+        },
+        {
+          "prefabId": "ST_Stone5",
+          "weight": 15
+        }
       ]
     },
     {
@@ -55,11 +99,26 @@
       "minStones": 9,
       "maxStones": 11,
       "weights": [
-        {"prefabId": "ST_Stone1", "weight": 15},
-        {"prefabId": "ST_Stone2", "weight": 20},
-        {"prefabId": "ST_Stone3", "weight": 20},
-        {"prefabId": "ST_Stone4", "weight": 25},
-        {"prefabId": "ST_Stone5", "weight": 20}
+        {
+          "prefabId": "ST_Stone1",
+          "weight": 15
+        },
+        {
+          "prefabId": "ST_Stone2",
+          "weight": 20
+        },
+        {
+          "prefabId": "ST_Stone3",
+          "weight": 20
+        },
+        {
+          "prefabId": "ST_Stone4",
+          "weight": 25
+        },
+        {
+          "prefabId": "ST_Stone5",
+          "weight": 20
+        }
       ]
     },
     {
@@ -68,12 +127,57 @@
       "minStones": 11,
       "maxStones": 13,
       "weights": [
-        {"prefabId": "ST_Stone1", "weight": 10},
-        {"prefabId": "ST_Stone2", "weight": 15},
-        {"prefabId": "ST_Stone3", "weight": 20},
-        {"prefabId": "ST_Stone4", "weight": 25},
-        {"prefabId": "ST_Stone5", "weight": 30}
+        {
+          "prefabId": "ST_Stone1",
+          "weight": 10
+        },
+        {
+          "prefabId": "ST_Stone2",
+          "weight": 15
+        },
+        {
+          "prefabId": "ST_Stone3",
+          "weight": 20
+        },
+        {
+          "prefabId": "ST_Stone4",
+          "weight": 25
+        },
+        {
+          "prefabId": "ST_Stone5",
+          "weight": 30
+        }
       ]
+    }
+  ],
+  "areaMinX": -40,
+  "areaMaxX": 40,
+  "areaMinY": 5,
+  "areaMaxY": 50,
+  "stoneLocalZ": 0,
+  "safeZoneClearance": 1,
+  "playerMoveSpeedX": 25,
+  "playerMoveSpeedY": 50,
+  "stones": [
+    {
+      "prefabId": "ST_Stone1",
+      "baseScale": 12
+    },
+    {
+      "prefabId": "ST_Stone2",
+      "baseScale": 12
+    },
+    {
+      "prefabId": "ST_Stone3",
+      "baseScale": 12
+    },
+    {
+      "prefabId": "ST_Stone4",
+      "baseScale": 12
+    },
+    {
+      "prefabId": "ST_Stone5",
+      "baseScale": 12
     }
   ]
 }
