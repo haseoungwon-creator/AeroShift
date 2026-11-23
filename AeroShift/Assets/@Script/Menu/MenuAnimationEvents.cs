@@ -28,9 +28,4 @@ public class MenuAnimationEvents : MonoBehaviour
             menuButtonController.ShowMainMenuUI();
     }
 
-    public void LoadGameScene()
-    {
-        if (menuButtonController != null)
-            menuButtonController.LoadGameScene();
-    }
 }

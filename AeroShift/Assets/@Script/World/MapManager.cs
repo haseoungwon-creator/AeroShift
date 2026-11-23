@@ -5,6 +5,8 @@ using UnityEngine;
 public sealed class MapManager : MonoBehaviour
 {
     [SerializeField] private TextAsset settingsJson;
+    [SerializeField] private TextAsset generationSettingsJson;
+    private MapGenerationSettingsData generationSettings;
     private bool settingsLoaded;
 
     [SerializeField] private Transform player;
@@ -33,6 +35,22 @@ public sealed class MapManager : MonoBehaviour
 
     private int seed;
     private bool allow180DegreeRotation;
+
+    public GameMode CurrentGameMode { get; private set; } = GameMode.Regular;
+
+    public void SetGameMode(GameMode mode)
+    {
+        if (CurrentGameMode == mode || GameManager.IsPlaying)
+            return;
+
+        if (mode == GameMode.Random && !TryLoadGenerationSettings())
+            return;
+
+        CurrentGameMode = mode;
+
+        if (initialized)
+            ResetMaps();
+    }
 
     private struct ActiveChunk
     {
@@ -626,6 +644,104 @@ public sealed class MapManager : MonoBehaviour
         collisionCheckInterval = data.collisionCheckInterval;
         allow180DegreeRotation = data.allow180DegreeRotation;
         settingsLoaded = true;
+    }
+
+    private bool TryLoadGenerationSettings()
+    {
+        if (generationSettings != null)
+            return true;
+
+        TextAsset json = generationSettingsJson != null
+            ? generationSettingsJson
+            : Resources.Load<TextAsset>("Config/Maps/MapGenerationSettings");
+
+        if (json == null)
+        {
+            Debug.LogError("[AeroShift Map] MapGenerationSettings.json not found.", this);
+            return false;
+        }
+
+        MapGenerationSettingsData data;
+
+        try
+        {
+            data = JsonUtility.FromJson<MapGenerationSettingsData>(json.text);
+        }
+        catch (ArgumentException exception)
+        {
+            Debug.LogError("[AeroShift Map] Invalid generation JSON: " + exception.Message, this);
+            return false;
+        }
+
+        if (data == null || data.schemaVersion != 1 ||
+            data.difficultyIntervalSeconds <= 0f ||
+            float.IsNaN(data.difficultyIntervalSeconds) ||
+            float.IsInfinity(data.difficultyIntervalSeconds) ||
+            data.maxDifficultyLevel != 5 ||
+            data.levels == null || data.levels.Length != data.maxDifficultyLevel ||
+            data.minScale <= 0f || float.IsNaN(data.minScale) || float.IsInfinity(data.minScale) ||
+            data.maxScale < data.minScale || float.IsNaN(data.maxScale) || float.IsInfinity(data.maxScale) ||
+            data.maxOverlapRatio < 0f || data.maxOverlapRatio > 1f ||
+            float.IsNaN(data.maxOverlapRatio) ||
+            data.maxSafeZoneShiftRatio < 0f || data.maxSafeZoneShiftRatio > 1f ||
+            float.IsNaN(data.maxSafeZoneShiftRatio) ||
+            data.placementAttemptLimit <= 0)
+        {
+            Debug.LogError("[AeroShift Map] Invalid generation settings.", this);
+            return false;
+        }
+
+        for (int i = 0; i < data.levels.Length; i++)
+        {
+            MapGenerationDifficultyData level = data.levels[i];
+
+            if (level == null || level.level != i + 1 ||
+                level.safeZoneSizeRatio <= 0f || level.safeZoneSizeRatio > 1f ||
+                float.IsNaN(level.safeZoneSizeRatio) ||
+                level.minStones < 0 || level.maxStones < level.minStones ||
+                level.weights == null || level.weights.Length == 0)
+            {
+                Debug.LogError("[AeroShift Map] Invalid difficulty level: " + (i + 1), this);
+                return false;
+            }
+
+            HashSet<string> prefabNames = new HashSet<string>(StringComparer.Ordinal);
+            long totalWeight = 0;
+
+            for (int j = 0; j < level.weights.Length; j++)
+            {
+                MapGenerationStoneWeight weight = level.weights[j];
+
+                if (weight == null || string.IsNullOrEmpty(weight.prefabId) ||
+                    weight.weight <= 0 || !prefabNames.Add(weight.prefabId))
+                {
+                    Debug.LogError("[AeroShift Map] Invalid stone weight at level: " + level.level, this);
+                    return false;
+                }
+
+                totalWeight += weight.weight;
+            }
+
+            if (totalWeight <= 0)
+                return false;
+        }
+
+        generationSettings = data;
+        return true;
+    }
+
+    public MapGenerationDifficultyData GetGenerationDifficulty(float survivalSeconds)
+    {
+        if (CurrentGameMode != GameMode.Random || !TryLoadGenerationSettings())
+            return null;
+
+        int index = Mathf.Clamp(
+            Mathf.FloorToInt(Mathf.Max(0f, survivalSeconds) /
+                generationSettings.difficultyIntervalSeconds),
+            0,
+            generationSettings.levels.Length - 1);
+
+        return generationSettings.levels[index];
     }
 
     private void Awake()

@@ -2085,6 +2085,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapManager
   settingsJson: {fileID: 4900000, guid: d2ddbc6c3bd04492baa68ef7d675a74f, type: 3}
+  generationSettingsJson: {fileID: 4900000, guid: 62f7d953b4d684f4287443d53a7338c8, type: 3}
   player: {fileID: 4959434284361090775}
   poolManager: {fileID: 318424434}
   resourceManager: {fileID: 1808679688}

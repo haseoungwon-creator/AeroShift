@@ -1,3 +1,4 @@
+
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -7,6 +8,7 @@ public class MenuButtonController : MonoBehaviour
     [SerializeField] private Animator menuAnimator;
     [SerializeField] private GameObject mainMenuUI;
     [SerializeField] private GameObject skinUI;
+    [SerializeField] private GameObject modeSelectionUI;
     [SerializeField] private string gameSceneName = "Main";
 
     private bool isStarting;
@@ -17,6 +19,7 @@ public class MenuButtonController : MonoBehaviour
     {
         ShowMainMenuUI();
         HindSkinUI();
+        HideModeSelectionUI();
     }
 
     public void Play()
@@ -27,6 +30,76 @@ public class MenuButtonController : MonoBehaviour
         isStarting = true;
         isAnimating = true;
         menuAnimator.SetTrigger("Play");
+    }
+
+    public void ShowModeSelectionUI()
+    {
+        if (isLoading)
+            return;
+
+        if (mainMenuUI != null)
+            mainMenuUI.SetActive(false);
+
+        if (skinUI != null)
+            skinUI.SetActive(false);
+
+        if (modeSelectionUI != null)
+            modeSelectionUI.SetActive(true);
+
+        isStarting = false;
+        isAnimating = false;
+    }
+
+    public void HideModeSelectionUI()
+    {
+        if (modeSelectionUI != null)
+            modeSelectionUI.SetActive(false);
+    }
+
+    public void BackFromModeSelection()
+    {
+        if (isLoading)
+            return;
+
+        HideModeSelectionUI();
+        ShowMainMenuUI();
+    }
+
+    public void PlayRegularMode()
+    {
+        LoadGame(GameMode.Regular);
+    }
+
+    public void PlayRandomMode()
+    {
+        LoadGame(GameMode.Random);
+    }
+
+    private void LoadGame(GameMode mode) 
+    {
+        if (isLoading)
+            return;
+
+        isLoading = true;
+        isStarting = true;
+
+        GameManager.SetSelectedGameMode(mode);
+
+        StartCoroutine(LoadSceneAsync());
+    }
+
+    private IEnumerator LoadSceneAsync()
+    {
+        AsyncOperation operation = SceneManager.LoadSceneAsync(gameSceneName);
+
+        if (operation == null)
+        {
+            isLoading = false;
+            isStarting = false;
+            yield break;
+        }
+
+        yield return operation;
     }
 
     public void Airplane()
@@ -77,29 +150,7 @@ public class MenuButtonController : MonoBehaviour
         if (mainMenuUI != null)
             mainMenuUI.SetActive(true);
 
+        isStarting = false;
         isAnimating = false;
-    }
-
-    public void LoadGameScene()
-    {
-        if (isLoading)
-            return;
-
-        StartCoroutine(LoadSceneAsync());
-    }
-
-    private IEnumerator LoadSceneAsync()
-    {
-        isLoading = true;
-
-        AsyncOperation operation = SceneManager.LoadSceneAsync(gameSceneName);
-
-        if (operation == null)
-        {
-            isLoading = false;
-            yield break;
-        }
-
-        yield return operation;
     }
 }
